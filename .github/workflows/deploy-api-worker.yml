@@ -23,8 +23,7 @@ jobs:
           cache-dependency-path: api-worker/package-lock.json
 
       - name: Install Dependencies
-        run: npm ci
-        working-directory: api-worker
+        run: cd api-worker && npm ci
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
@@ -32,4 +31,5 @@ jobs:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           command: deploy
-        working-directory: api-worker
+        env:
+          WRANGLER_HOME: ./api-worker
