@@ -1,0 +1,22 @@
+{
+  "name": "ai-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-03-01",
+  "ai": {
+    "binding": "AI"
+  },
+  "vectorize": [
+    {
+      "binding": "VECTORIZE",
+      "index_name": "tgdd-products"
+    },
+    {
+      "binding": "VECTORIZE_FAQ",
+      "index_name": "tgdd-faq"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "log_level": "info"
+  }
+}

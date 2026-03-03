@@ -1,0 +1,11 @@
+# Ignore large files - don't commit to git
+*.jar
+*.war
+*.ear
+*.tar.gz
+*.zip
+node_modules/
+target/
+dist/
+build/
+*.log

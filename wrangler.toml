@@ -1,0 +1,8 @@
+name = "tgdd"
+compatibility_date = "2024-03-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tgdd-db"
+database_id = "92130798-781f-4f84-b289-f94cf781dd0f"
+preview_database_id = "92130798-781f-4f84-b289-f94cf781dd0f"

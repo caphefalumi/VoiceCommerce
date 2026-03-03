@@ -1,0 +1,27 @@
+{
+  "collectionQueried": "products",
+  "docsFound": 5,
+  "firstDocKeys": [
+    "_id",
+    "url",
+    "name",
+    "price",
+    "originalPrice",
+    "category",
+    "brand",
+    "rating",
+    "reviewCount",
+    "stock",
+    "description",
+    "images",
+    "specs",
+    "reviews",
+    "__v",
+    "createdAt",
+    "updatedAt",
+    "embedding"
+  ],
+  "idType": "object / ObjectId",
+  "firstDocId": "698d88579e285fcfc4ca9edc",
+  "firstDocName": "Đồng hồ định vị trẻ em Kidcare Sight S1"
+}
