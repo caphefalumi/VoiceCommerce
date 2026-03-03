@@ -1,0 +1,73 @@
+---
+- name: Setup Cloudflare Vectorize Indexes via Wrangler
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    cloudflare_account_id: "cf5f13bd5550ea98e75fea6f3ddd321b"
+    vectorize_indexes:
+      - name: "tgdd-products"
+        dimensions: 768
+        metric: "cosine"
+        description: "Product Voice Search Embeddings"
+      - name: "tgdd-faq"
+        dimensions: 768
+        metric: "cosine"
+        description: "FAQ Voice Search Embeddings"
+
+  environment:
+    CLOUDFLARE_API_TOKEN: "{{ cloudflare_api_token }}"
+    CLOUDFLARE_ACCOUNT_ID: "{{ cloudflare_account_id }}"
+
+  tasks:
+    - name: Check wrangler is installed
+      ansible.builtin.command: wrangler --version
+      register: wrangler_version
+      changed_when: false
+      failed_when: wrangler_version.rc != 0
+
+    - name: Show wrangler version
+      ansible.builtin.debug:
+        msg: "Using {{ wrangler_version.stdout }}"
+
+    - name: List existing Vectorize indexes
+      ansible.builtin.command: wrangler vectorize list
+      register: existing_indexes
+      changed_when: false
+      failed_when: false
+
+    - name: Show existing indexes
+      ansible.builtin.debug:
+        msg: "{{ existing_indexes.stdout_lines }}"
+
+    - name: Create Vectorize index if not exists
+      ansible.builtin.command: >
+        wrangler vectorize create {{ item.name }}
+        --dimensions={{ item.dimensions }}
+        --metric={{ item.metric }}
+      register: create_result
+      changed_when: "'Successfully created' in create_result.stdout"
+      failed_when:
+        - create_result.rc != 0
+        - "'already exists' not in create_result.stderr"
+        - "'already exists' not in create_result.stdout"
+      loop: "{{ vectorize_indexes }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Show creation results
+      ansible.builtin.debug:
+        msg: "{{ item.stdout | default(item.stderr) }}"
+      loop: "{{ create_result.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Verify indexes were created
+      ansible.builtin.command: wrangler vectorize list
+      register: final_indexes
+      changed_when: false
+
+    - name: Show final index list
+      ansible.builtin.debug:
+        msg: "{{ final_indexes.stdout_lines }}"
