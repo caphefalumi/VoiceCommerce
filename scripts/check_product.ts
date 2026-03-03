@@ -1,7 +1,7 @@
 
 import mongoose from 'mongoose';
 
-const MONGODB_URI = 'mongodb://localhost:27017/tgdd';
+const MONGODB_URI = 'mongodb+srv://admin:%40dminpr0@cluster0.in5tnwg.mongodb.net/tgdd';
 
 await mongoose.connect(MONGODB_URI);
 const db = mongoose.connection.db;

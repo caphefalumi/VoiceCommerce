@@ -10,20 +10,6 @@ services:
       - mongodb_data:/data/db
     environment:
       MONGO_INITDB_DATABASE: tgdd
-
-  api:
-    build:
-      context: ./spring-backend
-      dockerfile: Dockerfile
-    container_name: tgdd-api
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/tgdd
-      SPRING_DATA_MONGODB_DATABASE: tgdd
-      SERVER_PORT: 8080
-    depends_on:
-      - mongodb
     restart: unless-stopped
 
 volumes:

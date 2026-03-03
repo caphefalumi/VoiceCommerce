@@ -44,13 +44,70 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 
 // ── PRODUCTS ───────────────────────────────────────────────────────────────────
 
-// GET /api/products - List all products
+// GET /api/products - List all products with filtering
 app.get('/api/products', async (c) => {
   try {
-    const { results } = await c.env.DB.prepare(
-      'SELECT id, name, price, category, brand, description, images, specs, reviews, url FROM products LIMIT 100'
-    ).all();
-    return c.json({ products: results });
+    const { category, search, minPrice, maxPrice } = c.req.query();
+    
+    let query = 'SELECT id, name, price, original_price, category, brand, rating, review_count, stock, description, images, specs, reviews, url, created_at FROM products WHERE 1=1';
+    const params: any[] = [];
+    
+    if (category && category.trim() !== '') {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+    
+    if (search && search.trim() !== '') {
+      query += ' AND (name LIKE ? OR description LIKE ?)';
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern);
+    }
+    
+    if (minPrice && minPrice.trim() !== '') {
+      query += ' AND price >= ?';
+      params.push(parseFloat(minPrice));
+    }
+    
+    if (maxPrice && maxPrice.trim() !== '') {
+      query += ' AND price <= ?';
+      params.push(parseFloat(maxPrice));
+    }
+    
+    query += ' LIMIT 200';
+    
+    const { results } = await c.env.DB.prepare(query).bind(...params).all();
+    
+    // Transform results to include computed fields
+    const products = (results || []).map((row: any) => {
+      const price = row.price || 0;
+      const originalPrice = row.original_price || price;
+      const discountPercentage = originalPrice > price 
+        ? Math.round(((originalPrice - price) / originalPrice) * 100) 
+        : 0;
+      
+      return {
+        id: row.id,
+        name: row.name,
+        brand: row.brand || 'Unknown',
+        price: price,
+        originalPrice: originalPrice,
+        discountPercentage: discountPercentage,
+        isFlashSale: discountPercentage >= 10,
+        isNew: false,
+        category: row.category,
+        rating: row.rating || 0,
+        reviewCount: row.review_count || 0,
+        stock: row.stock || 0,
+        description: row.description,
+        images: row.images ? JSON.parse(row.images) : [],
+        specs: row.specs ? JSON.parse(row.specs) : [],
+        reviews: row.reviews ? JSON.parse(row.reviews) : [],
+        url: row.url,
+        createdAt: row.created_at,
+      };
+    });
+    
+    return c.json({ products });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -61,13 +118,42 @@ app.get('/api/products/:id', async (c) => {
   const id = c.req.param('id');
   try {
     const { results } = await c.env.DB.prepare(
-      'SELECT id, name, price, category, brand, description, images, specs, reviews, url FROM products WHERE id = ?'
+      'SELECT id, name, price, original_price, category, brand, rating, review_count, stock, description, images, specs, reviews, url, created_at FROM products WHERE id = ?'
     ).bind(id).all();
     
     if (results.length === 0) {
       return c.json({ error: 'Product not found' }, 404);
     }
-    return c.json({ product: results[0] });
+    
+    const row = results[0] as any;
+    const price = row.price || 0;
+    const originalPrice = row.original_price || price;
+    const discountPercentage = originalPrice > price 
+      ? Math.round(((originalPrice - price) / originalPrice) * 100) 
+      : 0;
+    
+    const product = {
+      id: row.id,
+      name: row.name,
+      brand: row.brand || 'Unknown',
+      price: price,
+      originalPrice: originalPrice,
+      discountPercentage: discountPercentage,
+      isFlashSale: discountPercentage >= 10,
+      isNew: false,
+      category: row.category,
+      rating: row.rating || 0,
+      reviewCount: row.review_count || 0,
+      stock: row.stock || 0,
+      description: row.description,
+      images: row.images ? JSON.parse(row.images) : [],
+      specs: row.specs ? JSON.parse(row.specs) : [],
+      reviews: row.reviews ? JSON.parse(row.reviews) : [],
+      url: row.url,
+      createdAt: row.created_at,
+    };
+    
+    return c.json({ product });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }

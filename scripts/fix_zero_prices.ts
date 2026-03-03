@@ -8,7 +8,7 @@
 import mongoose from 'mongoose';
 import { writeFileSync } from 'fs';
 
-const MONGODB_URI = 'mongodb://localhost:27017/tgdd';
+const MONGODB_URI = 'mongodb+srv://admin:%40dminpr0@cluster0.in5tnwg.mongodb.net/tgdd';
 
 const randomPrice = () =>
   Math.round((2_000_000 + Math.random() * 18_000_000) / 100_000) * 100_000;

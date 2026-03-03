@@ -6,18 +6,24 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+.sisyphus/
 node_modules
 dist
 dist-ssr
 *.local
 
-# Build outputs
+# Java/Spring
+spring-backend/
+spring-backend-removed/
 target/
-build/
 *.class
 *.jar
 *.war
+
+# Terraform
+infra/terraform/*.tfvars
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl
 
 # Environment files
 .env

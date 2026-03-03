@@ -1,32 +1,10 @@
-# Railway Project for Backend
-resource "railway_project" "tgdd_backend" {
-  name = "tgdd-voice-commerce"
-}
-
-# Staging Environment
-resource "railway_environment" "staging" {
-  name       = "staging"
-  project_id = railway_project.tgdd_backend.id
-}
-
-# Spring Backend Service (minimal - mainly for any non-AI operations)
-resource "railway_service" "spring_backend" {
-  name       = "spring-backend"
-  project_id = railway_project.tgdd_backend.id
-}
-
-resource "railway_service_domain" "spring_backend_domain" {
-  environment_id = railway_environment.staging.id
-  service_id     = railway_service.spring_backend.id
-}
-
-# Cloudflare D1 Database
+# Cloudflare D1 Database for Products, Users, Cart
 resource "cloudflare_d1" "tgdd_db" {
   account_id = var.cloudflare_account_id
   name       = "tgdd-db"
 }
 
-# Cloudflare Vectorize Index for AI
+# Cloudflare Vectorize Index for Product Voice Search
 resource "cloudflare_vectorize_index" "voice_search_index" {
   account_id  = var.cloudflare_account_id
   name        = "tgdd-products"
@@ -35,6 +13,7 @@ resource "cloudflare_vectorize_index" "voice_search_index" {
   description = "Product Voice Search Embeddings"
 }
 
+# Cloudflare Vectorize Index for FAQ Search
 resource "cloudflare_vectorize_index" "faq_index" {
   account_id  = var.cloudflare_account_id
   name        = "tgdd-faq"
