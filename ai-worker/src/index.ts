@@ -354,6 +354,19 @@ RULES:
       if (s !== -1 && e !== -1) jsonStr = jsonStr.substring(s, e + 1);
       llmJson = JSON.parse(jsonStr);
 
+      // Guard: LLM sometimes returns a stringified JSON object as response_text.
+      // Unwrap it and promote intent/action/response_text from the inner object.
+      if (typeof llmJson.response_text === 'string' && llmJson.response_text.trimStart().startsWith('{')) {
+        try {
+          const inner = JSON.parse(llmJson.response_text);
+          if (inner.intent && inner.action && inner.response_text) {
+            llmJson = inner;
+          }
+        } catch {
+          // not a JSON string, leave as-is
+        }
+      }
+
       // --- PRODUCT SEARCH / FILTER - LIST MULTIPLE PRODUCTS (Vectorize RAG) ---
       if ((llmJson.intent === 'product_search' || llmJson.intent === 'product_filter_price') && llmJson.action?.query) {
         try {
