@@ -16,7 +16,6 @@
     }
   ],
   "observability": {
-    "enabled": true,
-    "log_level": "info"
+    "enabled": true
   }
 }
