@@ -5,7 +5,7 @@ import { useCartStore } from '../store/cart';
 import { useAuthStore } from '../store/auth';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-import { API_BASE } from '../lib/api';
+import { AI_BASE } from '../lib/api';
 
 const AudioVisualizerComponent = ({ audioContextRef, isRecording }: { audioContextRef: React.MutableRefObject<AudioContext | null>, isRecording: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -81,88 +81,7 @@ const AudioVisualizerComponent = ({ audioContextRef, isRecording }: { audioConte
   );
 };
 
-const convertToWav = async (audioBlob: Blob): Promise<string> => {
-  const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  const audioContext = new AudioContextClass({ sampleRate: 16000 });
-  const arrayBuffer = await audioBlob.arrayBuffer();
-  const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-  
-  const pcmData = audioBuffer.getChannelData(0); 
-  const wavBuffer = new ArrayBuffer(44 + pcmData.length * 2);
-  const view = new DataView(wavBuffer);
-  
-  const writeString = (offset: number, string: string) => {
-    for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
-  };
-  
-  writeString(0, 'RIFF');
-  view.setUint32(4, 36 + pcmData.length * 2, true);
-  writeString(8, 'WAVE');
-  writeString(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, 1, true); // Mono
-  view.setUint32(24, 16000, true); // Sample Rate
-  view.setUint32(28, 16000 * 2, true); // Byte Rate
-  view.setUint16(32, 2, true); // Block Align
-  view.setUint16(34, 16, true); // Bits per Sample
-  writeString(36, 'data');
-  view.setUint32(40, pcmData.length * 2, true);
-  
-  let offset = 44;
-  for (let i = 0; i < pcmData.length; i++) {
-    const s = Math.max(-1, Math.min(1, pcmData[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    offset += 2;
-  }
-  
-  const wavBlob = new Blob([view], { type: 'audio/wav' });
-  
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.readAsDataURL(wavBlob);
-  });
-};
-
 type AssistantState = 'idle' | 'recording' | 'processing';
-
-interface VoiceAction {
-  type: 'search' | 'add_to_cart' | 'remove_from_cart' | 'checkout' | 'list_products' | 'compare' | 'create_ticket' | 'order_status' | 'filter' | 'chat';
-  query?: string | null;
-  selection?: string | null;
-  payload?: {
-    results?: Array<{
-      id: string;
-      name: string;
-      price: number;
-      brand?: string;
-      category?: string;
-      images?: string[];
-    }>;
-    product?: {
-      id: string;
-      name: string;
-      price: number;
-      brand?: string;
-      category?: string;
-      images?: string[];
-    };
-  };
-}
-
-interface VoiceResponse {
-  intent?: string;
-  action?: VoiceAction;
-  response_text?: string;
-  transcribed_text?: string;
-  // audio returned as base64 by the Worker / Java backend
-  audio_base64?: string | null;
-  error?: string;
-}
 
 export function VoiceAssistant() {
   const [state, setState] = useState<AssistantState>('idle');
@@ -185,7 +104,6 @@ export function VoiceAssistant() {
   const removeFromCart = useCartStore((s) => s.removeFromCart);
   const cartItems = useCartStore((s) => s.items);
   const user = useAuthStore((s) => s.user);
-  const lastProductsRef = useRef<Array<any>>([]);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const showFeedback = useCallback((text: string, duration = 5000) => {
@@ -194,162 +112,75 @@ export function VoiceAssistant() {
     feedbackTimeoutRef.current = setTimeout(() => setFeedback(null), duration);
   }, []);
 
-  const handleAction = useCallback((data: VoiceResponse) => {
-    const { action, response_text } = data;
+  // Cleanup WebSocket logic and state. We'll use traditional HTTP now.
+  useEffect(() => {
+    // If there's any lingering auto-connection logic, we remove it here.
+  }, []);
 
-    if (response_text) {
-      showFeedback(response_text, 15000); // Longer duration for product lists
-    }
-
-    if (!action) return;
-
-    switch (action.type) {
-      case 'search':
-      case 'list_products':
-      case 'filter':
-        if (action.payload?.results && action.payload.results.length > 0) {
-          // Store results for selection - user can say "chọn cái đầu tiên"
-          lastProductsRef.current = action.payload.results;
-          // Show product list in feedback
-          const listText = action.payload.results.map((p, i) => 
-            `${i+1}. ${p.name} - ${p.price?.toLocaleString('vi-VN')} VND`
-          ).join('\n');
-          showFeedback(`${response_text}\n\n${listText}`, 20000);
-        } else if (action.query) {
-          navigate({ to: '/products', search: { search: action.query } as any });
-        }
-        break;
-      case 'add_to_cart':
-        if (!user) {
-          showFeedback('Xin vui lòng đăng nhập để thêm vào giỏ hàng.');
-          navigate({ to: '/login', search: { redirect: window.location.pathname } as any });
-          break;
-        }
-
-        if (action.payload?.product) {
-          // Worker found the product (via Vectorize or context) — add directly
-          addToCart(action.payload.product as import('../types/product').Product);
-          showFeedback(`✅ Đã thêm ${action.payload.product.name} vào giỏ hàng!`);
-        } else if (action.selection && !action.query && lastProductsRef.current.length > 0) {
-          // User selected by position (e.g. "cái đầu tiên") but Worker had no context —
-          // use our locally-cached product list
-          const selIdx = parseInt(action.selection, 10) - 1;
-          const product = lastProductsRef.current[Math.min(Math.max(selIdx, 0), lastProductsRef.current.length - 1)];
-          addToCart(product as import('../types/product').Product);
-          showFeedback(`✅ Đã thêm ${product.name} vào giỏ hàng!`);
-        } else if (action.query) {
-          // Worker couldn't find by name — search the backend from the browser (accessible)
-          fetch(`${API_BASE}/api/products?search=${encodeURIComponent(action.query)}`)
-            .then(res => res.json())
-            .then((products: any[]) => {
-              if (products && products.length > 0) {
-                const product = products[0];
-                addToCart(product as import('../types/product').Product);
-                showFeedback(`✅ Đã thêm ${product.name} vào giỏ hàng!`);
-              } else {
-                showFeedback('❌ Không tìm thấy sản phẩm phù hợp.');
-              }
-            })
-            .catch(() => showFeedback('❌ Không thể tìm sản phẩm. Vui lòng thử lại.'));
-        }
-        break;
-
-      case 'remove_from_cart':
-        if (cartItems.length > 0) {
-          const lastItem = cartItems[cartItems.length - 1];
-          removeFromCart(lastItem.id);
-          showFeedback(`🗑️ Đã xóa ${lastItem.name} khỏi giỏ hàng.`);
-        } else {
-          showFeedback('Giỏ hàng đang trống.');
-        }
-        break;
-      case 'compare':
-        if (action.payload?.results && action.payload.results.length >= 2) {
-          lastProductsRef.current = action.payload.results;
-          const compareText = action.payload.results.map((p, i) => 
-            `${i+1}. ${p.name} - ${p.price?.toLocaleString('vi-VN')} VND`
-          ).join('\n');
-          showFeedback(`📊 So sánh:\n${compareText}`, 20000);
-        } else if (action.query) {
-          navigate({ to: '/products', search: { search: action.query } as any });
-        }
-        break;
-      case 'checkout':
-        navigate({ to: '/checkout' });
-        break;
-      case 'order_status':
-        // No /orders route exists — the feedback message from the Worker suffices
-        break;
-      case 'create_ticket':
-        showFeedback('🎫 Đã ghi nhận! Nhân viên CSKH sẽ liên hệ bạn trong 24 giờ qua SĐT hoặc email đã đăng ký.');
-        break;
-      case 'chat':
-      default:
-        // response_text already shown above
-        break;
-    }
-  }, [navigate, addToCart, removeFromCart, cartItems, showFeedback, user]);
-
+  // Send audio blob as base64 to /voice-process
   const processAudio = async (blob: Blob) => {
     setState('processing');
     try {
-      const base64 = await convertToWav(blob);
-      // Build context with last listed products so the Worker can use them for selection
-      const voiceContext: Record<string, any> = {};
-      if (lastProductsRef.current.length > 0) {
-        voiceContext.last_products = lastProductsRef.current;
-      }
-      const response = await fetch(`${API_BASE}/api/voice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          audio_base64: base64,
-          context: voiceContext
-        })
-      });
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        
+        const response = await fetch(`${AI_BASE}/voice-process`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audio_base64: base64Audio,
+            session_id: sessionId,
+            context: {
+              user_id: user?.id,
+              last_products: [] // Optional: could track UI state here
+            }
+          })
+        });
 
-      if (!response.ok) throw new Error('Voice API failed');
-
-      const data: VoiceResponse = await response.json();
-
-      // Play TTS audio if the backend returned one
-      if (data.audio_base64) {
-        try {
-          const audio = new Audio(`data:audio/wav;base64,${data.audio_base64}`);
-          await audio.play();
-        } catch (e) {
-          console.warn('Audio playback failed:', e);
+        if (!response.ok) throw new Error('Voice processing failed');
+        
+        const data = await response.json();
+        
+        if (data.transcribed_text) {
+          showFeedback(`🗣️ Bạn: ${data.transcribed_text}`, 5000);
         }
-      } else if (data.response_text) {
-        // Fallback to browser's native TTS
-        try {
-          const text = data.response_text;
-          // Simple regex to detect if the response contains Vietnamese characters
-          const isVietnamese = /[àáãạảăắằẳẵặâấầẩẫậèéẹẻẽêềếểễệđìíĩỉịòóõọỏôốồổỗộơớờởỡợùúũụủưứừửữựỳýỹỷỵ]/i.test(text);
 
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = isVietnamese ? 'vi-VN' : 'en-US';
-          utterance.rate = 1.0;
-          
-          // Try to find a matching voice
-          const voices = window.speechSynthesis.getVoices();
-          const targetVoice = voices.find(v => 
-            v.lang.toLowerCase().includes(isVietnamese ? 'vi' : 'en')
-          );
-          if (targetVoice) utterance.voice = targetVoice;
-
-          window.speechSynthesis.speak(utterance);
-        } catch (e) {
-          console.warn('Native TTS failed:', e);
+        // Handle specific actions returned by the backend (Cart/Navigation)
+        if (data.action?.type === 'checkout') {
+          navigate({ to: '/checkout' });
+        } else if (data.action?.type === 'search' && data.action.query) {
+          navigate({ to: '/products', search: { search: data.action.query } as any });
+        } else if (data.action?.type === 'add_to_cart' && data.action.payload?.product) {
+          const p = data.action.payload.product;
+          for (let i = 0; i < (data.action.payload.quantity || 1); i++) {
+            addToCart(p, true);
+          }
+        } else if (data.action?.type === 'remove_from_cart') {
+          const itemToRemove = cartItems[cartItems.length - 1]; // Fallback
+          if (itemToRemove) removeFromCart(itemToRemove.id, true);
         }
-      }
 
-      handleAction(data);
+        // Play audio response if available
+        if (data.audio_base64) {
+          try {
+            const audio = new Audio(`data:audio/wav;base64,${data.audio_base64}`);
+            await audio.play();
+          } catch (_) {
+            console.warn('Audio playback failed');
+          }
+        }
+
+        if (data.response_text && !data.audio_base64) {
+          showFeedback(`💬 ${data.response_text}`, 10000);
+        }
+
+        setState('idle');
+      };
     } catch (error) {
       console.error('Error processing voice:', error);
       showFeedback('Xin lỗi, tôi không thể xử lý yêu cầu lúc này.');
-    } finally {
       setState('idle');
     }
   };

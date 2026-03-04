@@ -260,7 +260,8 @@ app.post('/api/auth/login', async (c) => {
       user: {
         id: user.id,
         email: user.email,
-        username: user.username
+        name: user.username,
+        role: 'user',
       },
       token: `demo-token-${user.id}`
     });
@@ -272,38 +273,46 @@ app.post('/api/auth/login', async (c) => {
 // POST /api/auth/register - User registration
 app.post('/api/auth/register', async (c) => {
   try {
-    const { email, username, password } = await c.req.json();
-    
-    if (!email || !username || !password) {
-      return c.json({ error: 'email, username, and password are required' }, 400);
+    const body = await c.req.json();
+    // Accept both "username" (API-native) and "name" (sent by frontend)
+    const email: string = (body.email || '').trim();
+    const username: string = (body.username || body.name || '').trim();
+    const password: string = body.password || '';
+
+    if (!email) {
+      return c.json({ error: 'Email là bắt buộc' }, 400);
+    }
+    if (!username) {
+      return c.json({ error: 'Họ và tên là bắt buộc' }, 400);
+    }
+    if (!password) {
+      return c.json({ error: 'Mật khẩu là bắt buộc' }, 400);
     }
 
     // Check if email already exists
     const { results: existing } = await c.env.DB.prepare(
       'SELECT id FROM users WHERE email = ?'
     ).bind(email).all();
-    
+
     if (existing.length > 0) {
       return c.json({ error: 'Email already registered' }, 409);
     }
 
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    
+
     // In production, hash password with bcrypt
-    // For demo, using simple hash
-    const passwordHash = password; // In production: await bcrypt.hash(password, 10)
-    
+    const passwordHash = password;
+
     await c.env.DB.prepare(
       'INSERT INTO users (id, email, username, password, created_at) VALUES (?, ?, ?, ?, ?)'
     ).bind(id, email, username, passwordHash, now).run();
 
-    return c.json({ 
-      id, 
-      email, 
-      username,
-      message: 'User registered successfully' 
-    }, 201);
+    // Return same shape as login so the frontend store works
+    const user = { id, email, name: username, role: 'user' };
+    const token = btoa(`${id}:${email}:${Date.now()}`);
+
+    return c.json({ user, token, message: 'User registered successfully' }, 201);
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -381,6 +390,198 @@ app.delete('/api/cart/:userId/:productId', async (c) => {
     }
     
     return c.json({ message: 'Item removed from cart' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── ORDERS ──────────────────────────────────────────────────────────────────
+
+// POST /api/orders - Create a new order (checkout flow, FR9/FR10)
+app.post('/api/orders', async (c) => {
+  try {
+    const { user_id, items, total_price, shipping_address } = await c.req.json();
+
+    if (!user_id || !items || !total_price) {
+      return c.json({ error: 'user_id, items, and total_price are required' }, 400);
+    }
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const itemsJson = typeof items === 'string' ? items : JSON.stringify(items);
+
+    await c.env.DB.prepare(
+      `INSERT INTO orders (id, user_id, status, total_price, items, shipping_address, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      id, user_id, 'confirmed', total_price,
+      itemsJson,
+      shipping_address ? JSON.stringify(shipping_address) : null,
+      now, now
+    ).run();
+
+    // Clear the user's cart after order placement
+    await c.env.DB.prepare('DELETE FROM cart_items WHERE user_id = ?').bind(user_id).run();
+
+    const summary = (Array.isArray(items) ? items : JSON.parse(itemsJson))
+      .map((item: any, i: number) =>
+        `${i + 1}. ${item.name} x${item.quantity} — ${(item.price * item.quantity).toLocaleString('vi-VN')} VND`
+      ).join('\n');
+
+    return c.json({
+      id,
+      status: 'confirmed',
+      total_price,
+      confirmation_text: `Đơn hàng #${id.slice(0, 8).toUpperCase()} đã được xác nhận!\n${summary}\nTổng cộng: ${Number(total_price).toLocaleString('vi-VN')} VND. Cảm ơn bạn đã mua hàng tại TGDD!`,
+      message: 'Order created successfully'
+    }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// GET /api/orders/:userId - List orders for a user (FR13)
+app.get('/api/orders/:userId', async (c) => {
+  const userId = c.req.param('userId');
+  try {
+    const { results } = await c.env.DB.prepare(
+      `SELECT id, user_id, status, total_price, items, shipping_address, created_at, updated_at
+       FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 20`
+    ).bind(userId).all();
+
+    const statusMap: Record<string, string> = {
+      pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', processing: 'Đang xử lý',
+      shipped: 'Đang vận chuyển', delivered: 'Đã giao hàng', cancelled: 'Đã hủy',
+    };
+
+    const orders = (results || []).map((row: any) => ({
+      ...row,
+      items: row.items ? JSON.parse(row.items) : [],
+      shipping_address: row.shipping_address ? JSON.parse(row.shipping_address) : null,
+      status_text: statusMap[row.status] || row.status,
+      short_id: row.id.slice(0, 8).toUpperCase(),
+    }));
+
+    return c.json({ orders });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// GET /api/orders/status/:orderId - Get single order status (FR13 voice order status)
+app.get('/api/orders/status/:orderId', async (c) => {
+  const orderId = c.req.param('orderId');
+  try {
+    const { results } = await c.env.DB.prepare(
+      `SELECT id, user_id, status, total_price, items, shipping_address, created_at, updated_at
+       FROM orders WHERE id LIKE ?`
+    ).bind(`%${orderId}%`).all();
+
+    if (!results.length) {
+      return c.json({ error: 'Order not found' }, 404);
+    }
+
+    const row = results[0] as any;
+    const statusMap: Record<string, string> = {
+      pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', processing: 'Đang xử lý',
+      shipped: 'Đang vận chuyển', delivered: 'Đã giao hàng', cancelled: 'Đã hủy',
+    };
+
+    return c.json({
+      order: {
+        ...row,
+        items: row.items ? JSON.parse(row.items) : [],
+        shipping_address: row.shipping_address ? JSON.parse(row.shipping_address) : null,
+        status_text: statusMap[row.status] || row.status,
+        short_id: row.id.slice(0, 8).toUpperCase(),
+      }
+    });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// PATCH /api/orders/:orderId/status - Update order status
+app.patch('/api/orders/:orderId/status', async (c) => {
+  const orderId = c.req.param('orderId');
+  try {
+    const { status } = await c.req.json();
+    const validStatuses = ['pending','confirmed','processing','shipped','delivered','cancelled'];
+    if (!validStatuses.includes(status)) {
+      return c.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, 400);
+    }
+    const now = new Date().toISOString();
+    await c.env.DB.prepare(
+      'UPDATE orders SET status = ?, updated_at = ? WHERE id = ?'
+    ).bind(status, now, orderId).run();
+    return c.json({ message: 'Order status updated' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── SUPPORT TICKETS ──────────────────────────────────────────────────────────
+
+// POST /api/tickets - Create a support ticket (FR12)
+app.post('/api/tickets', async (c) => {
+  try {
+    const { user_id, category, message } = await c.req.json();
+
+    if (!category || !message) {
+      return c.json({ error: 'category and message are required' }, 400);
+    }
+
+    const validCategories = ['product_issue','delivery','payment','return_exchange','warranty','other'];
+    if (!validCategories.includes(category)) {
+      return c.json({ error: `Invalid category. Must be one of: ${validCategories.join(', ')}` }, 400);
+    }
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    await c.env.DB.prepare(
+      'INSERT INTO support_tickets (id, user_id, category, message, status, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(id, user_id || null, category, message, 'open', now).run();
+
+    const categoryLabels: Record<string, string> = {
+      product_issue: 'Lỗi sản phẩm', delivery: 'Vận chuyển', payment: 'Thanh toán',
+      return_exchange: 'Đổi trả hàng', warranty: 'Bảo hành', other: 'Khác',
+    };
+
+    return c.json({
+      id,
+      short_id: id.slice(0, 8).toUpperCase(),
+      status: 'open',
+      category_label: categoryLabels[category],
+      confirmation_text: `Yêu cầu hỗ trợ #${id.slice(0, 8).toUpperCase()} — ${categoryLabels[category]} đã được ghi nhận. Nhân viên sẽ liên hệ trong 24 giờ. Hotline: 1800 2091.`,
+      message: 'Support ticket created'
+    }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// GET /api/tickets/:userId - List support tickets for a user
+app.get('/api/tickets/:userId', async (c) => {
+  const userId = c.req.param('userId');
+  try {
+    const { results } = await c.env.DB.prepare(
+      `SELECT id, user_id, category, message, status, created_at
+       FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC LIMIT 20`
+    ).bind(userId).all();
+
+    const categoryLabels: Record<string, string> = {
+      product_issue: 'Lỗi sản phẩm', delivery: 'Vận chuyển', payment: 'Thanh toán',
+      return_exchange: 'Đổi trả hàng', warranty: 'Bảo hành', other: 'Khác',
+    };
+
+    const tickets = (results || []).map((row: any) => ({
+      ...row,
+      category_label: categoryLabels[row.category] || row.category,
+      short_id: row.id.slice(0, 8).toUpperCase(),
+    }));
+
+    return c.json({ tickets });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }

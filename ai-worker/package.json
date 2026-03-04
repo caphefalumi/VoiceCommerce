@@ -1,18 +1,27 @@
 {
   "name": "ai-worker",
-  "version": "1.0.0",
-  "description": "Cloudflare AI Worker for Voice Orchestration",
+  "version": "2.0.0",
+  "description": "Cloudflare AI Agent for Voice Commerce - TGDD",
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "hono": "^4.0.0"
+    "@ai-sdk/mcp": "^1.0.23",
+    "@cloudflare/ai-chat": "^0.1.7",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "agents": "^0.7.2",
+    "ai": "^6.0.0",
+    "hono": "^4.0.0",
+    "workers-ai-provider": "^3.1.2",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0",
     "@cloudflare/workers-types": "^4.20240222.0",
-    "typescript": "^5.0.0"
+    "@types/node": "^25.3.3",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.0.0"
   }
 }

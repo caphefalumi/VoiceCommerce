@@ -10,7 +10,8 @@ export const Route = createFileRoute('/')({
     try {
       const res = await fetch(`${API_BASE}/api/products`)
       if (!res.ok) throw new Error('Failed to fetch products')
-      return await res.json() as Product[]
+      const data = await res.json() as { products: Product[] } | Product[]
+      return Array.isArray(data) ? data : (data.products ?? [])
     } catch (error) {
       console.error(error)
       return [] as Product[]

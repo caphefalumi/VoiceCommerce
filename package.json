@@ -14,6 +14,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cloudflare/realtimekit": "^1.2.4",
+    "@cloudflare/realtimekit-react": "^1.2.4",
     "@mendable/firecrawl-js": "^4.12.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-router": "^1.158.4",

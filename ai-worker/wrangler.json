@@ -1,7 +1,8 @@
 {
   "name": "ai-worker",
   "main": "src/index.ts",
-  "compatibility_date": "2024-03-01",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
   "ai": {
     "binding": "AI"
   },
@@ -13,6 +14,27 @@
     {
       "binding": "VECTORIZE_FAQ",
       "index_name": "tgdd-faq"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tgdd-db",
+      "database_id": "92130798-781f-4f84-b289-f94cf781dd0f"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "VoiceCommerceAgent",
+        "class_name": "VoiceCommerceAgent"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["VoiceCommerceAgent"]
     }
   ],
   "observability": {

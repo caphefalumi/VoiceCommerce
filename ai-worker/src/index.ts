@@ -1,615 +1,433 @@
+/// <reference types="@cloudflare/workers-types" />
+import { AIChatAgent } from '@cloudflare/ai-chat';
+import { createWorkersAI } from 'workers-ai-provider';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
-type Bindings = {
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type Env = {
+  AI: Fetcher;
+  VECTORIZE: VectorizeIndex;
+  VECTORIZE_FAQ: VectorizeIndex;
   DB: D1Database;
-  AI: any;
-  VECTORIZE: any;
-  VECTORIZE_FAQ: any;
+  VoiceCommerceAgent: DurableObjectNamespace;
 };
 
-// Product name normalization for Vietnamese speech
+// ── Logging ───────────────────────────────────────────────────────────────────
+
+type LogLevel = 'info' | 'warn' | 'error';
+function log(level: LogLevel, event: string, fields: Record<string, unknown> = {}): void {
+  const entry = { ts: new Date().toISOString(), level, service: 'ai-worker', event, ...fields };
+  level === 'error' ? console.error(JSON.stringify(entry)) : console.log(JSON.stringify(entry));
+}
+
+// ── Text utilities ─────────────────────────────────────────────────────────────
+
 function normalizeProductNames(text: string): string {
   if (!text) return text;
-  
   let normalized = text;
-  
-  // Brand name mappings (Vietnamese phonetic → English)
+
   const brandMappings: Record<string, string> = {
-    'aiphone': 'iPhone',
-    'ipon': 'iPhone',
-    'ipong': 'iPhone',
-    'iphon': 'iPhone',
-    'iphone': 'iPhone',
-    'ôpô': 'OPPO',
-    'oppo': 'OPPO',
-    'sam sung': 'Samsung',
-    'samsung': 'Samsung',
-    'xiomi': 'Xiaomi',
-    'xiaomi': 'Xiaomi',
-    'hoa vi': 'Huawei',
-    'huawei': 'Huawei',
-    'vivo': 'Vivo',
-    'realme': 'Realme',
-    'nokia': 'Nokia',
-    'macbook': 'MacBook',
-    'mac book': 'MacBook',
-    'dell': 'Dell',
-    'hp': 'HP',
-    'asus': 'ASUS',
-    'lenovo': 'Lenovo',
-    'honor': 'HONOR',
-    'kidcare': 'Kidcare',
+    'aiphone': 'iPhone', 'ipon': 'iPhone', 'ipong': 'iPhone', 'iphon': 'iPhone', 'iphone': 'iPhone',
+    'ôpô': 'OPPO', 'oppo': 'OPPO', 'sam sung': 'Samsung', 'samsung': 'Samsung',
+    'xiomi': 'Xiaomi', 'xiaomi': 'Xiaomi', 'hoa vi': 'Huawei', 'huawei': 'Huawei',
+    'vivo': 'Vivo', 'realme': 'Realme', 'nokia': 'Nokia', 'macbook': 'MacBook',
+    'mac book': 'MacBook', 'dell': 'Dell', 'hp': 'HP', 'asus': 'ASUS',
+    'lenovo': 'Lenovo', 'honor': 'HONOR', 'kidcare': 'Kidcare',
   };
-  
-  // Model number mappings (Vietnamese words → digits)
+
   const modelMappings: Record<string, string> = {
-    'mười lăm': '15',
-    'mười bốn': '14', 
-    'mười ba': '13',
-    'mười hai': '12',
-    'mười một': '11',
-    'mười': '10',
-    'tám': '8',
-    'bảy': '7',
-    'sáu': '6',
-    'năm': '5',
-    'tư': '4',
-    'ba': '3',
-    'hai': '2',
-    'một': '1',
+    'mười chín': '19', 'mười tám': '18', 'mười bảy': '17', 'mười sáu': '16',
+    'mười lăm': '15', 'mười bốn': '14', 'mười ba': '13', 'mười hai': '12',
+    'mười một': '11', 'mười': '10', 'chín': '9', 'tám': '8', 'bảy': '7',
+    'sáu': '6', 'năm': '5', 'tư': '4', 'ba': '3', 'hai': '2', 'một': '1',
   };
-  
-  // Apply brand mappings (case insensitive)
-  for (const [vn, en] of Object.entries(brandMappings)) {
-    const regex = new RegExp(vn, 'gi');
-    normalized = normalized.replace(regex, en);
+
+  const phraseMappings: Record<string, string> = {
+    'giảnh hẹn': 'giỏ hàng', 'giánh hẹn': 'giỏ hàng', 'giành hẹn': 'giỏ hàng',
+    'dành hẹn': 'giỏ hàng', 'giản hẹn': 'giỏ hàng', 'dỏ hàng': 'giỏ hàng',
+    'giỏ hang': 'giỏ hàng', 'gio hang': 'giỏ hàng', 'gỏ hàng': 'giỏ hàng',
+  };
+
+  // Sort by length descending so longer patterns (e.g. 'sam sung') match before
+  // shorter ones. Use word boundaries to prevent 'iphon' from matching
+  // inside 'iPhone' and producing 'iPhonee'.
+  const sortedBrands = Object.entries(brandMappings).sort((a, b) => b[0].length - a[0].length);
+  for (const [vn, en] of sortedBrands) {
+    normalized = normalized.replace(new RegExp('\\b' + vn + '\\b', 'gi'), en);
   }
-  
-  // Apply model number mappings (case insensitive, word boundary)
   for (const [vn, en] of Object.entries(modelMappings)) {
-    const regex = new RegExp('\\b' + vn + '\\b', 'gi');
-    normalized = normalized.replace(regex, en);
+    normalized = normalized.replace(new RegExp('\\b' + vn + '\\b', 'gi'), en);
   }
-  
-  // Fix common patterns: "find x 8" → "find x8", "galaxy s 24" → "galaxy s24"
+  for (const [wrong, correct] of Object.entries(phraseMappings)) {
+    normalized = normalized.replace(new RegExp(wrong, 'gi'), correct);
+  }
+
   normalized = normalized.replace(/\b(x)\s+(\d+)\b/gi, '$1$2');
   normalized = normalized.replace(/\b(s)\s+(\d+)\b/gi, '$1$2');
-  normalized = normalized.replace(/\b(plus)\s+(\d+)\b/gi, '$1$2');
-  
-  // Common Vietnamese phrase corrections (Whisper misrecognitions)
-  const phraseMappings: Record<string, string> = {
-    'giảnh hẹn': 'giỏ hàng',
-    'giánh hẹn': 'giỏ hàng',
-    'giành hẹn': 'giỏ hàng',
-    'dành hẹn': 'giỏ hàng',
-    'giản hẹn': 'giỏ hàng',
-    'dỏ hàng': 'giỏ hàng',
-    'giỏ hang': 'giỏ hàng',
-    'gio hang': 'giỏ hàng',
-    'gỏ hàng': 'giỏ hàng',
-  };
-  
-  for (const [wrong, correct] of Object.entries(phraseMappings)) {
-    const regex = new RegExp(wrong, 'gi');
-    normalized = normalized.replace(regex, correct);
-  }
-  
   return normalized;
 }
 
-// --- RAG: Embedding Functions ---
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function generateEmbedding(text: string, env: any): Promise<number[]> {
+async function generateEmbedding(text: string, env: Env): Promise<number[]> {
   try {
-    const response = await env.AI.run('@cf/baai/bge-m3', { text: [text] });
+    const response = await (env.AI as any).run('@cf/baai/bge-m3', { text: [text] });
     return response.data[0];
-  } catch (e) { console.error('Embedding error:', e); return []; }
+  } catch (e) {
+    console.error('Embedding error:', e);
+    return [];
+  }
 }
 
-const app = new Hono<{ Bindings: Bindings }>();
+// ── VoiceCommerceAgent ────────────────────────────────────────────────────────
+// Extends AIChatAgent — a Cloudflare Durable Object backed by built-in SQLite.
+// Every conversation turn is persisted automatically; this.messages always
+// reflects the full dialogue history, enabling slot filling and multi-turn
+// context handling (e.g. "Add the second one" resolves from prior search).
 
+export class VoiceCommerceAgent extends AIChatAgent<Env> {
+  // Keep last 50 messages in SQLite per session
+  maxPersistedMessages = 50;
+
+  constructor(state: any, env: Env) {
+    super(state, env);
+    console.log('[VoiceCommerceAgent] constructor called, env:', env ? 'defined' : 'UNDEFINED');
+    console.log('[VoiceCommerceAgent] env keys:', env ? Object.keys(env).join(', ') : 'none');
+  }
+
+  // We no longer use WebSockets, so we'll handle requests via direct DO calls or public methods.
+  // The state is still persisted in this.messages (SQLite).
+
+
+  async onChatMessage(
+    _onFinish: Parameters<AIChatAgent['onChatMessage']>[0],
+    _options?: Parameters<AIChatAgent['onChatMessage']>[1]
+  ) {
+    // This is the legacy callback - delegate to our new method
+    return this.generateWithMcp((this as any).messages);
+  }
+
+  // Dedicated method that processVoice can call to generate responses with MCP tools
+  async generateWithMcp(messages: any[]): Promise<any> {
+    console.log('>>> generateWithMcp START');
+    const logs = (globalThis as any).__voiceLogs || [];
+    const log = (...args: any[]) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      logs.push(msg);
+      console.log('    ' + msg);
+    };
+    
+    try {
+      const env = (this as any).env as Env;
+      log('generateWithMcp: env.VECTORIZE:', !!env?.VECTORIZE);
+      
+      const workersai = createWorkersAI({ binding: env.AI as any });
+
+      const systemPrompt = `You are TGDD AI — the intelligent voice assistant for Thế Giới Di Động (TGDD), Vietnam's largest electronics retailer.
+
+You communicate mainly in Vietnamese. You are friendly, concise, and helpful.
+
+## Your capabilities (tools)
+You have access to a set of specialized tools via MCP. Use them for all commerce-related tasks:
+- Product search and filtering by price.
+- Side-by-side product comparison.
+- Adding or removing items from the cart.
+- Starting the checkout process.
+- Checking order status.
+- Answering FAQs about store policies.
+- Creating support tickets.
+
+## Rules
+- Always respond in Vietnamese unless the user writes in English.
+- Be brief (1-3 sentences max in response text).
+- Always call a tool for commerce actions — never fabricate data.
+- For ambiguous requests, ask a clarifying question.`;
+
+      // Initialize MCP - import modules first
+      const { createCommerceMcpServer } = await import('./mcp');
+      const { createMCPClient } = await import('@ai-sdk/mcp');
+      const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js');
+      
+      // Create linked transports for in-memory communication
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+      // Create and connect MCP server with env bindings
+      const mcpServer = createCommerceMcpServer({
+        AI: env.AI,
+        VECTORIZE: env.VECTORIZE,
+        VECTORIZE_FAQ: env.VECTORIZE_FAQ,
+        DB: env.DB
+      });
+      await mcpServer.connect(serverTransport);
+
+      // Create MCP client
+      const mcpClient = await createMCPClient({ transport: clientTransport as any });
+      const mcpTools = await mcpClient.tools();
+      log('generateWithMcp: MCP tools loaded:', Object.keys(mcpTools).join(', '));
+
+      // Generate text with MCP tools
+      const result = await generateText({
+        model: workersai('@cf/meta/llama-3.3-70b-instruct-fp8-fast') as any,
+        system: systemPrompt,
+        messages: messages as any,
+        tools: mcpTools as any
+      });
+      
+      log('generateWithMcp: result text:', result.text?.slice(0, 100));
+      return result;
+    } catch (err: any) {
+      log('generateWithMcp ERROR:', err.message);
+      throw err;
+    }
+  }
+
+  // Public method for the HTTP worker to call
+  async processVoice(audioBase64?: string, text?: string, userId?: string) {
+    console.log('>>> processVoice START');
+    const logs = (globalThis as any).__voiceLogs || [];
+    const log = (...args: any[]) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      logs.push(msg);
+      console.log('    ' + msg);
+    };
+    
+    log('processVoice: START');
+    console.log('>>> env:', (this as any).env);
+    
+    let transcribedText = text || '';
+    
+    // 1. STT
+    if (!transcribedText && audioBase64) {
+      const stt = await ((this as any).env.AI as any).run('@cf/openai/whisper-large-v3-turbo', {
+        audio: audioBase64, language: 'vi',
+        initial_prompt: 'Vietnamese electronics store. Product names in English: iPhone, Samsung Galaxy, OPPO, Xiaomi, MacBook, Dell.'
+      });
+      transcribedText = normalizeProductNames(stt.text || '');
+    }
+
+    if (!transcribedText.trim()) return { response_text: 'Xin lỗi, tôi không nghe rõ.' };
+
+    // 2. Add user message to state
+    const userMsg = { id: crypto.randomUUID(), role: 'user', content: transcribedText };
+    if (userId) userMsg.content = `[User ID: ${userId}] ${userMsg.content}`;
+    (this as any).messages.push(userMsg);
+
+    // 3. Generate response via MCP tools
+    const result = await this.generateWithMcp((this as any).messages);
+    
+    // 4. Add assistant message to state
+    const assistantMsg = { id: crypto.randomUUID(), role: 'assistant', content: result.text };
+    (this as any).messages.push(assistantMsg);
+
+    // 5. Detect high-level action for frontend UI from tool results
+    let action: any = null;
+    if (result.toolResults) {
+      for (const tr of result.toolResults) {
+        if (tr.toolName === 'startCheckout') action = { type: 'checkout' };
+        else if (tr.toolName === 'searchProducts') action = { type: 'search', query: tr.args.query };
+        else if (tr.toolName === 'addToCart' && tr.result.success) action = { type: 'add_to_cart', payload: tr.result };
+        else if (tr.toolName === 'removeFromCart' && tr.result.success) action = { type: 'remove_from_cart' };
+      }
+    }
+
+    // 6. TTS
+    let audioOut = null;
+    try {
+      const tts = await ((this as any).env.AI as any).run('@cf/myshell-ai/melotts', { 
+        prompt: result.text?.slice(0, 500) || '', 
+        lang: 'vi'
+      });
+      audioOut = (tts as any).audio || tts;
+    } catch (err) {
+      console.error('TTS Failed', err);
+    }
+
+    return {
+      transcribed_text: transcribedText,
+      response_text: result.text,
+      audio_base64: audioOut,
+      action
+    };
+  }
+}
+
+// ── MCP Server Initialization & Transport (Hono) ──────────────────────────────
+// The VoiceCommerceAgent uses the MCP server directly in memory.
+// There is no need for SSE HTTP endpoints anymore, avoiding extra latency.
+const app = new Hono<{ Bindings: Env }>();
 app.use('*', cors({ origin: '*' }));
 
-app.get('/health', (c) => c.json({ status: 'ok' }));
+// MCP Endpoints have been removed as DO communicates with the MCP server in-memory.
 
-// ── STT ────────────────────────────────────────────────────────────────────
+// Observability
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  const reqId = Math.random().toString(36).slice(2, 10);
+  c.header('X-Request-Id', reqId);
+  await next();
+  const path = new URL(c.req.url).pathname;
+  if (path !== '/health') {
+    log('info', 'request', { request_id: reqId, method: c.req.method, path, status: c.res.status, latency_ms: Date.now() - start });
+  }
+});
+
+app.get('/health', (c) => c.json({ status: 'ok', service: 'ai-worker', version: '2.0.0', ts: new Date().toISOString() }));
+
+// ── STT ───────────────────────────────────────────────────────────────────────
 app.post('/stt', async (c) => {
   try {
     const { audio_base64 } = await c.req.json();
     if (!audio_base64) return c.json({ error: 'Missing audio_base64' }, 400);
-
-    const response = await c.env.AI.run('@cf/openai/whisper-large-v3-turbo', {
-      audio: audio_base64,
-      language: 'vi',
+    const response = await (c.env.AI as any).run('@cf/openai/whisper-large-v3-turbo', {
+      audio: audio_base64, language: 'vi',
       initial_prompt: 'Vietnamese electronics store. Product names in English: iPhone, Samsung Galaxy, OPPO, Xiaomi, MacBook, Dell.',
     });
-    return c.json({ text: response.text });
+    return c.json({ text: normalizeProductNames(response.text || '') });
+  } catch (error: any) {
+    log('error', 'stt.error', { message: error.message });
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── TTS ───────────────────────────────────────────────────────────────────────
+app.post('/tts', async (c) => {
+  try {
+    const { text, lang } = await c.req.json();
+    if (!text) return c.json({ error: 'Missing text' }, 400);
+    const response = await (c.env.AI as any).run('@cf/myshell-ai/melotts', { 
+      prompt: text,
+      lang: lang || 'en'
+    });
+    const audioBase64 = (response as any).audio || response;
+    return c.json({ audio_base64: audioBase64 });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
 });
 
-// ── Embeddings ─────────────────────────────────────────────────────────────
+// ── Embeddings ────────────────────────────────────────────────────────────────
 app.post('/embed', async (c) => {
   try {
     const { text } = await c.req.json();
     if (!text) return c.json({ error: 'Missing text' }, 400);
-
-    const response = await c.env.AI.run('@cf/baai/bge-m3', { text: [text] });
+    const response = await (c.env.AI as any).run('@cf/baai/bge-m3', { text: [text] });
     return c.json({ embedding: response.data[0] });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
 });
 
-// ── LLM Chat ───────────────────────────────────────────────────────────────
-app.post('/chat', async (c) => {
-  try {
-    const { prompt } = await c.req.json();
-    if (!prompt) return c.json({ error: 'Missing prompt' }, 400);
-
-    const systemPrompt = `You are an AI Voice Assistant for a Vietnamese electronics store (Thế giới di động).
-Help customers search for products, add items to cart, or answer questions.
-You MUST respond ONLY with valid JSON in this exact format:
-{
-  "intent": "product_search|add_to_cart|checkout_start|faq|general",
-  "action": {
-    "type": "search|add_to_cart|chat",
-    "query": "<search query if type is search>",
-    "payload": {}
-  },
-  "response_text": "<2-3 sentence Vietnamese or English response>"
-}`;
-
-    const response = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ]
-    });
-
-    // Strip markdown fences if present
-    let jsonStr = response.response;
-    const fenced = jsonStr.match(/```json\n?([\s\S]*?)\n?```/);
-    if (fenced) jsonStr = fenced[1];
-    const start = jsonStr.indexOf('{');
-    const end = jsonStr.lastIndexOf('}');
-    if (start !== -1 && end !== -1) jsonStr = jsonStr.substring(start, end + 1);
-
-    try {
-      const parsed = JSON.parse(jsonStr);
-
-      // --- RAG IMPLEMENTATION FOR CHAT ---
-      if (parsed.intent === 'product_search' && parsed.action?.query) {
-        try {
-          const searchTerm = `%${parsed.action.query}%`;
-          const stmt = c.env.DB.prepare('SELECT * FROM products WHERE name LIKE ? OR description LIKE ? LIMIT 10');
-          const products: any = await stmt.bind(searchTerm, searchTerm).all();
-          
-          if (products.results && products.results.length > 0) {
-            const items = products.results.slice(0, 3).map((p: any) => `- ${p.name}: ${p.price.toLocaleString('vi-VN')} VND`).join('\n');
-            const ragPrompt = `You are a helpful Vietnamese AI Assistant for Thế giới di động.
-The user asked: "${prompt}"
-You found these products in the database:
-${items}
-Write a 1-2 sentence response informing the user about these found products in Vietnamese. Do not use markdown. Do not include JSON.`;
-
-            const ragResult = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
-              messages: [{ role: 'system', content: ragPrompt }]
-            });
-            parsed.response_text = ragResult.response.replace(/```[\s\S]*?```/g, '').trim();
-          } else {
-            parsed.response_text = "Dạ, hiện tại cửa hàng không tìm thấy sản phẩm nào liên quan đến từ khóa của bạn.";
-          }
-        } catch (e) {
-          console.error("RAG Error in chat", e);
-        }
-      }
-
-      return c.json(parsed);
-    } catch {
-      return c.json({
-        intent: 'general',
-        action: { type: 'chat', query: null, payload: {} },
-        response_text: response.response.replace(/```[\s\S]*?```/g, '').trim()
-      });
-    }
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
-  }
-});
-
-// ── TTS ────────────────────────────────────────────────────────────────────
-app.post('/tts', async (c) => {
-  try {
-    const { text } = await c.req.json();
-    if (!text) return c.json({ error: 'Missing text' }, 400);
-
-    const response = await c.env.AI.run('@cf/myshell-ai/melo-tts', {
-      prompt: text,
-      language: 'EN'
-    });
-
-    const bytes = new Uint8Array(response);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-
-    return c.json({ audio_base64: btoa(binary) });
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
-  }
-});
-
-// ── Full orchestration: STT → LLM → TTS  (used by the Java backend) ────────
+// ── Legacy voice-process (backward compat with frontend/Spring) ─────────────
+// Pipeline: STT → Workers AI LLM (intent + slots) → tool execution → TTS
+// The VoiceCommerceAgent DO can ONLY be reached via routeAgentRequest (PartyKit
+// headers). For this synchronous HTTP pipeline we use Workers AI directly.
 app.post('/voice-process', async (c) => {
   try {
-    const { audio_base64, text: inputText, session_id, context } = await c.req.json();
-
-    // Step 1: STT (skip if plain text was already provided)
-    let transcribedText: string = inputText ?? '';
-    if (!transcribedText && audio_base64) {
-      const sttResult = await c.env.AI.run('@cf/openai/whisper-large-v3-turbo', {
-        audio: audio_base64,
-        language: 'vi',
-        initial_prompt: 'Vietnamese electronics store. Product names in English: iPhone, Samsung Galaxy, OPPO, Xiaomi, MacBook, Dell.',
-      });
-      transcribedText = sttResult.text ?? '';
-    }
-
-    // Normalize product names after STT, before LLM
-    const normalizedText = normalizeProductNames(transcribedText);
-
-    // Step 2: LLM
-    const contextStr = context && Object.keys(context).length > 0
-      ? `Previous context: ${JSON.stringify(context)}\n\n`
-      : '';
-    const userPrompt = `${contextStr}User said: "${normalizedText}"`;
-
-    const systemPrompt = `You are TGDD AI — the voice assistant for Thế giới di động, Vietnam's largest electronics retailer.
-Your ONLY job is to classify the user's Vietnamese request into one of 9 intents and return VALID JSON — no prose, no markdown.
-
-═══════════════════════════════════════════════════
-INTENT 1: product_search
-Trigger: user wants to browse/find products by name or category.
-Examples: "Tìm iPhone", "Cho tôi xem điện thoại Samsung", "laptop gaming", "tai nghe không dây"
-JSON:
-{"intent":"product_search","action":{"type":"search","query":"<product name or category>","selection":null,"payload":{}},"response_text":"<1 sentence Vietnamese>"}
-
-INTENT 2: product_filter_price
-Trigger: user mentions a price constraint with or without product type.
-Examples: "điện thoại dưới 10 triệu", "laptop từ 15 đến 20 triệu", "iPhone dưới 30 triệu"
-JSON:
-{"intent":"product_filter_price","action":{"type":"filter","query":"<product + price range>","selection":null,"payload":{}},"response_text":"<1 sentence Vietnamese>"}
-
-INTENT 3: product_compare
-Trigger: user wants to compare 2 or more products.
-Examples: "so sánh iPhone 15 và Samsung Galaxy S24", "so sánh OPPO và Xiaomi"
-JSON:
-{"intent":"product_compare","action":{"type":"compare","query":"<all product names separated by 'và'>","selection":null,"payload":{}},"response_text":"<1 sentence Vietnamese>"}
-
-INTENT 4: add_to_cart
-Trigger: user wants to add to cart — either by product name OR by selecting from a previously shown list.
-- By name: "Thêm iPhone 15 vào giỏ", "Mua Samsung Galaxy S24", "Cho tôi chiếc này"
-  → set query=product name, selection=null
-- By position: "Cái đầu tiên"/"Số 1" → selection="1", query=null
-               "Cái thứ 2"/"Số 2" → selection="2", query=null
-               "Cái thứ 3"/"Số 3" → selection="3", query=null
-JSON:
-{"intent":"add_to_cart","action":{"type":"add_to_cart","query":"<product name or null>","selection":"<'1'|'2'|'3'|'4'|'5' or null>","payload":{}},"response_text":"<1 sentence Vietnamese confirming action>"}
-
-INTENT 5: remove_from_cart
-Trigger: user wants to remove something from cart.
-Examples: "Xóa iPhone khỏi giỏ hàng", "Bỏ sản phẩm đầu tiên", "Hủy thêm vào giỏ"
-JSON:
-{"intent":"remove_from_cart","action":{"type":"remove_from_cart","query":"<product name or null>","selection":null,"payload":{}},"response_text":"<1 sentence Vietnamese>"}
-
-INTENT 6: checkout_start
-Trigger: user wants to proceed to payment/checkout.
-Examples: "Thanh toán", "Đặt hàng", "Mua hàng", "Tiến hành thanh toán", "Tôi muốn mua"
-JSON:
-{"intent":"checkout_start","action":{"type":"checkout","query":null,"selection":null,"payload":{}},"response_text":"Đang chuyển đến trang thanh toán."}
-
-INTENT 7: order_status
-Trigger: user asks about their existing orders.
-Examples: "Đơn hàng của tôi đâu", "Kiểm tra đơn hàng", "Đơn hàng đã giao chưa", "Tôi muốn xem lịch sử mua hàng"
-JSON:
-{"intent":"order_status","action":{"type":"order_status","query":null,"selection":null,"payload":{}},"response_text":"<1 sentence Vietnamese asking for order code>"}
-
-INTENT 8: faq
-Trigger: user asks a general policy or store question.
-Examples: "Chính sách đổi trả như thế nào", "Bảo hành bao lâu", "Giờ mở cửa", "Giao hàng mất mấy ngày", "Trả góp được không", "Thanh toán bằng gì"
-JSON:
-{"intent":"faq","action":{"type":"chat","query":"<topic: đổi trả|bảo hành|giờ mở cửa|giao hàng|trả góp|thanh toán>","selection":null,"payload":{}},"response_text":"<answer in Vietnamese>"}
-
-INTENT 9: create_ticket
-Trigger: user wants to report an issue or request support.
-Examples: "Tôi muốn khiếu nại", "Tạo yêu cầu hỗ trợ", "Sản phẩm bị lỗi", "Tôi cần gặp nhân viên", "Báo lỗi sản phẩm"
-JSON:
-{"intent":"create_ticket","action":{"type":"create_ticket","query":"<issue description>","selection":null,"payload":{}},"response_text":"Đã ghi nhận yêu cầu hỗ trợ. Nhân viên sẽ liên hệ bạn trong 24 giờ."}
-
-═══════════════════════════════════════════════════
-RULES:
-1. Return ONLY the JSON object — no text before or after, no markdown fences.
-2. response_text MUST be in Vietnamese and 1-2 sentences max.
-3. For add_to_cart: NEVER set both query and selection — use one or the other.
-4. If intent is unclear, use "general" with type "chat".
-5. Product names stay in their original language (iPhone, Samsung, OPPO, etc.).
-═══════════════════════════════════════════════════`;
-
-
-    const llmResult = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ]
-    });
-
-    let llmJson: any = { intent: 'general', action: { type: 'chat', query: null, payload: {} }, response_text: '' };
-    try {
-      let jsonStr: string = llmResult.response;
-      const fenced = jsonStr.match(/```json\n?([\s\S]*?)\n?```/);
-      if (fenced) jsonStr = fenced[1];
-      const s = jsonStr.indexOf('{'), e = jsonStr.lastIndexOf('}');
-      if (s !== -1 && e !== -1) jsonStr = jsonStr.substring(s, e + 1);
-      llmJson = JSON.parse(jsonStr);
-
-      // Guard: LLM sometimes returns a stringified JSON object as response_text.
-      // Unwrap it and promote intent/action/response_text from the inner object.
-      if (typeof llmJson.response_text === 'string' && llmJson.response_text.trimStart().startsWith('{')) {
-        try {
-          const inner = JSON.parse(llmJson.response_text);
-          if (inner.intent && inner.action && inner.response_text) {
-            llmJson = inner;
-          }
-        } catch {
-          // not a JSON string, leave as-is
-        }
-      }
-
-      // --- PRODUCT SEARCH / FILTER - LIST MULTIPLE PRODUCTS (Vectorize RAG) ---
-      if ((llmJson.intent === 'product_search' || llmJson.intent === 'product_filter_price') && llmJson.action?.query) {
-        try {
-          const searchQuery = llmJson.action.query;
-
-          // Extract price filter from query
-          let minPrice = 0;
-          let maxPrice = 100_000_000;
-          if (searchQuery.includes('dưới') || searchQuery.includes('dươi')) {
-            const match = searchQuery.match(/(\d+)\s*triệu/i);
-            if (match) maxPrice = parseInt(match[1]) * 1_000_000;
-          }
-          if (searchQuery.includes('trên')) {
-            const match = searchQuery.match(/(\d+)\s*triệu/i);
-            if (match) minPrice = parseInt(match[1]) * 1_000_000;
-          }
-
-          // Step 1: Embed the query (single call)
-          const queryEmbedding = await generateEmbedding(
-            `sản phẩm: ${searchQuery}`,
-            c.env
-          );
-
-          let results: any[] = [];
-
-          // Step 2: Query Vectorize — ANN lookup, metadata contains name/brand/price/category
-          if (queryEmbedding.length > 0 && c.env.VECTORIZE) {
-            try {
-              const vectorizeResult = await c.env.VECTORIZE.query(queryEmbedding, {
-                topK: 20,
-                returnMetadata: 'all',
-              });
-
-              const matches = vectorizeResult?.matches ?? [];
-
-              // Build results directly from Vectorize metadata (no backend call needed)
-              results = matches
-                .filter((m: any) => {
-                  const price = Number(m.metadata?.price || 0);
-                  return price >= minPrice && price <= maxPrice;
-                })
-                .slice(0, 5)
-                .map((m: any) => ({
-                  id: m.id,
-                  name: m.metadata?.name || '',
-                  brand: m.metadata?.brand || '',
-                  price: Number(m.metadata?.price || 0),
-                  category: m.metadata?.category || '',
-                  score: m.score,
-                }));
-            } catch (vecErr) {
-              console.error('Vectorize query error:', vecErr);
-            }
-          }
-
-
-          if (results.length > 0) {
-            llmJson.action.payload = { results };
-            const itemsList = results.map((p: any, i: number) =>
-              `${i + 1}. ${p.name}: ${Number(p.price).toLocaleString('vi-VN')} VND`
-            ).join('\n');
-            llmJson.response_text = `Tôi tìm thấy ${results.length} sản phẩm phù hợp:\n${itemsList}\nBạn muốn chọn sản phẩm nào?`;
-          } else {
-            llmJson.response_text = "Dạ, em rất tiếc là hiện tại cửa hàng không có sản phẩm nào phù hợp ạ.";
-          }
-        } catch (e) {
-          console.error("Product search error", e);
-        }
-      }
-
-      // --- ADD TO CART (with selection from context or new search) ---
-      if (llmJson.intent === 'add_to_cart') {
-        try {
-          // Parse selection index from Vietnamese ordinals
-          const selection = (llmJson.action.selection || '').toString().toLowerCase();
-          let productIndex = -1;
-
-          if (selection === 'first' || selection === 'đầu tiên' || selection === '1') productIndex = 0;
-          else if (selection === 'second' || selection === 'thứ 2' || selection === 'thứ hai' || selection === '2') productIndex = 1;
-          else if (selection === 'third' || selection === 'thứ 3' || selection === 'thứ ba' || selection === '3') productIndex = 2;
-          else if (selection === 'fourth' || selection === 'thứ 4' || selection === 'thứ tư' || selection === '4') productIndex = 3;
-          else if (selection === 'fifth' || selection === 'thứ 5' || selection === 'thứ năm' || selection === '5') productIndex = 4;
-
-          const lastProducts = context?.last_products;
-
-          // Path A: User selected by position from a previous product list
-          if (productIndex >= 0 && Array.isArray(lastProducts) && lastProducts.length > 0) {
-            const product = lastProducts[Math.min(productIndex, lastProducts.length - 1)];
-            llmJson.action.type = 'add_to_cart';
-            llmJson.action.payload = { product };
-            llmJson.response_text = `Đã thêm ${product.name} vào giỏ hàng! Giá ${Number(product.price).toLocaleString('vi-VN')} VND.`;
-
-          // Path B: User named a product — use Vectorize (no localhost call)
-          } else if (llmJson.action.query && c.env.VECTORIZE) {
-            const queryEmbedding = await generateEmbedding(`sản phẩm: ${llmJson.action.query}`, c.env);
-            if (queryEmbedding.length > 0) {
-              const vecResult = await c.env.VECTORIZE.query(queryEmbedding, { topK: 1, returnMetadata: 'all' });
-              const match = vecResult?.matches?.[0];
-              if (match?.metadata?.name) {
-                const product = {
-                  id: match.id,
-                  name: match.metadata.name,
-                  brand: match.metadata.brand || '',
-                  price: Number(match.metadata.price || 0),
-                  category: match.metadata.category || '',
-                  images: [],
-                  specs: [],
-                  reviews: [],
-                };
-                llmJson.action.type = 'add_to_cart';
-                llmJson.action.payload = { product };
-                llmJson.response_text = `Đã thêm ${product.name} vào giỏ hàng! Giá ${product.price.toLocaleString('vi-VN')} VND.`;
-              } else {
-                llmJson.response_text = 'Dạ, em không tìm thấy sản phẩm đó trong cửa hàng ạ.';
-              }
-            }
-          } else if (productIndex < 0 && !llmJson.action.query) {
-            llmJson.response_text = 'Bạn muốn thêm sản phẩm nào? Hãy cho tôi biết tên hoặc chọn từ danh sách.';
-          }
-        } catch (e) {
-          console.error('Add to cart error', e);
-          llmJson.response_text = 'Không thể thêm sản phẩm vào giỏ hàng lúc này. Vui lòng thử lại.';
-        }
-
-      }
-
-      // --- REMOVE FROM CART ---
-      if (llmJson.intent === 'remove_from_cart') {
-        llmJson.action.type = 'remove_from_cart';
-        llmJson.response_text = llmJson.response_text || "Đã xóa sản phẩm khỏi giỏ hàng.";
-      }
-
-      // --- PRODUCT COMPARE — Vectorize-powered, no backend call ---
-      if (llmJson.intent === 'product_compare' && llmJson.action?.query && c.env.VECTORIZE) {
-        try {
-          const queryEmbedding = await generateEmbedding(`sản phẩm: ${llmJson.action.query}`, c.env);
-          if (queryEmbedding.length > 0) {
-            const vecResult = await c.env.VECTORIZE.query(queryEmbedding, { topK: 5, returnMetadata: 'all' });
-            const matches = vecResult?.matches ?? [];
-            const top2 = matches.slice(0, 2).map((m: any) => ({
-              id: m.id,
-              name: m.metadata?.name || '',
-              brand: m.metadata?.brand || '',
-              price: Number(m.metadata?.price || 0),
-              category: m.metadata?.category || '',
-              images: [],
-            }));
-            if (top2.length >= 2) {
-              llmJson.action.type = 'compare';
-              llmJson.action.payload = { results: top2 };
-              const compareText = top2.map((p: any, i: number) =>
-                `${i + 1}. ${p.name} - ${p.price.toLocaleString('vi-VN')} VND (${p.brand})`
-              ).join('\n');
-              llmJson.response_text = `So sánh sản phẩm:\n${compareText}\nBạn muốn biết thêm thông tin chi tiết không?`;
-            } else {
-              llmJson.response_text = 'Không tìm thấy đủ sản phẩm để so sánh. Bạn có thể nói rõ hơn tên sản phẩm không?';
-            }
-          }
-        } catch (e) {
-          console.error('Compare error', e);
-        }
-      }
-
-      // --- CHECKOUT START ---
-      if (llmJson.intent === 'checkout_start') {
-        llmJson.action.type = 'checkout';
-        llmJson.response_text = llmJson.response_text || 'OK, đang chuyển đến trang thanh toán. Bạn vui lòng xác nhận thông tin đơn hàng.';
-      }
-
-      // --- FAQ — Vectorize semantic search against tgdd-faq index ---
-      if (llmJson.intent === 'faq' || llmJson.intent === 'customer_support_faq') {
-        llmJson.action.type = 'chat';
-        try {
-          const faqQuery = llmJson.action.query || normalizedText || '';
-          if (faqQuery && c.env.VECTORIZE_FAQ) {
-            const faqEmbedding = await generateEmbedding(faqQuery, c.env);
-            if (faqEmbedding.length > 0) {
-              const faqResult = await c.env.VECTORIZE_FAQ.query(faqEmbedding, {
-                topK: 1,
-                returnMetadata: 'all',
-              });
-              const best = faqResult?.matches?.[0];
-              // Only use Vectorize answer if similarity score is high enough
-              if (best?.score >= 0.5 && best?.metadata?.answer) {
-                llmJson.response_text = best.metadata.answer as string;
-              } else {
-                llmJson.response_text = 'Bạn có thể hỏi về: chính sách đổi trả, bảo hành, giờ mở cửa, giao hàng, trả góp, thanh toán, trả góp, hoặc liên hệ hotline 1800 2091.';
-              }
-            }
-          } else {
-            llmJson.response_text = 'Bạn có thể hỏi về: chính sách đổi trả, bảo hành, giờ mở cửa, giao hàng, trả góp, hoặc thanh toán.';
-          }
-        } catch (faqErr) {
-          console.error('FAQ Vectorize error:', faqErr);
-          llmJson.response_text = 'Vui lòng liên hệ hotline 1800 2091 để được hỗ trợ.';
-        }
-      }
-
-      // --- ORDER STATUS ---
-      if (llmJson.intent === 'order_status') {
-        llmJson.action.type = 'order_status';
-        llmJson.response_text = 'Vui lòng cung cấp mã đơn hàng để tra cứu trạng thái. Bạn có thể tìm mã trong email xác nhận hoặc SMS.';
-      }
-
-      // --- CREATE TICKET ---
-      if (llmJson.intent === 'create_ticket') {
-        llmJson.action.type = 'create_ticket';
-        llmJson.response_text = llmJson.response_text || 'Đã ghi nhận yêu cầu hỗ trợ của bạn. Nhân viên chăm sóc khách hàng sẽ liên hệ bạn trong vòng 24 giờ.';
-      }
-
-
-    } catch {
-      llmJson.response_text = llmResult.response.replace(/```[\s\S]*?```/g, '').trim();
-    }
-
-    // Step 3: TTS (non-fatal — frontend shows text anyway)
-    let audioBase64Out: string | null = null;
-    if (llmJson.response_text) {
+    const { text: inputText, audio_base64, session_id } = await c.req.json();
+    
+    const env = c.env;
+    const workersai = createWorkersAI({ binding: env.AI as any });
+    
+    let userText = inputText || '';
+    
+    // STT: if audio provided, transcribe it
+    if (!userText && audio_base64) {
       try {
-        const ttsResult = await c.env.AI.run('@cf/myshell-ai/melo-tts', {
-          prompt: llmJson.response_text,
-          language: 'EN'
+        const stt = await (env.AI as any).run('@cf/openai/whisper-large-v3-turbo', {
+          audio: audio_base64,
+          language: 'vi',
+          initial_prompt: 'Vietnamese electronics store. Product names: iPhone, Samsung, OPPO, Xiaomi, MacBook, Dell.'
         });
-        const bytes = new Uint8Array(ttsResult);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-        audioBase64Out = btoa(binary);
-      } catch {
-        audioBase64Out = null;
+        userText = stt.text || '';
+      } catch (sttErr) {
+        console.error('STT error:', sttErr);
       }
     }
-
+    
+    if (!userText.trim()) {
+      return c.json({ response_text: 'Xin lỗi, tôi không nghe rõ.' });
+    }
+    
+    const { createCommerceMcpServer } = await import('./mcp');
+    const { createMCPClient } = await import('@ai-sdk/mcp');
+    const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js');
+    
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    
+    const mcpServer = createCommerceMcpServer({
+      AI: env.AI,
+      VECTORIZE: env.VECTORIZE,
+      VECTORIZE_FAQ: env.VECTORIZE_FAQ,
+      DB: env.DB
+    });
+    await mcpServer.connect(serverTransport);
+    
+    const mcpClient = await createMCPClient({ transport: clientTransport as any });
+    const mcpTools = await mcpClient.tools();
+    
+    const systemPrompt = `You are TGDD AI — the intelligent voice assistant for Thế Giới Di Động (TGDD), Vietnam's largest electronics retailer.
+You communicate mainly in Vietnamese. Be brief.`;
+    
+    const messages = [{ role: 'user', content: userText }];
+    
+    const result = await generateText({
+      model: workersai('@cf/meta/llama-3.3-70b-instruct-fp8-fast') as any,
+      system: systemPrompt,
+      messages: messages as any,
+      tools: mcpTools as any
+    });
+    
+    let responseText = result.text;
+    if (!responseText && (result as any).toolResults?.length) {
+      const toolResults = (result as any).toolResults;
+      const lastTool = toolResults[toolResults.length - 1];
+      if (lastTool.output?.content?.[0]?.text) {
+        try {
+          const parsed = JSON.parse(lastTool.output.content[0].text);
+          responseText = parsed.message || parsed.answer || '';
+        } catch {
+          responseText = lastTool.output.content[0].text;
+        }
+      }
+    }
+    
+    // TTS: Generate audio from response
+    let audioBase64 = null;
+    if (responseText) {
+      try {
+        const tts = await (env.AI as any).run('@cf/myshell-ai/melotts', {
+          prompt: responseText.slice(0, 500),
+          lang: 'en'
+        });
+        audioBase64 = (tts as any).audio || tts;
+      } catch (ttsErr) {
+        console.error('TTS error:', ttsErr);
+      }
+    }
+    
     return c.json({
-      session_id,
-      transcribed_text: transcribedText,
-      intent: llmJson.intent,
-      action: llmJson.action,
-      response_text: llmJson.response_text,
-      audio_base64: audioBase64Out
+      transcribed_text: userText,
+      response_text: responseText,
+      audio_base64: audioBase64,
+      tool_results: result.toolResults,
+      session_id: session_id || 'default'
     });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
 });
 
-export default app;
+// ── Cloudflare Agents SDK routing ─────────────────────────────────────────────
+// This routes WebSocket and HTTP streaming requests to the VoiceCommerceAgent DO.
+// Path: /agents/VoiceCommerceAgent/:id/*
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // Fall back to Hono for REST endpoints (STT, TTS, embed, voice-process, health)
+    return app.fetch(request, env, ctx);
+  },
+};
+
+// Export the Durable Object class so Wrangler can register it
+export { VoiceCommerceAgent as default_VoiceCommerceAgent };

@@ -10,7 +10,7 @@ export const Route = createFileRoute('/register')({
 function RegisterPage() {
   const navigate = useNavigate();
   const { register, isLoading, error, clearError } = useAuthStore();
-  const [name, setName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -21,6 +21,14 @@ function RegisterPage() {
     e.preventDefault();
     clearError();
     setLocalError('');
+    if (!fullName.trim()) {
+      setLocalError('Vui lòng nhập họ và tên');
+      return;
+    }
+    if (!email.trim()) {
+      setLocalError('Vui lòng nhập email');
+      return;
+    }
     if (password !== confirm) {
       setLocalError('Mật khẩu xác nhận không khớp');
       return;
@@ -30,7 +38,7 @@ function RegisterPage() {
       return;
     }
     try {
-      await register(name, email, password);
+      await register(fullName.trim(), email.trim(), password);
       navigate({ to: '/' });
     } catch {
       // error is in store
@@ -66,8 +74,8 @@ function RegisterPage() {
                 id="reg-name"
                 type="text"
                 required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nguyễn Văn A"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm transition"
               />

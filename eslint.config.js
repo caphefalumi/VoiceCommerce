@@ -6,7 +6,11 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores([
+    'dist',
+    'ai-worker/**',   // separate workspace — has its own tsconfig; CF bindings use `any`
+    'api-worker/**',  // separate workspace
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

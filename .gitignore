@@ -21,9 +21,12 @@ target/
 *.war
 
 # Terraform
-infra/terraform/*.tfvars
-infra/terraform/.terraform/
-infra/terraform/.terraform.lock.hcl
+infra/terraform/*.tfvars            # secrets — never commit (use TF_VAR_* in CI)
+infra/terraform/.terraform/         # downloaded provider binaries
+# DO NOT ignore .terraform.lock.hcl — commit it to lock provider versions
+infra/terraform/terraform.tfstate
+infra/terraform/terraform.tfstate.backup
+infra/terraform/crash.log
 
 # Environment files
 .env

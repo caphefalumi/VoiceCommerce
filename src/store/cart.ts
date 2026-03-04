@@ -8,9 +8,9 @@ export interface CartItem extends Product {
 
 interface CartState {
   items: CartItem[];
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: Product, skipSync?: boolean) => void;
+  removeFromCart: (productId: string, skipSync?: boolean) => void;
+  updateQuantity: (productId: string, quantity: number, skipSync?: boolean) => void;
   clearCart: () => void;
   setCart: (items: CartItem[]) => void;
   total: () => number;
@@ -20,20 +20,26 @@ interface CartState {
 import { useAuthStore } from './auth';
 import { API_BASE } from '@/lib/api';
 
-const syncCartAPI = async (items: CartItem[]) => {
+const syncCartAPI = async (method: string, productId: string, quantity?: number) => {
+  const user = useAuthStore.getState().user;
   const token = useAuthStore.getState().token;
-  if (!token) return;
+  if (!user?.id || !token) return;
+
   try {
-    await fetch(`${API_BASE}/api/cart`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}` 
-      },
-      body: JSON.stringify(items),
-    });
+    if (method === 'DELETE') {
+      await fetch(`${API_BASE}/api/cart/${user.id}/${productId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } else if (method === 'POST') {
+      await fetch(`${API_BASE}/api/cart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ user_id: user.id, product_id: productId, quantity }),
+      });
+    }
   } catch (e) {
-    console.error('Failed to sync cart', e);
+    console.error(`Failed to sync cart (${method})`, e);
   }
 };
 
@@ -41,7 +47,7 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      addToCart: (product) => {
+      addToCart: (product, skipSync = false) => {
         const items = get().items;
         const existingItem = items.find((item) => item.id === product.id);
 
@@ -56,20 +62,30 @@ export const useCartStore = create<CartState>()(
           newItems = [...items, { ...product, quantity: 1 }];
         }
         set({ items: newItems });
-        syncCartAPI(newItems);
+        // Inform backend of +1 quantity or new item if sync is allowed
+        if (!skipSync) syncCartAPI('POST', product.id, 1);
       },
-      removeFromCart: (productId) => {
+      removeFromCart: (productId, skipSync = false) => {
         const newItems = get().items.filter((item) => item.id !== productId);
         set({ items: newItems });
-        syncCartAPI(newItems);
+        if (!skipSync) syncCartAPI('DELETE', productId);
       },
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (productId, quantity, skipSync = false) => {
         if (quantity < 1) return;
-        const newItems = get().items.map((item) =>
+        const items = get().items;
+        const oldItem = items.find(i => i.id === productId);
+        const oldQty = oldItem ? oldItem.quantity : 0;
+        const diff = quantity - oldQty;
+        
+        const newItems = items.map((item) =>
           item.id === productId ? { ...item, quantity } : item
         );
         set({ items: newItems });
-        syncCartAPI(newItems);
+        // The API backend 'updates' by adding quantity, or if we had a dedicated PUT endpoint we'd use it.
+        // For simplicity with the existing POST endpoint, we send the difference:
+        if (diff !== 0 && !skipSync) {
+          syncCartAPI('POST', productId, diff);
+        }
       },
       clearCart: () => {
         set({ items: [] });
