@@ -23,18 +23,11 @@
       "database_id": "92130798-781f-4f84-b289-f94cf781dd0f"
     }
   ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "VoiceCommerceAgent",
-        "class_name": "VoiceCommerceAgent"
-      }
-    ]
-  },
   "migrations": [
     {
-      "tag": "v1",
-      "new_sqlite_classes": ["VoiceCommerceAgent"]
+      "tag": "v2",
+      "renamed_classes": [],
+      "deleted_classes": ["VoiceCommerceAgent"]
     }
   ],
   "observability": {

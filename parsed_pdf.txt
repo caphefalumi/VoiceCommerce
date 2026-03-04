@@ -76,7 +76,7 @@ E. Cloud Deployment & Operations
 ✓ FR3:  Support Vietnamese and En glish commands (minimum: Vietnamese)  
 5.2 Intent Recognition & Dialogue Management  
 ✓ FR4:  Intent classification for at least 8 intents:  
-1. product_search  
+1. product_search   
 2. product_filter_price  
 3. product_compare (bonus)  
 4. add_to_cart  

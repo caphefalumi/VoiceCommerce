@@ -112,9 +112,23 @@ export function VoiceAssistant() {
     feedbackTimeoutRef.current = setTimeout(() => setFeedback(null), duration);
   }, []);
 
-  // Cleanup WebSocket logic and state. We'll use traditional HTTP now.
+  // Session storage key for product context
+  const LAST_PRODUCTS_KEY = 'voice_last_products';
+  const [lastProducts, setLastProducts] = useState<Array<{id: string; name: string; price: number; index: number}>>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = sessionStorage.getItem(LAST_PRODUCTS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   useEffect(() => {
-    // If there's any lingering auto-connection logic, we remove it here.
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.getVoices();
+    };
   }, []);
 
   // Send audio blob as base64 to /voice-process
@@ -134,7 +148,7 @@ export function VoiceAssistant() {
             session_id: sessionId,
             context: {
               user_id: user?.id,
-              last_products: [] // Optional: could track UI state here
+              last_products: lastProducts
             }
           })
         });
@@ -151,25 +165,57 @@ export function VoiceAssistant() {
         if (data.action?.type === 'checkout') {
           navigate({ to: '/checkout' });
         } else if (data.action?.type === 'search' && data.action.query) {
-          navigate({ to: '/products', search: { search: data.action.query } as any });
+          navigate({ to: '/products', search: { search: data.action.query } });
         } else if (data.action?.type === 'add_to_cart' && data.action.payload?.product) {
           const p = data.action.payload.product;
           for (let i = 0; i < (data.action.payload.quantity || 1); i++) {
             addToCart(p, true);
           }
         } else if (data.action?.type === 'remove_from_cart') {
-          const itemToRemove = cartItems[cartItems.length - 1]; // Fallback
+          const itemToRemove = cartItems[cartItems.length - 1];
           if (itemToRemove) removeFromCart(itemToRemove.id, true);
         }
 
-        // Play audio response if available
-        if (data.audio_base64) {
-          try {
-            const audio = new Audio(`data:audio/wav;base64,${data.audio_base64}`);
-            await audio.play();
-          } catch (_) {
-            console.warn('Audio playback failed');
+        // Store search results in sessionStorage for context
+        if (data.tool_results) {
+          for (const tr of data.tool_results) {
+            if (tr.toolName === 'searchProducts' || tr.toolName === 'filterProductsByPrice') {
+              try {
+                const parsed = typeof tr.result === 'string' ? JSON.parse(tr.result) : tr.result;
+                if (parsed?.results && Array.isArray(parsed.results)) {
+                  interface ProductResult {
+                    id: string;
+                    name: string;
+                    price: number;
+                  }
+                  const productsWithIndex = (parsed.results as ProductResult[]).map((p, idx) => ({
+                    id: p.id,
+                    name: p.name,
+                    price: p.price,
+                    index: idx + 1
+                  }));
+                  setLastProducts(productsWithIndex);
+                  sessionStorage.setItem(LAST_PRODUCTS_KEY, JSON.stringify(productsWithIndex));
+                }
+              } catch (e) {
+                console.error('Failed to parse tool results:', e);
+              }
+              break;
+            }
           }
+        }
+
+        if (data.response_text) {
+          const utterance = new SpeechSynthesisUtterance(data.response_text);
+          utterance.lang = 'vi-VN';
+          utterance.rate = 1.0;
+          utterance.pitch = 1.0;
+          const voices = window.speechSynthesis.getVoices();
+          const vietnameseVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VN'));
+          if (vietnameseVoice) {
+            utterance.voice = vietnameseVoice;
+          }
+          window.speechSynthesis.speak(utterance);
         }
 
         if (data.response_text && !data.audio_base64) {

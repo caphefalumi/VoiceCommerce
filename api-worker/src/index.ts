@@ -587,5 +587,137 @@ app.get('/api/tickets/:userId', async (c) => {
   }
 });
 
+// ── ADMIN: FAQ Knowledge Base (FR14) ──────────────────────────────────────────
+
+// GET /api/admin/faqs - List all FAQs
+app.get('/api/admin/faqs', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      'SELECT id, question, answer, category, created_at, updated_at FROM faqs ORDER BY created_at DESC'
+    ).all();
+    return c.json({ faqs: results || [] });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/admin/faqs - Create FAQ entry
+app.post('/api/admin/faqs', async (c) => {
+  try {
+    const { question, answer, category } = await c.req.json();
+    if (!question || !answer) {
+      return c.json({ error: 'question and answer are required' }, 400);
+    }
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await c.env.DB.prepare(
+      'INSERT INTO faqs (id, question, answer, category, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(id, question, answer, category || 'general', now, now).run();
+    return c.json({ id, message: 'FAQ created' }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// PUT /api/admin/faqs/:id - Update FAQ entry
+app.put('/api/admin/faqs/:id', async (c) => {
+  const id = c.req.param('id');
+  try {
+    const { question, answer, category } = await c.req.json();
+    const now = new Date().toISOString();
+    await c.env.DB.prepare(
+      'UPDATE faqs SET question = ?, answer = ?, category = ?, updated_at = ? WHERE id = ?'
+    ).bind(question, answer, category || 'general', now, id).run();
+    return c.json({ message: 'FAQ updated' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// DELETE /api/admin/faqs/:id - Delete FAQ entry
+app.delete('/api/admin/faqs/:id', async (c) => {
+  const id = c.req.param('id');
+  try {
+    await c.env.DB.prepare('DELETE FROM faqs WHERE id = ?').bind(id).run();
+    return c.json({ message: 'FAQ deleted' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── ADMIN: Voice Interaction Logs (FR15) ────────────────────────────────────────
+
+// GET /api/admin/voice-logs - List all voice logs
+app.get('/api/admin/voice-logs', async (c) => {
+  try {
+    const limit = parseInt(c.req.query('limit') || '50');
+    const { results } = await c.env.DB.prepare(
+      'SELECT id, session_id, user_id, user_text, response_text, intent, created_at FROM voice_logs ORDER BY created_at DESC LIMIT ?'
+    ).bind(limit).all();
+    return c.json({ logs: results || [] });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/admin/voice-logs - Record a voice interaction (called by ai-worker)
+app.post('/api/admin/voice-logs', async (c) => {
+  try {
+    const { session_id, user_id, user_text, response_text, intent } = await c.req.json();
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await c.env.DB.prepare(
+      'INSERT INTO voice_logs (id, session_id, user_id, user_text, response_text, intent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, session_id || null, user_id || null, user_text || '', response_text || '', intent || null, now).run();
+    return c.json({ id }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── ADMIN: Support Tickets Admin View (FR15) ─────────────────────────────────────
+
+// GET /api/admin/tickets - List ALL tickets (admin)
+app.get('/api/admin/tickets', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      'SELECT id, user_id, category, message, status, created_at FROM support_tickets ORDER BY created_at DESC LIMIT 100'
+    ).all();
+
+    const categoryLabels: Record<string, string> = {
+      product_issue: 'Lỗi sản phẩm', delivery: 'Vận chuyển', payment: 'Thanh toán',
+      return_exchange: 'Đổi trả hàng', warranty: 'Bảo hành', other: 'Khác',
+    };
+
+    const tickets = (results || []).map((row: any) => ({
+      ...row,
+      category_label: categoryLabels[row.category] || row.category,
+      short_id: row.id.slice(0, 8).toUpperCase(),
+    }));
+
+    return c.json({ tickets });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// PATCH /api/admin/tickets/:id/status - Update ticket status
+app.patch('/api/admin/tickets/:id/status', async (c) => {
+  const id = c.req.param('id');
+  try {
+    const { status } = await c.req.json();
+    const validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
+    if (!validStatuses.includes(status)) {
+      return c.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, 400);
+    }
+    await c.env.DB.prepare(
+      'UPDATE support_tickets SET status = ? WHERE id = ?'
+    ).bind(status, id).run();
+    return c.json({ message: 'Ticket status updated' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Export the app
 export default app;

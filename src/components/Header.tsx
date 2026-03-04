@@ -98,6 +98,15 @@ export function Header() {
                     <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
+                  {(user.role === 'admin' || user.email?.includes('admin')) && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition"
+                    >
+                      🛠️ Admin Dashboard
+                    </Link>
+                  )}
                   <button
                     id="logout-button"
                     onClick={handleLogout}

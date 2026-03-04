@@ -81,177 +81,7 @@ async function generateEmbedding(text: string, env: Env): Promise<number[]> {
   }
 }
 
-// ── VoiceCommerceAgent ────────────────────────────────────────────────────────
-// Extends AIChatAgent — a Cloudflare Durable Object backed by built-in SQLite.
-// Every conversation turn is persisted automatically; this.messages always
-// reflects the full dialogue history, enabling slot filling and multi-turn
-// context handling (e.g. "Add the second one" resolves from prior search).
 
-export class VoiceCommerceAgent extends AIChatAgent<Env> {
-  // Keep last 50 messages in SQLite per session
-  maxPersistedMessages = 50;
-
-  constructor(state: any, env: Env) {
-    super(state, env);
-    console.log('[VoiceCommerceAgent] constructor called, env:', env ? 'defined' : 'UNDEFINED');
-    console.log('[VoiceCommerceAgent] env keys:', env ? Object.keys(env).join(', ') : 'none');
-  }
-
-  // We no longer use WebSockets, so we'll handle requests via direct DO calls or public methods.
-  // The state is still persisted in this.messages (SQLite).
-
-
-  async onChatMessage(
-    _onFinish: Parameters<AIChatAgent['onChatMessage']>[0],
-    _options?: Parameters<AIChatAgent['onChatMessage']>[1]
-  ) {
-    // This is the legacy callback - delegate to our new method
-    return this.generateWithMcp((this as any).messages);
-  }
-
-  // Dedicated method that processVoice can call to generate responses with MCP tools
-  async generateWithMcp(messages: any[]): Promise<any> {
-    console.log('>>> generateWithMcp START');
-    const logs = (globalThis as any).__voiceLogs || [];
-    const log = (...args: any[]) => {
-      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-      logs.push(msg);
-      console.log('    ' + msg);
-    };
-    
-    try {
-      const env = (this as any).env as Env;
-      log('generateWithMcp: env.VECTORIZE:', !!env?.VECTORIZE);
-      
-      const workersai = createWorkersAI({ binding: env.AI as any });
-
-      const systemPrompt = `You are TGDD AI — the intelligent voice assistant for Thế Giới Di Động (TGDD), Vietnam's largest electronics retailer.
-
-You communicate mainly in Vietnamese. You are friendly, concise, and helpful.
-
-## Your capabilities (tools)
-You have access to a set of specialized tools via MCP. Use them for all commerce-related tasks:
-- Product search and filtering by price.
-- Side-by-side product comparison.
-- Adding or removing items from the cart.
-- Starting the checkout process.
-- Checking order status.
-- Answering FAQs about store policies.
-- Creating support tickets.
-
-## Rules
-- Always respond in Vietnamese unless the user writes in English.
-- Be brief (1-3 sentences max in response text).
-- Always call a tool for commerce actions — never fabricate data.
-- For ambiguous requests, ask a clarifying question.`;
-
-      // Initialize MCP - import modules first
-      const { createCommerceMcpServer } = await import('./mcp');
-      const { createMCPClient } = await import('@ai-sdk/mcp');
-      const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js');
-      
-      // Create linked transports for in-memory communication
-      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-
-      // Create and connect MCP server with env bindings
-      const mcpServer = createCommerceMcpServer({
-        AI: env.AI,
-        VECTORIZE: env.VECTORIZE,
-        VECTORIZE_FAQ: env.VECTORIZE_FAQ,
-        DB: env.DB
-      });
-      await mcpServer.connect(serverTransport);
-
-      // Create MCP client
-      const mcpClient = await createMCPClient({ transport: clientTransport as any });
-      const mcpTools = await mcpClient.tools();
-      log('generateWithMcp: MCP tools loaded:', Object.keys(mcpTools).join(', '));
-
-      // Generate text with MCP tools
-      const result = await generateText({
-        model: workersai('@cf/meta/llama-3.3-70b-instruct-fp8-fast') as any,
-        system: systemPrompt,
-        messages: messages as any,
-        tools: mcpTools as any
-      });
-      
-      log('generateWithMcp: result text:', result.text?.slice(0, 100));
-      return result;
-    } catch (err: any) {
-      log('generateWithMcp ERROR:', err.message);
-      throw err;
-    }
-  }
-
-  // Public method for the HTTP worker to call
-  async processVoice(audioBase64?: string, text?: string, userId?: string) {
-    console.log('>>> processVoice START');
-    const logs = (globalThis as any).__voiceLogs || [];
-    const log = (...args: any[]) => {
-      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-      logs.push(msg);
-      console.log('    ' + msg);
-    };
-    
-    log('processVoice: START');
-    console.log('>>> env:', (this as any).env);
-    
-    let transcribedText = text || '';
-    
-    // 1. STT
-    if (!transcribedText && audioBase64) {
-      const stt = await ((this as any).env.AI as any).run('@cf/openai/whisper-large-v3-turbo', {
-        audio: audioBase64, language: 'vi',
-        initial_prompt: 'Vietnamese electronics store. Product names in English: iPhone, Samsung Galaxy, OPPO, Xiaomi, MacBook, Dell.'
-      });
-      transcribedText = normalizeProductNames(stt.text || '');
-    }
-
-    if (!transcribedText.trim()) return { response_text: 'Xin lỗi, tôi không nghe rõ.' };
-
-    // 2. Add user message to state
-    const userMsg = { id: crypto.randomUUID(), role: 'user', content: transcribedText };
-    if (userId) userMsg.content = `[User ID: ${userId}] ${userMsg.content}`;
-    (this as any).messages.push(userMsg);
-
-    // 3. Generate response via MCP tools
-    const result = await this.generateWithMcp((this as any).messages);
-    
-    // 4. Add assistant message to state
-    const assistantMsg = { id: crypto.randomUUID(), role: 'assistant', content: result.text };
-    (this as any).messages.push(assistantMsg);
-
-    // 5. Detect high-level action for frontend UI from tool results
-    let action: any = null;
-    if (result.toolResults) {
-      for (const tr of result.toolResults) {
-        if (tr.toolName === 'startCheckout') action = { type: 'checkout' };
-        else if (tr.toolName === 'searchProducts') action = { type: 'search', query: tr.args.query };
-        else if (tr.toolName === 'addToCart' && tr.result.success) action = { type: 'add_to_cart', payload: tr.result };
-        else if (tr.toolName === 'removeFromCart' && tr.result.success) action = { type: 'remove_from_cart' };
-      }
-    }
-
-    // 6. TTS
-    let audioOut = null;
-    try {
-      const tts = await ((this as any).env.AI as any).run('@cf/myshell-ai/melotts', { 
-        prompt: result.text?.slice(0, 500) || '', 
-        lang: 'vi'
-      });
-      audioOut = (tts as any).audio || tts;
-    } catch (err) {
-      console.error('TTS Failed', err);
-    }
-
-    return {
-      transcribed_text: transcribedText,
-      response_text: result.text,
-      audio_base64: audioOut,
-      action
-    };
-  }
-}
 
 // ── MCP Server Initialization & Transport (Hono) ──────────────────────────────
 // The VoiceCommerceAgent uses the MCP server directly in memory.
@@ -321,11 +151,13 @@ app.post('/embed', async (c) => {
 
 // ── Legacy voice-process (backward compat with frontend/Spring) ─────────────
 // Pipeline: STT → Workers AI LLM (intent + slots) → tool execution → TTS
-// The VoiceCommerceAgent DO can ONLY be reached via routeAgentRequest (PartyKit
-// headers). For this synchronous HTTP pipeline we use Workers AI directly.
+const API_WORKER_BASE = 'https://api-worker.dangduytoan13l.workers.dev';
+
 app.post('/voice-process', async (c) => {
   try {
-    const { text: inputText, audio_base64, session_id } = await c.req.json();
+    const { text: inputText, audio_base64, session_id, context } = await c.req.json();
+    const userId: string | null = context?.user_id || null;
+    const lastProducts: Array<{id: string; name: string; price: number; index: number}> = context?.last_products || [];
     
     const env = c.env;
     const workersai = createWorkersAI({ binding: env.AI as any });
@@ -340,7 +172,7 @@ app.post('/voice-process', async (c) => {
           language: 'vi',
           initial_prompt: 'Vietnamese electronics store. Product names: iPhone, Samsung, OPPO, Xiaomi, MacBook, Dell.'
         });
-        userText = stt.text || '';
+        userText = normalizeProductNames(stt.text || '');
       } catch (sttErr) {
         console.error('STT error:', sttErr);
       }
@@ -367,8 +199,14 @@ app.post('/voice-process', async (c) => {
     const mcpClient = await createMCPClient({ transport: clientTransport as any });
     const mcpTools = await mcpClient.tools();
     
+    // Build product context for the LLM
+    let productContext = '';
+    if (lastProducts.length > 0) {
+      productContext = `\n## Sản phẩm đã hiển thị trước đó:\n${lastProducts.map(p => `${p.index}. ${p.name} - ${p.price?.toLocaleString('vi-VN') || 'N/A'} VND (ID: ${p.id})`).join('\n')}\n\nKhi người dùng nói "thêm sản phẩm thứ X" hoặc "sản phẩm thứ X", hãy sử dụng index để xác định sản phẩm.`;
+    }
+    
     const systemPrompt = `You are TGDD AI — the intelligent voice assistant for Thế Giới Di Động (TGDD), Vietnam's largest electronics retailer.
-You communicate mainly in Vietnamese. Be brief.`;
+You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a tool for commerce actions— never fabricate data.${productContext}`;
     
     const messages = [{ role: 'user', content: userText }];
     
@@ -393,7 +231,7 @@ You communicate mainly in Vietnamese. Be brief.`;
       }
     }
     
-    // TTS: Generate audio from response
+    // TTS: Generate audio from response (Vietnamese via melotts)
     let audioBase64 = null;
     if (responseText) {
       try {
@@ -406,12 +244,50 @@ You communicate mainly in Vietnamese. Be brief.`;
         console.error('TTS error:', ttsErr);
       }
     }
+
+    // Detect intent from tool calls for logging
+    let intent: string | null = null;
+    if ((result as any).toolCalls?.length) {
+      intent = (result as any).toolCalls[0]?.toolName || null;
+    } else if (result.toolResults?.length) {
+      intent = (result.toolResults[0] as any)?.toolName || null;
+    }
+
+    // Async log voice interaction to api-worker (fire-and-forget, best-effort)
+    const ctx = (c as any).executionCtx;
+    const logFetch = fetch(`${API_WORKER_BASE}/api/admin/voice-logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: session_id || 'default',
+        user_id: userId,
+        user_text: userText,
+        response_text: responseText || '',
+        intent,
+      }),
+    }).catch(() => {}); // ignore errors — logging is best-effort
+    if (ctx?.waitUntil) ctx.waitUntil(logFetch);
     
+    // Detect action for frontend (cart, search, checkout)
+    let action: any = null;
+    if (result.toolResults?.length) {
+      for (const tr of result.toolResults as any[]) {
+        try {
+          const parsed = typeof tr.result === 'string' ? JSON.parse(tr.result) : tr.result;
+          if (tr.toolName === 'startCheckout') action = { type: 'checkout' };
+          else if (tr.toolName === 'searchProducts') action = { type: 'search', query: messages[0].content };
+          else if (tr.toolName === 'addToCart' && parsed?.success) action = { type: 'add_to_cart', payload: parsed };
+          else if (tr.toolName === 'removeFromCart' && parsed?.success) action = { type: 'remove_from_cart' };
+        } catch {}
+      }
+    }
+
     return c.json({
       transcribed_text: userText,
       response_text: responseText,
-      audio_base64: audioBase64,
+      audio_base64: null,
       tool_results: result.toolResults,
+      action,
       session_id: session_id || 'default'
     });
   } catch (error: any) {
@@ -419,15 +295,9 @@ You communicate mainly in Vietnamese. Be brief.`;
   }
 });
 
-// ── Cloudflare Agents SDK routing ─────────────────────────────────────────────
-// This routes WebSocket and HTTP streaming requests to the VoiceCommerceAgent DO.
-// Path: /agents/VoiceCommerceAgent/:id/*
+// Cloudflare Workers entry point
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // Fall back to Hono for REST endpoints (STT, TTS, embed, voice-process, health)
     return app.fetch(request, env, ctx);
   },
 };
-
-// Export the Durable Object class so Wrangler can register it
-export { VoiceCommerceAgent as default_VoiceCommerceAgent };
