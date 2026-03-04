@@ -1,5 +1,5 @@
 {
-  "name": "api-worker",
+  "name": "@tgdd/api-worker",
   "version": "1.0.0",
   "description": "REST API Worker for TGDD e-commerce",
   "main": "src/index.ts",

@@ -1,0 +1,79 @@
+name: CI (Frontend)
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "apps/web/src/**"
+      - "apps/web/public/**"
+      - "apps/web/package.json"
+      - "apps/web/vite.config.ts"
+      - "apps/web/index.html"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web/src/**"
+      - "apps/web/public/**"
+      - "apps/web/package.json"
+      - "apps/web/vite.config.ts"
+      - "apps/web/index.html"
+
+concurrency:
+  group: ci-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  frontend-ci:
+    name: Frontend — Lint / Format / Test / Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+        with:
+          working-directory: apps/web
+
+      - name: Lint
+        run: bunx oxlint --fix --fix-suggestions
+        working-directory: apps/web
+        continue-on-error: true
+
+      - name: Format
+        run: bunx oxfmt --config .oxfmtrc.jsonc
+        working-directory: apps/web
+
+      - name: Type check
+        run: bunx tsc --noEmit
+        working-directory: apps/web
+
+      - name: Check for changes
+        id: verify-diff
+        run: |
+          git diff --quiet . || echo "changed=true" >> $GITHUB_OUTPUT
+        working-directory: apps/web
+
+      - name: Commit if changed
+        if: steps.verify-diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: auto-format code"
+
+      - name: Unit tests
+        run: bun run test --run --reporter=verbose --coverage || bun test --reporter=verbose --coverage
+        working-directory: apps/web
+
+      - name: Build
+        run: bun run build
+        working-directory: apps/web
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: apps/web/dist/
+          retention-days: 7

@@ -1,5 +1,5 @@
 {
-  "name": "ai-worker",
+  "name": "@tgdd/ai-worker",
   "version": "2.0.0",
   "description": "Cloudflare AI Agent for Voice Commerce - TGDD",
   "main": "src/index.ts",

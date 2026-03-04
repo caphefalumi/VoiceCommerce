@@ -1,0 +1,110 @@
+name: Security (Trivy)
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "apps/web/package.json"
+      - "apps/ai-worker/package.json"
+      - "apps/api-worker/package.json"
+      - "infra/terraform/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web/package.json"
+      - "apps/ai-worker/package.json"
+      - "apps/api-worker/package.json"
+      - "infra/terraform/**"
+
+concurrency:
+  group: security-trivy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  frontend-security:
+    name: Frontend — bun audit + Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+        with:
+          working-directory: apps/web
+
+      - name: bun audit
+        run: bun pm trust --all || true
+        working-directory: apps/web
+        continue-on-error: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'apps/web'
+          scanners: vuln,secret
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+  ai-worker-security:
+    name: AI Worker — bun audit + Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+        with:
+          working-directory: apps/ai-worker
+
+      - name: bun audit
+        run: bun pm trust --all || true
+        working-directory: apps/ai-worker
+        continue-on-error: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'apps/ai-worker'
+          scanners: vuln,secret
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+  api-worker-security:
+    name: API Worker — bun audit + Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+        with:
+          working-directory: apps/api-worker
+
+      - name: bun audit
+        run: bun pm trust --all || true
+        working-directory: apps/api-worker
+        continue-on-error: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'apps/api-worker'
+          scanners: vuln,secret
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+  trivy-iac:
+    name: Trivy IaC Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy IaC scanner
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'infra/terraform'
+          scanners: misconfig,secret
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '1'

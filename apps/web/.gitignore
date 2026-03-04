@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.sisyphus/
+.wrangler/
+.tanstack/
+node_modules
+dist
+dist-ssr
+*.local
+
+# Java/Spring
+spring-backend/
+spring-backend-removed/
+target/
+*.class
+*.jar
+*.war
+
+# Terraform
+infra/terraform/*.tfvars            # secrets — never commit (use TF_VAR_* in CI)
+infra/terraform/.terraform/         # downloaded provider binaries
+# DO NOT ignore .terraform.lock.hcl — commit it to lock provider versions
+infra/terraform/terraform.tfstate
+infra/terraform/terraform.tfstate.backup
+infra/terraform/crash.log
+
+# Environment files
+.env
+.env.local
+.env.production
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+".firecrawl/" 

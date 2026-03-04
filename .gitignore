@@ -1,49 +1,37 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-.sisyphus/
-.wrangler/
-.tanstack/
+# Dependencies
 node_modules
-dist
-dist-ssr
-*.local
+.pnp
+.pnp.js
+bun.lock
 
-# Java/Spring
-spring-backend/
-spring-backend-removed/
-target/
-*.class
-*.jar
-*.war
+# Testing
+/coverage
 
-# Terraform
-infra/terraform/*.tfvars            # secrets — never commit (use TF_VAR_* in CI)
-infra/terraform/.terraform/         # downloaded provider binaries
-# DO NOT ignore .terraform.lock.hcl — commit it to lock provider versions
-infra/terraform/terraform.tfstate
-infra/terraform/terraform.tfstate.backup
-infra/terraform/crash.log
+# Production
+/dist
+/build
+/.wrangler
+/tmp
 
-# Environment files
+# Environment variables
 .env
-.env.local
-.env.production
+.env.*
 !.env.example
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# OS
 .DS_Store
+Thumbs.db
+
+# IDEs
+.vscode
+.idea
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-".firecrawl/" 
+
+# Project specific
+.sisyphus
+.tanstack
+apps/web/src/routeTree.gen.ts
