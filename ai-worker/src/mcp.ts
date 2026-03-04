@@ -41,11 +41,10 @@ export function createCommerceMcpServer(env: Env) {
       description: 'Search for products in the TGDD catalog by name, model, or category.',
       inputSchema: z.object({
         query: z.string().describe('Product name, model, or category in Vietnamese or English'),
-        category: z.string().optional().describe('Optional category filter: điện thoại, laptop, tablet, tai nghe, đồng hồ'),
       })
     },
-    async ({ query, category }) => {
-      log('info', 'tool.searchProducts', { query, category });
+    async ({ query }) => {
+      log('info', 'tool.searchProducts', { query });
       try {
         const embedding = await generateEmbedding(`sản phẩm: ${query}`, env);
         if (!embedding.length || !env.VECTORIZE) {
@@ -58,20 +57,23 @@ export function createCommerceMcpServer(env: Env) {
           brand: m.metadata?.brand || '',
           price: Number(m.metadata?.price || 0),
           category: m.metadata?.category || '',
-          score: m.score,
         }));
-        if (category) {
-          results = results.filter((r: any) => r.category.toLowerCase().includes(category.toLowerCase()));
-        }
+
         results = results.slice(0, 5);
         
+        let message = `Không tìm thấy sản phẩm nào cho "${query}"`;
+        if (results.length > 0) {
+          const overview = results.slice(0, 3).map((r: any) => `${r.name} giá ${r.price.toLocaleString('vi-VN')} VND`).join(', ');
+          message = `Tìm thấy ${results.length} sản phẩm. Một số sản phẩm tiêu biểu: ${overview}. Bạn muốn chọn sản phẩm nào?`;
+        }
+
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
               results,
               count: results.length,
-              message: results.length > 0 ? `Tìm thấy ${results.length} sản phẩm phù hợp với "${query}"` : `Không tìm thấy sản phẩm nào cho "${query}"`,
+              message,
             })
           }]
         };
@@ -118,6 +120,12 @@ export function createCommerceMcpServer(env: Env) {
             price: Number(m.metadata?.price || 0),
             category: m.metadata?.category || '',
           }));
+
+        let message = `Không tìm thấy sản phẩm ${query} nào trong tầm giá này.`;
+        if (results.length > 0) {
+          const overview = results.slice(0, 3).map((r: any) => `${r.name} giá ${r.price.toLocaleString('vi-VN')} VND`).join(', ');
+          message = `Tìm thấy ${results.length} sản phẩm ${query} trong tầm giá. Tiêu biểu: ${overview}.`;
+        }
           
         return {
           content: [{
@@ -126,7 +134,7 @@ export function createCommerceMcpServer(env: Env) {
               results,
               count: results.length,
               priceRange: { min: minPrice, max: maxPrice },
-              message: `Tìm thấy ${results.length} sản phẩm ${query} thỏa điều kiện giá.`
+              message,
             })
           }]
         };
@@ -270,6 +278,8 @@ export function createCommerceMcpServer(env: Env) {
       log('info', 'tool.removeFromCart', { productName, productId, userId });
       try {
         let removedName = productName || 'sản phẩm';
+        let removedId = productId;
+        
         if (userId && env.DB && (productId || productName)) {
           if (productId) {
             await env.DB.prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?').bind(userId, productId).run();
@@ -279,6 +289,7 @@ export function createCommerceMcpServer(env: Env) {
               const result = await env.VECTORIZE.query(embedding, { topK: 1, returnMetadata: 'all' });
               const match = result?.matches?.[0];
               if (match?.id) {
+                removedId = match.id;
                 removedName = (match.metadata?.name as string) || productName;
                 await env.DB.prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?').bind(userId, match.id).run();
               }
@@ -291,6 +302,7 @@ export function createCommerceMcpServer(env: Env) {
             text: JSON.stringify({
               success: true,
               action: 'remove_from_cart',
+              productId: removedId,
               message: `Đã xóa ${removedName} khỏi giỏ hàng.`,
             })
           }]

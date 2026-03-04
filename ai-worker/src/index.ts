@@ -206,7 +206,7 @@ app.post('/voice-process', async (c) => {
     }
     
     const systemPrompt = `You are TGDD AI — the intelligent voice assistant for Thế Giới Di Động (TGDD), Vietnam's largest electronics retailer.
-You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a tool for commerce actions— never fabricate data.${productContext}`;
+You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a tool for commerce actions— never fabricate data.${userId ? `\n\nThe current logged-in User ID is: ${userId}. Always include this userId when calling tools that require it, such as adding to cart or checking out.` : ''}${productContext}`;
     
     const messages = [{ role: 'user', content: userText }];
     
@@ -273,11 +273,17 @@ You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a to
     if (result.toolResults?.length) {
       for (const tr of result.toolResults as any[]) {
         try {
-          const parsed = typeof tr.result === 'string' ? JSON.parse(tr.result) : tr.result;
+          let parsed: any;
+          if (tr.output?.content?.[0]?.text) {
+            parsed = JSON.parse(tr.output.content[0].text);
+          } else {
+            parsed = typeof tr.result === 'string' ? JSON.parse(tr.result) : tr.result;
+          }
+
           if (tr.toolName === 'startCheckout') action = { type: 'checkout' };
           else if (tr.toolName === 'searchProducts') action = { type: 'search', query: messages[0].content };
           else if (tr.toolName === 'addToCart' && parsed?.success) action = { type: 'add_to_cart', payload: parsed };
-          else if (tr.toolName === 'removeFromCart' && parsed?.success) action = { type: 'remove_from_cart' };
+          else if (tr.toolName === 'removeFromCart' && parsed?.success) action = { type: 'remove_from_cart', payload: parsed };
         } catch {}
       }
     }

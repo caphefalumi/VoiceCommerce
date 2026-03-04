@@ -180,8 +180,13 @@ export function VoiceAssistant() {
             addToCart(p, true);
           }
         } else if (data.action?.type === 'remove_from_cart') {
-          const itemToRemove = cartItems[cartItems.length - 1];
-          if (itemToRemove) removeFromCart(itemToRemove.id, true);
+          const removeId = data.action.payload?.productId;
+          if (removeId) {
+            removeFromCart(removeId, true);
+          } else {
+            const itemToRemove = cartItems[cartItems.length - 1];
+            if (itemToRemove) removeFromCart(itemToRemove.id, true);
+          }
         }
 
         // Store search results in sessionStorage for context
@@ -189,7 +194,13 @@ export function VoiceAssistant() {
           for (const tr of data.tool_results) {
             if (tr.toolName === 'searchProducts' || tr.toolName === 'filterProductsByPrice') {
               try {
-                const parsed = typeof tr.result === 'string' ? JSON.parse(tr.result) : tr.result;
+                let parsed: any;
+                if (tr.output?.content?.[0]?.text) {
+                  parsed = JSON.parse(tr.output.content[0].text);
+                } else {
+                  parsed = typeof tr.result === 'string' ? JSON.parse(tr.result) : tr.result;
+                }
+                
                 if (parsed?.results && Array.isArray(parsed.results)) {
                   interface ProductResult {
                     id: string;

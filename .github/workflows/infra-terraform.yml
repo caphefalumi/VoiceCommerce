@@ -5,16 +5,19 @@ on:
     branches: [main]
     paths:
       - "infra/terraform/**"
-      - ".github/workflows/terraform.yml"
+      - ".github/workflows/infra-terraform.yml"
   pull_request:
     branches: [main]
     paths:
       - "infra/terraform/**"
-      - ".github/workflows/terraform.yml"
+      - ".github/workflows/infra-terraform.yml"
 
 concurrency:
   group: terraform-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   validate:
