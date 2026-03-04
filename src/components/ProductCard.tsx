@@ -1,9 +1,9 @@
-import type { Product } from "@/types/product";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Link } from "@tanstack/react-router";
+import type { Product } from '@/types/product';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Link } from '@tanstack/react-router';
 
 interface ProductCardProps {
   product: Product;
@@ -11,26 +11,21 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, className }: ProductCardProps) {
-  const formattedPrice = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
+  const formattedPrice = new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
   }).format(product.price);
 
   return (
-    <Link 
-      to={`/product/${product.id}` as any}
-      className={cn("block h-full", className)}
-    >
+    <Link to={`/product/${product.id}` as any} className={cn('block h-full', className)}>
       <Card className="group h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-none bg-white">
         <CardContent className="p-0 relative">
           {product.isNew && (
-            <Badge className="absolute top-2 left-2 z-10 bg-red-600 hover:bg-red-700">
-              Mới
-            </Badge>
+            <Badge className="absolute top-2 left-2 z-10 bg-red-600 hover:bg-red-700">Mới</Badge>
           )}
           <div className="aspect-square overflow-hidden bg-gray-100">
             <img
-              src={product.images[0] || "https://placehold.co/400x400?text=No+Image"}
+              src={product.images[0] || 'https://placehold.co/400x400?text=No+Image'}
               alt={product.name}
               className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
             />
@@ -46,8 +41,8 @@ export function ProductCard({ product, className }: ProductCardProps) {
                 <Star
                   key={i}
                   size={12}
-                  fill={i < Math.floor(product.rating) ? "currentColor" : "none"}
-                  className={cn(i < Math.floor(product.rating) ? "" : "text-gray-300")}
+                  fill={i < Math.floor(product.rating) ? 'currentColor' : 'none'}
+                  className={cn(i < Math.floor(product.rating) ? '' : 'text-gray-300')}
                 />
               ))}
             </div>
@@ -58,9 +53,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
             {product.originalPrice && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground line-through">
-                  {new Intl.NumberFormat("vi-VN", {
-                    style: "currency",
-                    currency: "VND",
+                  {new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND',
                   }).format(product.originalPrice)}
                 </span>
                 {product.discountPercentage && (

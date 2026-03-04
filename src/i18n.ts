@@ -5,24 +5,24 @@ i18n.use(initReactI18next).init({
   resources: {
     en: {
       translation: {
-        "welcome": "Welcome",
-        "search": "Search",
-        "homepage": "Homepage"
-      }
+        welcome: 'Welcome',
+        search: 'Search',
+        homepage: 'Homepage',
+      },
     },
     vi: {
       translation: {
-        "welcome": "Chào mừng",
-        "search": "Tìm kiếm",
-        "homepage": "Trang chủ"
-      }
-    }
+        welcome: 'Chào mừng',
+        search: 'Tìm kiếm',
+        homepage: 'Trang chủ',
+      },
+    },
   },
-  lng: "vi",
-  fallbackLng: "en",
+  lng: 'vi',
+  fallbackLng: 'en',
   interpolation: {
-    escapeValue: false
-  }
+    escapeValue: false,
+  },
 });
 
 export default i18n;

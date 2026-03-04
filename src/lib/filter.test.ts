@@ -15,7 +15,7 @@ const mockProducts: Product[] = [
     rating: 4.5,
     reviewCount: 10,
     stock: 10,
-    description: 'test'
+    description: 'test',
   },
   {
     id: '2',
@@ -28,7 +28,7 @@ const mockProducts: Product[] = [
     rating: 4.8,
     reviewCount: 20,
     stock: 5,
-    description: 'test'
+    description: 'test',
   },
   {
     id: '3',
@@ -41,7 +41,7 @@ const mockProducts: Product[] = [
     rating: 4.9,
     reviewCount: 15,
     stock: 2,
-    description: 'test'
+    description: 'test',
   },
   {
     id: '4',
@@ -54,8 +54,8 @@ const mockProducts: Product[] = [
     rating: 4.2,
     reviewCount: 50,
     stock: 100,
-    description: 'test'
-  }
+    description: 'test',
+  },
 ];
 
 describe('filterProducts', () => {
@@ -69,14 +69,14 @@ describe('filterProducts', () => {
     const options: FilterOptions = { category: 'phone' };
     const result = filterProducts(mockProducts, options);
     expect(result).toHaveLength(2);
-    expect(result.every(p => p.category === 'phone')).toBe(true);
+    expect(result.every((p) => p.category === 'phone')).toBe(true);
   });
 
   it('should filter by min price', () => {
     const options: FilterOptions = { minPrice: 20000000 };
     const result = filterProducts(mockProducts, options);
     expect(result).toHaveLength(3);
-    expect(result.every(p => p.price >= 20000000)).toBe(true);
+    expect(result.every((p) => p.price >= 20000000)).toBe(true);
   });
 
   it('should filter by max price', () => {
@@ -90,14 +90,14 @@ describe('filterProducts', () => {
     const options: FilterOptions = { minPrice: 20000000, maxPrice: 30000000 };
     const result = filterProducts(mockProducts, options);
     expect(result).toHaveLength(2);
-    expect(result.every(p => p.price >= 20000000 && p.price <= 30000000)).toBe(true);
+    expect(result.every((p) => p.price >= 20000000 && p.price <= 30000000)).toBe(true);
   });
 
   it('should filter by brand (array)', () => {
     const options: FilterOptions = { brand: ['Apple'] };
     const result = filterProducts(mockProducts, options);
     expect(result).toHaveLength(2);
-    expect(result.every(p => p.brand === 'Apple')).toBe(true);
+    expect(result.every((p) => p.brand === 'Apple')).toBe(true);
   });
 
   it('should filter by multiple brands', () => {
@@ -110,7 +110,7 @@ describe('filterProducts', () => {
     const options: FilterOptions = {
       category: 'phone',
       brand: ['Apple'],
-      minPrice: 15000000
+      minPrice: 15000000,
     };
     const result = filterProducts(mockProducts, options);
     expect(result).toHaveLength(1);

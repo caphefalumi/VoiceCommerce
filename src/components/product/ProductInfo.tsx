@@ -1,11 +1,11 @@
-import type { Product } from "@/types/product";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Star, Truck, ShieldCheck, RefreshCcw, ShoppingCart, Check } from "lucide-react";
-import { useCartStore } from "@/store/cart";
-import { useAuthStore } from "@/store/auth";
-import { useNavigate, useLocation } from "@tanstack/react-router";
-import { useState } from "react";
+import type { Product } from '@/types/product';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Star, Truck, ShieldCheck, RefreshCcw, ShoppingCart, Check } from 'lucide-react';
+import { useCartStore } from '@/store/cart';
+import { useAuthStore } from '@/store/auth';
+import { useNavigate, useLocation } from '@tanstack/react-router';
+import { useState } from 'react';
 
 interface ProductInfoProps {
   product: Product;
@@ -17,24 +17,24 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdded, setIsAdded] = useState(false);
-  
-  const formatter = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
+
+  const formatter = new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
   });
 
   const handleBuyNow = () => {
     if (!user) {
-      navigate({ to: "/login", search: { redirect: location.pathname } });
+      navigate({ to: '/login', search: { redirect: location.pathname } });
       return;
     }
     addToCart(product);
-    navigate({ to: "/cart" });
+    navigate({ to: '/cart' });
   };
 
   const handleAddToCart = () => {
     if (!user) {
-      navigate({ to: "/login", search: { redirect: location.pathname } });
+      navigate({ to: '/login', search: { redirect: location.pathname } });
       return;
     }
     addToCart(product);
@@ -50,15 +50,15 @@ export function ProductInfo({ product }: ProductInfoProps) {
           {product.isFlashSale && <Badge variant="destructive">Giá sốc</Badge>}
           {product.stock < 10 && <Badge variant="outline">Sắp hết hàng</Badge>}
         </div>
-        
+
         <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
-        
+
         <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
           <div className="flex items-center text-yellow-500">
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
-                className={`h-4 w-4 ${i < Math.floor(product.rating) ? "fill-current" : "opacity-30"}`}
+                className={`h-4 w-4 ${i < Math.floor(product.rating) ? 'fill-current' : 'opacity-30'}`}
               />
             ))}
           </div>
@@ -70,9 +70,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
       <div className="rounded-lg bg-muted/30 p-4">
         <div className="flex items-baseline gap-3">
-          <span className="text-3xl font-bold text-red-600">
-            {formatter.format(product.price)}
-          </span>
+          <span className="text-3xl font-bold text-red-600">{formatter.format(product.price)}</span>
           {product.originalPrice && (
             <span className="text-lg text-muted-foreground line-through">
               {formatter.format(product.originalPrice)}
@@ -86,30 +84,32 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
       <div className="grid gap-4">
         <div className="grid grid-cols-2 gap-2 text-sm">
-          {Object.entries(product.specs).slice(0, 4).map(([key, value]) => (
-            <div key={key} className="flex justify-between border-b pb-1">
-              <span className="text-muted-foreground">{key}</span>
-              <span className="font-medium">{value}</span>
-            </div>
-          ))}
+          {Object.entries(product.specs)
+            .slice(0, 4)
+            .map(([key, value]) => (
+              <div key={key} className="flex justify-between border-b pb-1">
+                <span className="text-muted-foreground">{key}</span>
+                <span className="font-medium">{value}</span>
+              </div>
+            ))}
         </div>
 
         <div className="flex flex-col gap-3 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="w-full text-lg font-bold bg-destructive hover:bg-destructive/90 text-white"
               onClick={handleBuyNow}
             >
               MUA NGAY
             </Button>
-            <Button 
+            <Button
               variant="outline"
-              size="lg" 
+              size="lg"
               className={`w-full text-lg font-bold border-primary hover:bg-primary/10 transition-all duration-300 ${
-                isAdded 
-                  ? "bg-green-50 text-green-600 border-green-600 hover:bg-green-100 hover:text-green-700" 
-                  : "text-black"
+                isAdded
+                  ? 'bg-green-50 text-green-600 border-green-600 hover:bg-green-100 hover:text-green-700'
+                  : 'text-black'
               }`}
               onClick={handleAddToCart}
               disabled={product.stock === 0}

@@ -29,7 +29,7 @@ const syncCartAPI = async (method: string, productId: string, quantity?: number)
     if (method === 'DELETE') {
       await fetch(`${API_BASE}/api/cart/${user.id}/${productId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
     } else if (method === 'POST') {
       await fetch(`${API_BASE}/api/cart`, {
@@ -54,9 +54,7 @@ export const useCartStore = create<CartState>()(
         let newItems;
         if (existingItem) {
           newItems = items.map((item) =>
-            item.id === product.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
+            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
           );
         } else {
           newItems = [...items, { ...product, quantity: 1 }];
@@ -73,12 +71,12 @@ export const useCartStore = create<CartState>()(
       updateQuantity: (productId, quantity, skipSync = false) => {
         if (quantity < 1) return;
         const items = get().items;
-        const oldItem = items.find(i => i.id === productId);
+        const oldItem = items.find((i) => i.id === productId);
         const oldQty = oldItem ? oldItem.quantity : 0;
         const diff = quantity - oldQty;
-        
+
         const newItems = items.map((item) =>
-          item.id === productId ? { ...item, quantity } : item
+          item.id === productId ? { ...item, quantity } : item,
         );
         set({ items: newItems });
         // The API backend 'updates' by adding quantity, or if we had a dedicated PUT endpoint we'd use it.
@@ -94,14 +92,11 @@ export const useCartStore = create<CartState>()(
         set({ items });
       },
       total: () => {
-        return get().items.reduce(
-          (acc, item) => acc + item.price * item.quantity,
-          0
-        );
+        return get().items.reduce((acc, item) => acc + item.price * item.quantity, 0);
       },
     }),
     {
       name: 'cart-storage',
-    }
-  )
+    },
+  ),
 );

@@ -41,7 +41,9 @@ export class D1Client {
   }
 
   async getProductsByCategory(category: string, limit = 50): Promise<ProductRow[]> {
-    const stmt = this.q('SELECT * FROM products WHERE category = ? ORDER BY created_at DESC LIMIT ?');
+    const stmt = this.q(
+      'SELECT * FROM products WHERE category = ? ORDER BY created_at DESC LIMIT ?',
+    );
     if (!stmt) return [];
     const result = await stmt.bind(category, limit).all<ProductRow>();
     return result.results || [];
@@ -55,42 +57,75 @@ export class D1Client {
   }
 
   async createProduct(product: Partial<ProductRow>): Promise<D1Result<ProductRow>> {
-    const stmt = this.q(`INSERT INTO products (id, url, name, price, original_price, category, brand, rating, review_count, stock, description, images, specs, reviews, embedding)
+    const stmt = this
+      .q(`INSERT INTO products (id, url, name, price, original_price, category, brand, rating, review_count, stock, description, images, specs, reviews, embedding)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     if (!stmt) return { success: false, error: 'Database not available' };
-    return await stmt.bind(
-      product.id,
-      product.url,
-      product.name,
-      product.price,
-      product.original_price,
-      product.category,
-      product.brand,
-      product.rating || 0,
-      product.review_count || 0,
-      product.stock || 0,
-      product.description,
-      product.images || '[]',
-      product.specs || '[]',
-      product.reviews || '[]',
-      product.embedding
-    ).run();
+    return await stmt
+      .bind(
+        product.id,
+        product.url,
+        product.name,
+        product.price,
+        product.original_price,
+        product.category,
+        product.brand,
+        product.rating || 0,
+        product.review_count || 0,
+        product.stock || 0,
+        product.description,
+        product.images || '[]',
+        product.specs || '[]',
+        product.reviews || '[]',
+        product.embedding,
+      )
+      .run();
   }
 
   async updateProduct(id: string, updates: Partial<ProductRow>): Promise<D1Result<ProductRow>> {
     const fields: string[] = [];
     const values: any[] = [];
 
-    if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
-    if (updates.price !== undefined) { fields.push('price = ?'); values.push(updates.price); }
-    if (updates.original_price !== undefined) { fields.push('original_price = ?'); values.push(updates.original_price); }
-    if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category); }
-    if (updates.brand !== undefined) { fields.push('brand = ?'); values.push(updates.brand); }
-    if (updates.stock !== undefined) { fields.push('stock = ?'); values.push(updates.stock); }
-    if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description); }
-    if (updates.images !== undefined) { fields.push('images = ?'); values.push(updates.images); }
-    if (updates.specs !== undefined) { fields.push('specs = ?'); values.push(updates.specs); }
-    if (updates.reviews !== undefined) { fields.push('reviews = ?'); values.push(updates.reviews); }
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.price !== undefined) {
+      fields.push('price = ?');
+      values.push(updates.price);
+    }
+    if (updates.original_price !== undefined) {
+      fields.push('original_price = ?');
+      values.push(updates.original_price);
+    }
+    if (updates.category !== undefined) {
+      fields.push('category = ?');
+      values.push(updates.category);
+    }
+    if (updates.brand !== undefined) {
+      fields.push('brand = ?');
+      values.push(updates.brand);
+    }
+    if (updates.stock !== undefined) {
+      fields.push('stock = ?');
+      values.push(updates.stock);
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?');
+      values.push(updates.description);
+    }
+    if (updates.images !== undefined) {
+      fields.push('images = ?');
+      values.push(updates.images);
+    }
+    if (updates.specs !== undefined) {
+      fields.push('specs = ?');
+      values.push(updates.specs);
+    }
+    if (updates.reviews !== undefined) {
+      fields.push('reviews = ?');
+      values.push(updates.reviews);
+    }
 
     fields.push('updated_at = datetime("now")');
     values.push(id);
@@ -125,28 +160,46 @@ export class D1Client {
   }
 
   async createUser(user: Partial<UserRow>): Promise<D1Result<UserRow>> {
-    const stmt = this.q(`INSERT INTO users (id, username, email, password, email_verified, auth_data)
+    const stmt = this
+      .q(`INSERT INTO users (id, username, email, password, email_verified, auth_data)
       VALUES (?, ?, ?, ?, ?, ?)`);
     if (!stmt) return { success: false, error: 'Database not available' };
-    return await stmt.bind(
-      user.id,
-      user.username,
-      user.email,
-      user.password,
-      user.email_verified || 0,
-      user.auth_data
-    ).run();
+    return await stmt
+      .bind(
+        user.id,
+        user.username,
+        user.email,
+        user.password,
+        user.email_verified || 0,
+        user.auth_data,
+      )
+      .run();
   }
 
   async updateUser(id: string, updates: Partial<UserRow>): Promise<D1Result<UserRow>> {
     const fields: string[] = [];
     const values: any[] = [];
 
-    if (updates.username !== undefined) { fields.push('username = ?'); values.push(updates.username); }
-    if (updates.email !== undefined) { fields.push('email = ?'); values.push(updates.email); }
-    if (updates.password !== undefined) { fields.push('password = ?'); values.push(updates.password); }
-    if (updates.email_verified !== undefined) { fields.push('email_verified = ?'); values.push(updates.email_verified); }
-    if (updates.auth_data !== undefined) { fields.push('auth_data = ?'); values.push(updates.auth_data); }
+    if (updates.username !== undefined) {
+      fields.push('username = ?');
+      values.push(updates.username);
+    }
+    if (updates.email !== undefined) {
+      fields.push('email = ?');
+      values.push(updates.email);
+    }
+    if (updates.password !== undefined) {
+      fields.push('password = ?');
+      values.push(updates.password);
+    }
+    if (updates.email_verified !== undefined) {
+      fields.push('email_verified = ?');
+      values.push(updates.email_verified);
+    }
+    if (updates.auth_data !== undefined) {
+      fields.push('auth_data = ?');
+      values.push(updates.auth_data);
+    }
 
     fields.push('updated_at = datetime("now")');
     values.push(id);
@@ -178,8 +231,14 @@ export class D1Client {
     return await stmt.bind(id, userId, productId, quantity, quantity).run();
   }
 
-  async updateCartQuantity(userId: string, productId: string, quantity: number): Promise<D1Result<CartItemRow>> {
-    const stmt = this.q('UPDATE cart_items SET quantity = ?, updated_at = datetime("now") WHERE user_id = ? AND product_id = ?');
+  async updateCartQuantity(
+    userId: string,
+    productId: string,
+    quantity: number,
+  ): Promise<D1Result<CartItemRow>> {
+    const stmt = this.q(
+      'UPDATE cart_items SET quantity = ?, updated_at = datetime("now") WHERE user_id = ? AND product_id = ?',
+    );
     if (!stmt) return { success: false, error: 'Database not available' };
     return await stmt.bind(quantity, userId, productId).run();
   }
@@ -197,14 +256,18 @@ export class D1Client {
   }
 
   async getCellPhoneModels(limit = 50, offset = 0): Promise<any[]> {
-    const stmt = this.q('SELECT * FROM cell_phone_models ORDER BY created_at DESC LIMIT ? OFFSET ?');
+    const stmt = this.q(
+      'SELECT * FROM cell_phone_models ORDER BY created_at DESC LIMIT ? OFFSET ?',
+    );
     if (!stmt) return [];
     const result = await stmt.bind(limit, offset).all();
     return result.results || [];
   }
 
   async searchCellPhoneModels(query: string, limit = 20): Promise<any[]> {
-    const stmt = this.q('SELECT * FROM cell_phone_models WHERE brand LIKE ? OR model LIKE ? LIMIT ?');
+    const stmt = this.q(
+      'SELECT * FROM cell_phone_models WHERE brand LIKE ? OR model LIKE ? LIMIT ?',
+    );
     if (!stmt) return [];
     const searchTerm = `%${query}%`;
     const result = await stmt.bind(searchTerm, searchTerm, limit).all();

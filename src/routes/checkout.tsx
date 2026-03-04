@@ -1,9 +1,9 @@
-import { createFileRoute, useNavigate, Link, redirect } from '@tanstack/react-router'
-import { useState } from 'react'
-import { useCartStore } from '@/store/cart'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { createFileRoute, useNavigate, Link, redirect } from '@tanstack/react-router';
+import { useState } from 'react';
+import { useCartStore } from '@/store/cart';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,71 +12,72 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from '@/components/ui/alert-dialog';
 
 export const Route = createFileRoute('/checkout')({
   beforeLoad: () => {
     // If the router context has no session/user, redirect to login
     // We use localStorage directly since context isn't wired up here
-    const stored = localStorage.getItem('tgdd-auth')
-    if (!stored) throw redirect({ to: '/login', search: { redirect: '/checkout' } })
+    const stored = localStorage.getItem('tgdd-auth');
+    if (!stored) throw redirect({ to: '/login', search: { redirect: '/checkout' } });
     try {
-      const parsed = JSON.parse(stored)
-      if (!parsed?.state?.token) throw redirect({ to: '/login' })
+      const parsed = JSON.parse(stored);
+      if (!parsed?.state?.token) throw redirect({ to: '/login' });
     } catch {
-      throw redirect({ to: '/login' })
+      throw redirect({ to: '/login' });
     }
   },
   component: CheckoutPage,
-})
+});
 
 function CheckoutPage() {
-  const navigate = useNavigate()
-  const { items, total, clearCart } = useCartStore()
-  const [showSuccess, setShowSuccess] = useState(false)
+  const navigate = useNavigate();
+  const { items, total, clearCart } = useCartStore();
+  const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     address: '',
     city: '',
-  })
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
-    const newErrors: Record<string, string> = {}
-    if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập họ tên'
-    if (!formData.phone.trim()) newErrors.phone = 'Vui lòng nhập số điện thoại'
-    else if (!/^\d{10}$/.test(formData.phone.trim())) newErrors.phone = 'Số điện thoại không hợp lệ'
-    if (!formData.address.trim()) newErrors.address = 'Vui lòng nhập địa chỉ'
-    if (!formData.city.trim()) newErrors.city = 'Vui lòng nhập Tỉnh/Thành phố'
-    
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập họ tên';
+    if (!formData.phone.trim()) newErrors.phone = 'Vui lòng nhập số điện thoại';
+    else if (!/^\d{10}$/.test(formData.phone.trim()))
+      newErrors.phone = 'Số điện thoại không hợp lệ';
+    if (!formData.address.trim()) newErrors.address = 'Vui lòng nhập địa chỉ';
+    if (!formData.city.trim()) newErrors.city = 'Vui lòng nhập Tỉnh/Thành phố';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (validate()) {
-      setShowSuccess(true)
-      console.log('Order placed:', { items, total: total(), customer: formData })
+      setShowSuccess(true);
+      console.log('Order placed:', { items, total: total(), customer: formData });
     }
-  }
+  };
 
   const handleCloseSuccess = () => {
-    clearCart()
-    setShowSuccess(false)
-    navigate({ to: '/' })
-  }
+    clearCart();
+    setShowSuccess(false);
+    navigate({ to: '/' });
+  };
 
   if (items.length === 0 && !showSuccess) {
     return (
-        <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-[60vh]">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Giỏ hàng trống</h1>
-            <Link to="/">
-                <Button>Tiếp tục mua sắm</Button>
-            </Link>
-        </div>
-    )
+      <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-[60vh]">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Giỏ hàng trống</h1>
+        <Link to="/">
+          <Button>Tiếp tục mua sắm</Button>
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -98,7 +99,9 @@ function CheckoutPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm font-medium text-gray-700">Họ và tên <span className="text-red-500">*</span></label>
+                    <label htmlFor="name" className="text-sm font-medium text-gray-700">
+                      Họ và tên <span className="text-red-500">*</span>
+                    </label>
                     <Input
                       id="name"
                       placeholder="Nhập họ và tên"
@@ -109,7 +112,9 @@ function CheckoutPage() {
                     {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="phone" className="text-sm font-medium text-gray-700">Số điện thoại <span className="text-red-500">*</span></label>
+                    <label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                      Số điện thoại <span className="text-red-500">*</span>
+                    </label>
                     <Input
                       id="phone"
                       placeholder="Nhập số điện thoại"
@@ -122,19 +127,23 @@ function CheckoutPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="city" className="text-sm font-medium text-gray-700">Tỉnh/Thành phố <span className="text-red-500">*</span></label>
-                   <Input
-                      id="city"
-                      placeholder="Nhập Tỉnh/Thành phố"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className={errors.city ? 'border-red-500' : ''}
-                    />
-                     {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
+                  <label htmlFor="city" className="text-sm font-medium text-gray-700">
+                    Tỉnh/Thành phố <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="city"
+                    placeholder="Nhập Tỉnh/Thành phố"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className={errors.city ? 'border-red-500' : ''}
+                  />
+                  {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="address" className="text-sm font-medium text-gray-700">Địa chỉ cụ thể <span className="text-red-500">*</span></label>
+                  <label htmlFor="address" className="text-sm font-medium text-gray-700">
+                    Địa chỉ cụ thể <span className="text-red-500">*</span>
+                  </label>
                   <Input
                     id="address"
                     placeholder="Số nhà, tên đường, phường/xã..."
@@ -151,38 +160,47 @@ function CheckoutPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 sticky top-20">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Đơn hàng của bạn</h2>
-              
+
               <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-2">
                 {items.map((item) => (
-                  <div key={item.id} className="flex gap-3 py-2 border-b border-gray-50 last:border-0">
-                     <div className="h-16 w-16 flex-shrink-0 bg-gray-50 rounded border border-gray-100 p-1">
-                        <img src={item.images[0]} alt={item.name} className="h-full w-full object-contain" />
-                     </div>
-                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</p>
-                        <p className="text-xs text-gray-500">SL: {item.quantity}</p>
-                        <p className="text-sm font-bold text-destructive">{item.price.toLocaleString('vi-VN')}₫</p>
-                     </div>
+                  <div
+                    key={item.id}
+                    className="flex gap-3 py-2 border-b border-gray-50 last:border-0"
+                  >
+                    <div className="h-16 w-16 flex-shrink-0 bg-gray-50 rounded border border-gray-100 p-1">
+                      <img
+                        src={item.images[0]}
+                        alt={item.name}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</p>
+                      <p className="text-xs text-gray-500">SL: {item.quantity}</p>
+                      <p className="text-sm font-bold text-destructive">
+                        {item.price.toLocaleString('vi-VN')}₫
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
 
               <div className="space-y-3 pt-4 border-t border-gray-100">
                 <div className="flex justify-between text-gray-600">
-                    <span>Tạm tính</span>
-                    <span>{total().toLocaleString('vi-VN')}₫</span>
+                  <span>Tạm tính</span>
+                  <span>{total().toLocaleString('vi-VN')}₫</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                    <span>Phí vận chuyển</span>
-                    <span className="font-medium text-gray-900">Miễn phí</span>
+                  <span>Phí vận chuyển</span>
+                  <span className="font-medium text-gray-900">Miễn phí</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 text-lg font-bold">
-                    <span>Tổng cộng</span>
-                    <span className="text-destructive">{total().toLocaleString('vi-VN')}₫</span>
+                  <span>Tổng cộng</span>
+                  <span className="text-destructive">{total().toLocaleString('vi-VN')}₫</span>
                 </div>
               </div>
 
-              <Button 
+              <Button
                 className="w-full mt-6 h-12 text-lg font-bold bg-destructive hover:bg-destructive/90 uppercase"
                 onClick={handleSubmit}
               >
@@ -199,7 +217,9 @@ function CheckoutPage() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
               <CheckCircle2 className="h-6 w-6 text-green-600" />
             </div>
-            <AlertDialogTitle className="text-center text-xl">Đặt hàng thành công!</AlertDialogTitle>
+            <AlertDialogTitle className="text-center text-xl">
+              Đặt hàng thành công!
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-center">
               Cảm ơn bạn đã mua hàng. Đơn hàng của bạn đang được xử lý và sẽ sớm được giao đến bạn.
             </AlertDialogDescription>
@@ -212,5 +232,5 @@ function CheckoutPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

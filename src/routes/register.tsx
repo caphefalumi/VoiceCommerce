@@ -98,7 +98,10 @@ function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="reg-password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Mật khẩu
               </label>
               <div className="relative">

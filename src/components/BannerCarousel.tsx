@@ -1,18 +1,18 @@
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel"
+} from '@/components/ui/carousel';
 
 const images = [
-  "https://placehold.co/800x300?text=Banner+1",
-  "https://placehold.co/800x300?text=Banner+2",
-  "https://placehold.co/800x300?text=Banner+3",
-  "https://placehold.co/800x300?text=Banner+4",
-]
+  'https://placehold.co/800x300?text=Banner+1',
+  'https://placehold.co/800x300?text=Banner+2',
+  'https://placehold.co/800x300?text=Banner+3',
+  'https://placehold.co/800x300?text=Banner+4',
+];
 
 export function BannerCarousel() {
   return (
@@ -37,5 +37,5 @@ export function BannerCarousel() {
       <CarouselPrevious className="left-2" />
       <CarouselNext className="right-2" />
     </Carousel>
-  )
+  );
 }

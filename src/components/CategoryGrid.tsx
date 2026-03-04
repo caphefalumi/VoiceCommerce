@@ -1,7 +1,16 @@
-import * as React from "react"
-import { Smartphone, Laptop, Tablet, Watch, Clock, Headphones, Printer, HelpCircle } from "lucide-react"
-import { categories } from "@/constants/categories"
-import { Link } from "@tanstack/react-router"
+import * as React from 'react';
+import {
+  Smartphone,
+  Laptop,
+  Tablet,
+  Watch,
+  Clock,
+  Headphones,
+  Printer,
+  HelpCircle,
+} from 'lucide-react';
+import { categories } from '@/constants/categories';
+import { Link } from '@tanstack/react-router';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   Smartphone,
@@ -11,17 +20,17 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   Clock,
   Headphones,
   Printer,
-}
+};
 
 export function CategoryGrid() {
   return (
     <div className="grid grid-cols-4 md:grid-cols-7 gap-4 py-8">
       {categories.map((category) => {
-        const Icon = iconMap[category.icon] || HelpCircle
+        const Icon = iconMap[category.icon] || HelpCircle;
         return (
           <Link
             key={category.id}
-            to={"/products" as any}
+            to={'/products' as any}
             search={{ category: category.id } as any}
             className="flex flex-col items-center justify-center gap-2 group cursor-pointer"
           >
@@ -32,8 +41,8 @@ export function CategoryGrid() {
               {category.name}
             </span>
           </Link>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

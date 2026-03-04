@@ -1,26 +1,26 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { useCartStore } from '@/store/cart'
-import { CartItem } from '@/components/cart/CartItem'
-import { CartSummary } from '@/components/cart/CartSummary'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, ShoppingBag } from 'lucide-react'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { useCartStore } from '@/store/cart';
+import { CartItem } from '@/components/cart/CartItem';
+import { CartSummary } from '@/components/cart/CartSummary';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, ShoppingBag } from 'lucide-react';
 
 export const Route = createFileRoute('/cart')({
   beforeLoad: () => {
-    const stored = localStorage.getItem('tgdd-auth')
-    if (!stored) throw redirect({ to: '/login', search: { redirect: '/cart' } })
+    const stored = localStorage.getItem('tgdd-auth');
+    if (!stored) throw redirect({ to: '/login', search: { redirect: '/cart' } });
     try {
-      const parsed = JSON.parse(stored)
-      if (!parsed?.state?.token) throw redirect({ to: '/login', search: { redirect: '/cart' } })
+      const parsed = JSON.parse(stored);
+      if (!parsed?.state?.token) throw redirect({ to: '/login', search: { redirect: '/cart' } });
     } catch {
-      throw redirect({ to: '/login', search: { redirect: '/cart' } })
+      throw redirect({ to: '/login', search: { redirect: '/cart' } });
     }
   },
   component: CartPage,
-})
+});
 
 function CartPage() {
-  const items = useCartStore((state) => state.items)
+  const items = useCartStore((state) => state.items);
 
   if (items.length === 0) {
     return (
@@ -30,7 +30,8 @@ function CartPage() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Giỏ hàng đang trống</h1>
         <p className="text-gray-500 mb-8 text-center max-w-md">
-          Chưa có sản phẩm nào trong giỏ hàng của bạn. Hãy dạo quanh và chọn cho mình những sản phẩm ưng ý nhé!
+          Chưa có sản phẩm nào trong giỏ hàng của bạn. Hãy dạo quanh và chọn cho mình những sản phẩm
+          ưng ý nhé!
         </p>
         <Link to="/">
           <Button className="bg-primary text-black font-bold h-12 px-8 hover:bg-primary/90 uppercase tracking-wide">
@@ -38,7 +39,7 @@ function CartPage() {
           </Button>
         </Link>
       </div>
-    )
+    );
   }
 
   return (
@@ -50,7 +51,9 @@ function CartPage() {
               <ArrowLeft className="h-6 w-6" />
             </Button>
           </Link>
-          <h1 className="text-xl font-bold text-gray-900 uppercase">Giỏ hàng của bạn ({items.length})</h1>
+          <h1 className="text-xl font-bold text-gray-900 uppercase">
+            Giỏ hàng của bạn ({items.length})
+          </h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -62,8 +65,11 @@ function CartPage() {
                 ))}
               </div>
             </div>
-            
-            <Link to="/" className="inline-flex items-center text-sm font-medium text-blue-600 hover:underline gap-1">
+
+            <Link
+              to="/"
+              className="inline-flex items-center text-sm font-medium text-blue-600 hover:underline gap-1"
+            >
               <ArrowLeft className="h-4 w-4" />
               Tiếp tục mua sắm
             </Link>
@@ -75,5 +81,5 @@ function CartPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

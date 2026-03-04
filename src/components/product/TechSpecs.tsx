@@ -10,7 +10,7 @@ export function TechSpecs({ specs }: TechSpecsProps) {
           {Object.entries(specs).map(([key, value], index) => (
             <tr
               key={key}
-              className={`border-b last:border-0 ${index % 2 === 0 ? "bg-muted/30" : "bg-background"}`}
+              className={`border-b last:border-0 ${index % 2 === 0 ? 'bg-muted/30' : 'bg-background'}`}
             >
               <td className="w-1/3 p-4 font-medium text-muted-foreground">{key}</td>
               <td className="p-4 text-foreground">{value}</td>

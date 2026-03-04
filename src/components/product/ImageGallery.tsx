@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel";
+} from '@/components/ui/carousel';
 
 interface ImageGalleryProps {
   images: string[];
@@ -17,7 +17,7 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Fallback if no images
-  const safeImages = images.length > 0 ? images : ["https://placehold.co/600x600?text=No+Image"];
+  const safeImages = images.length > 0 ? images : ['https://placehold.co/600x600?text=No+Image'];
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,7 +34,7 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
       {safeImages.length > 1 && (
         <Carousel
           opts={{
-            align: "start",
+            align: 'start',
             loop: true,
           }}
           className="w-full"
@@ -45,10 +45,10 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
                 <button
                   onClick={() => setSelectedIndex(index)}
                   className={cn(
-                    "relative aspect-square w-full overflow-hidden rounded-lg border bg-white p-1 transition-all",
+                    'relative aspect-square w-full overflow-hidden rounded-lg border bg-white p-1 transition-all',
                     selectedIndex === index
-                      ? "ring-2 ring-primary ring-offset-1"
-                      : "opacity-70 hover:opacity-100"
+                      ? 'ring-2 ring-primary ring-offset-1'
+                      : 'opacity-70 hover:opacity-100',
                   )}
                 >
                   <img

@@ -1,14 +1,14 @@
-import { Minus, Plus, Trash2 } from "lucide-react"
-import { Button } from "../ui/button"
-import { useCartStore } from "@/store/cart"
-import type { CartItem as CartItemType } from "@/store/cart"
+import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Button } from '../ui/button';
+import { useCartStore } from '@/store/cart';
+import type { CartItem as CartItemType } from '@/store/cart';
 
 interface CartItemProps {
-  item: CartItemType
+  item: CartItemType;
 }
 
 export function CartItem({ item }: CartItemProps) {
-  const { updateQuantity, removeFromCart } = useCartStore()
+  const { updateQuantity, removeFromCart } = useCartStore();
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b border-gray-100 last:border-0">
@@ -17,14 +17,14 @@ export function CartItem({ item }: CartItemProps) {
           src={item.images?.[0] ?? '/placeholder-product.png'}
           alt={item.name}
           className="h-full w-full object-contain"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder-product.png'; }}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = '/placeholder-product.png';
+          }}
         />
       </div>
-      
+
       <div className="flex-1 min-w-0 w-full">
-        <h3 className="text-base font-semibold text-gray-900 truncate">
-          {item.name}
-        </h3>
+        <h3 className="text-base font-semibold text-gray-900 truncate">{item.name}</h3>
         <p className="text-base font-bold text-destructive mt-1">
           {item.price.toLocaleString('vi-VN')}₫
         </p>
@@ -46,9 +46,7 @@ export function CartItem({ item }: CartItemProps) {
           >
             <Minus className="h-4 w-4" />
           </Button>
-          <span className="w-10 text-center text-sm font-bold">
-            {item.quantity}
-          </span>
+          <span className="w-10 text-center text-sm font-bold">{item.quantity}</span>
           <Button
             variant="ghost"
             size="icon"
@@ -58,7 +56,7 @@ export function CartItem({ item }: CartItemProps) {
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        
+
         <Button
           variant="ghost"
           size="icon"
@@ -69,5 +67,5 @@ export function CartItem({ item }: CartItemProps) {
         </Button>
       </div>
     </div>
-  )
+  );
 }

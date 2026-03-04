@@ -1,0 +1,10 @@
+{
+  // oxfmt configuration
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingCommas": "es5",
+  "indentLevel": 0,
+  "lineWidth": 100,
+  "ignore": ["dist/**", "ai-worker/**", "api-worker/**", "node_modules/**", "tmp2/**", "tmp3/**"]
+}

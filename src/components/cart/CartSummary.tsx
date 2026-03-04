@@ -1,16 +1,16 @@
-import { Button } from "../ui/button"
-import { useCartStore } from "@/store/cart"
-import { Link } from "@tanstack/react-router"
+import { Button } from '../ui/button';
+import { useCartStore } from '@/store/cart';
+import { Link } from '@tanstack/react-router';
 
 export function CartSummary() {
-  const { items, total } = useCartStore()
-  const totalPrice = total()
-  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0)
+  const { items, total } = useCartStore();
+  const totalPrice = total();
+  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 sticky top-20">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Tóm tắt đơn hàng</h2>
-      
+
       <div className="space-y-4 mb-6">
         <div className="flex justify-between text-gray-600">
           <span>Tạm tính ({itemCount} sản phẩm)</span>
@@ -37,10 +37,10 @@ export function CartSummary() {
           Tiến hành đặt hàng
         </Button>
       </Link>
-      
+
       <p className="text-xs text-gray-500 text-center mt-4 italic">
         (Vui lòng kiểm tra lại giỏ hàng trước khi đặt hàng)
       </p>
     </div>
-  )
+  );
 }

@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "noUnusedVariables": "warn",
+    "noUnusedImports": "warn",
+    "noFallthroughSwitchClause": "error",
+    "noImplicitAny": "warn",
+    "noUndef": "error"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "exclude": ["dist/**", "ai-worker/**", "api-worker/**", "node_modules/**", "tmp2/**", "tmp3/**"]
+}

@@ -57,7 +57,15 @@ const STATUS_COLORS: Record<string, string> = {
   closed: 'bg-gray-100 text-gray-700',
 };
 
-const FAQ_CATEGORIES = ['general', 'policy', 'delivery', 'payment', 'warranty', 'trade_in', 'support'];
+const FAQ_CATEGORIES = [
+  'general',
+  'policy',
+  'delivery',
+  'payment',
+  'warranty',
+  'trade_in',
+  'support',
+];
 
 // ─── Admin Page ───────────────────────────────────────────────────────────────
 
@@ -194,19 +202,40 @@ function AdminPage() {
           </div>
         </div>
         <div className="ml-auto text-sm text-slate-400">
-          👤 {user?.name || user?.email || 'Admin'} &nbsp;|&nbsp; {new Date().toLocaleDateString('vi-VN')}
+          👤 {user?.name || user?.email || 'Admin'} &nbsp;|&nbsp;{' '}
+          {new Date().toLocaleDateString('vi-VN')}
         </div>
       </div>
 
       {/* Stats Bar */}
       <div className="grid grid-cols-3 gap-4 px-6 py-4 bg-[#1e293b] border-b border-slate-700">
         {[
-          { label: 'Câu hỏi FAQ', value: faqs.length, icon: '📚', color: 'from-blue-500 to-cyan-500' },
-          { label: 'Cuộc hội thoại', value: logs.length, icon: '🎙️', color: 'from-violet-500 to-purple-600' },
-          { label: 'Phiếu hỗ trợ', value: tickets.length, icon: '🎫', color: 'from-orange-500 to-red-500' },
+          {
+            label: 'Câu hỏi FAQ',
+            value: faqs.length,
+            icon: '📚',
+            color: 'from-blue-500 to-cyan-500',
+          },
+          {
+            label: 'Cuộc hội thoại',
+            value: logs.length,
+            icon: '🎙️',
+            color: 'from-violet-500 to-purple-600',
+          },
+          {
+            label: 'Phiếu hỗ trợ',
+            value: tickets.length,
+            icon: '🎫',
+            color: 'from-orange-500 to-red-500',
+          },
         ].map((stat) => (
-          <div key={stat.label} className="flex items-center gap-3 bg-slate-800/50 rounded-xl px-4 py-3">
-            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center text-lg shrink-0`}>
+          <div
+            key={stat.label}
+            className="flex items-center gap-3 bg-slate-800/50 rounded-xl px-4 py-3"
+          >
+            <div
+              className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center text-lg shrink-0`}
+            >
               {stat.icon}
             </div>
             <div>
@@ -240,17 +269,22 @@ function AdminPage() {
 
       {/* Content Area */}
       <div className="mx-6 mb-6 bg-slate-800 rounded-b-xl rounded-tr-xl border border-slate-700 overflow-hidden">
-
         {/* ── FAQ Tab ── */}
         {activeTab === 'faqs' && (
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-semibold">Cơ sở kiến thức FAQ</h2>
-                <p className="text-sm text-slate-400 mt-0.5">Quản lý câu hỏi thường gặp — trả lời tự động qua giọng nói</p>
+                <p className="text-sm text-slate-400 mt-0.5">
+                  Quản lý câu hỏi thường gặp — trả lời tự động qua giọng nói
+                </p>
               </div>
               <Button
-                onClick={() => { setShowFaqForm(true); setEditingFaq(null); setFaqError(null); }}
+                onClick={() => {
+                  setShowFaqForm(true);
+                  setEditingFaq(null);
+                  setFaqError(null);
+                }}
                 className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
               >
                 ＋ Thêm FAQ
@@ -275,9 +309,10 @@ function AdminPage() {
                       className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
                       placeholder="Ví dụ: Chính sách đổi trả như thế nào?"
                       value={editingFaq ? editingFaq.question : newFaq.question}
-                      onChange={(e) => editingFaq
-                        ? setEditingFaq({ ...editingFaq, question: e.target.value })
-                        : setNewFaq({ ...newFaq, question: e.target.value })
+                      onChange={(e) =>
+                        editingFaq
+                          ? setEditingFaq({ ...editingFaq, question: e.target.value })
+                          : setNewFaq({ ...newFaq, question: e.target.value })
                       }
                     />
                   </div>
@@ -288,9 +323,10 @@ function AdminPage() {
                       className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
                       placeholder="Nhập câu trả lời chi tiết..."
                       value={editingFaq ? editingFaq.answer : newFaq.answer}
-                      onChange={(e) => editingFaq
-                        ? setEditingFaq({ ...editingFaq, answer: e.target.value })
-                        : setNewFaq({ ...newFaq, answer: e.target.value })
+                      onChange={(e) =>
+                        editingFaq
+                          ? setEditingFaq({ ...editingFaq, answer: e.target.value })
+                          : setNewFaq({ ...newFaq, answer: e.target.value })
                       }
                     />
                   </div>
@@ -299,20 +335,32 @@ function AdminPage() {
                     <select
                       className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                       value={editingFaq ? editingFaq.category : newFaq.category}
-                      onChange={(e) => editingFaq
-                        ? setEditingFaq({ ...editingFaq, category: e.target.value })
-                        : setNewFaq({ ...newFaq, category: e.target.value })
+                      onChange={(e) =>
+                        editingFaq
+                          ? setEditingFaq({ ...editingFaq, category: e.target.value })
+                          : setNewFaq({ ...newFaq, category: e.target.value })
                       }
                     >
-                      {FAQ_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      {FAQ_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="flex gap-2 pt-1">
-                    <Button onClick={saveFaq} className="bg-green-600 hover:bg-green-700 text-white text-sm">
+                    <Button
+                      onClick={saveFaq}
+                      className="bg-green-600 hover:bg-green-700 text-white text-sm"
+                    >
                       💾 Lưu
                     </Button>
                     <Button
-                      onClick={() => { setEditingFaq(null); setShowFaqForm(false); setFaqError(null); }}
+                      onClick={() => {
+                        setEditingFaq(null);
+                        setShowFaqForm(false);
+                        setFaqError(null);
+                      }}
                       variant="outline"
                       className="text-sm border-slate-600 text-slate-300 hover:bg-slate-700"
                     >
@@ -334,7 +382,10 @@ function AdminPage() {
             ) : (
               <div className="space-y-3">
                 {faqs.map((faq) => (
-                  <div key={faq.id} className="bg-slate-900 border border-slate-700 rounded-xl p-4 hover:border-slate-500 transition-colors">
+                  <div
+                    key={faq.id}
+                    className="bg-slate-900 border border-slate-700 rounded-xl p-4 hover:border-slate-500 transition-colors"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -350,7 +401,11 @@ function AdminPage() {
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <button
-                          onClick={() => { setEditingFaq(faq); setShowFaqForm(false); setFaqError(null); }}
+                          onClick={() => {
+                            setEditingFaq(faq);
+                            setShowFaqForm(false);
+                            setFaqError(null);
+                          }}
                           className="text-xs px-2.5 py-1 rounded-lg bg-blue-900/40 hover:bg-blue-800 text-blue-300 transition-colors"
                         >
                           ✏️ Sửa
@@ -376,7 +431,9 @@ function AdminPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-semibold">Nhật ký tương tác giọng nói</h2>
-                <p className="text-sm text-slate-400 mt-0.5">Toàn bộ lịch sử cuộc hội thoại giữa người dùng và AI</p>
+                <p className="text-sm text-slate-400 mt-0.5">
+                  Toàn bộ lịch sử cuộc hội thoại giữa người dùng và AI
+                </p>
               </div>
               <button
                 onClick={loadLogs}
@@ -396,20 +453,28 @@ function AdminPage() {
             ) : (
               <div className="space-y-3">
                 {logs.map((log) => (
-                  <div key={log.id} className="bg-slate-900 border border-slate-700 rounded-xl p-4 hover:border-slate-500 transition-colors">
+                  <div
+                    key={log.id}
+                    className="bg-slate-900 border border-slate-700 rounded-xl p-4 hover:border-slate-500 transition-colors"
+                  >
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
                         {log.intent && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${INTENT_COLORS[log.intent] || 'bg-slate-700 text-slate-300'}`}>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-mono ${INTENT_COLORS[log.intent] || 'bg-slate-700 text-slate-300'}`}
+                          >
                             {log.intent}
                           </span>
                         )}
                         <span className="text-xs text-slate-500">
-                          {log.session_id?.slice(0, 8)} · {new Date(log.created_at).toLocaleString('vi-VN')}
+                          {log.session_id?.slice(0, 8)} ·{' '}
+                          {new Date(log.created_at).toLocaleString('vi-VN')}
                         </span>
                       </div>
                       {log.user_id && (
-                        <span className="text-xs text-slate-500">👤 {log.user_id.slice(0, 8)}…</span>
+                        <span className="text-xs text-slate-500">
+                          👤 {log.user_id.slice(0, 8)}…
+                        </span>
                       )}
                     </div>
                     <div className="space-y-1.5">
@@ -435,7 +500,9 @@ function AdminPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-semibold">Phiếu hỗ trợ khách hàng</h2>
-                <p className="text-sm text-slate-400 mt-0.5">Quản lý tất cả yêu cầu hỗ trợ từ người dùng</p>
+                <p className="text-sm text-slate-400 mt-0.5">
+                  Quản lý tất cả yêu cầu hỗ trợ từ người dùng
+                </p>
               </div>
               <button
                 onClick={loadTickets}
@@ -470,7 +537,9 @@ function AdminPage() {
                     {tickets.map((ticket) => (
                       <tr key={ticket.id} className="hover:bg-slate-800/50 transition-colors">
                         <td className="py-3 pr-4">
-                          <span className="font-mono text-xs text-slate-300">#{ticket.short_id}</span>
+                          <span className="font-mono text-xs text-slate-300">
+                            #{ticket.short_id}
+                          </span>
                         </td>
                         <td className="py-3 pr-4 text-slate-400 text-xs">
                           {ticket.user_id ? ticket.user_id.slice(0, 8) + '…' : 'Khách'}
@@ -484,8 +553,16 @@ function AdminPage() {
                           <p className="text-slate-300 text-xs truncate">{ticket.message}</p>
                         </td>
                         <td className="py-3 pr-4">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ticket.status] || 'bg-slate-700 text-slate-300'}`}>
-                            {ticket.status === 'open' ? 'Mở' : ticket.status === 'in_progress' ? 'Đang xử lý' : ticket.status === 'resolved' ? 'Đã giải quyết' : 'Đóng'}
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ticket.status] || 'bg-slate-700 text-slate-300'}`}
+                          >
+                            {ticket.status === 'open'
+                              ? 'Mở'
+                              : ticket.status === 'in_progress'
+                                ? 'Đang xử lý'
+                                : ticket.status === 'resolved'
+                                  ? 'Đã giải quyết'
+                                  : 'Đóng'}
                           </span>
                         </td>
                         <td className="py-3 pr-4 text-xs text-slate-500">

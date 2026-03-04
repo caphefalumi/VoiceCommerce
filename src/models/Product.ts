@@ -29,34 +29,41 @@ export interface IProduct extends Document {
   embedding?: number[];
 }
 
-const ProductSchema: Schema = new Schema({
-  url: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  price: { type: Number, required: true },
-  originalPrice: { type: Number },
-  category: { type: String },
-  brand: { type: String },
-  rating: { type: Number, default: 0 },
-  reviewCount: { type: Number, default: 0 },
-  stock: { type: Number, default: 0 },
-  description: { type: String },
-  images: [{ type: String }],
-  specs: [{
-    _id: false,
-    label: { type: String, required: true },
-    value: { type: String }
-  }],
-  reviews: [{
-    _id: false,
-    author: { type: String },
-    content: { type: String, required: true },
-    rating: { type: Number, required: true },
-    date: { type: Date, default: Date.now }
-  }],
-  embedding: { type: [Number] }
-}, {
-  timestamps: true,
-  collection: '_Product'
-});
+const ProductSchema: Schema = new Schema(
+  {
+    url: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    originalPrice: { type: Number },
+    category: { type: String },
+    brand: { type: String },
+    rating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
+    stock: { type: Number, default: 0 },
+    description: { type: String },
+    images: [{ type: String }],
+    specs: [
+      {
+        _id: false,
+        label: { type: String, required: true },
+        value: { type: String },
+      },
+    ],
+    reviews: [
+      {
+        _id: false,
+        author: { type: String },
+        content: { type: String, required: true },
+        rating: { type: Number, required: true },
+        date: { type: Date, default: Date.now },
+      },
+    ],
+    embedding: { type: [Number] },
+  },
+  {
+    timestamps: true,
+    collection: '_Product',
+  },
+);
 
 export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);

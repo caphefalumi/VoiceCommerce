@@ -18,7 +18,7 @@ export const Route = createFileRoute('/product/$id' as any)({
     if (!res.ok) {
       throw new Error('Failed to fetch product');
     }
-    const product = await res.json() as Product;
+    const product = (await res.json()) as Product;
     return { product };
   },
   component: ProductDetailComponent,
@@ -40,7 +40,10 @@ function ProductDetailComponent() {
     <div className="bg-background min-h-screen pb-12">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
             <ArrowLeft className="h-4 w-4" />
             Back to Products
           </Link>
@@ -62,18 +65,16 @@ function ProductDetailComponent() {
               <h2 className="text-2xl font-bold text-foreground">Technical Specifications</h2>
             </div>
             <TechSpecs specs={product.specs} />
-            
-
           </div>
 
           <div className="lg:col-span-5">
             <div className="mb-6 border-b pb-2">
               <h2 className="text-2xl font-bold text-foreground">Customer Reviews</h2>
             </div>
-            <ReviewSection 
-              rating={product.rating} 
-              reviewCount={product.reviewCount} 
-              reviews={product.reviews} 
+            <ReviewSection
+              rating={product.rating}
+              reviewCount={product.reviewCount}
+              reviews={product.reviews}
             />
           </div>
         </div>

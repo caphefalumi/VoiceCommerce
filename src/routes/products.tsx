@@ -18,7 +18,12 @@ const productsSearchSchema = z.object({
 
 export const Route = createFileRoute('/products' as any)({
   validateSearch: (search: Record<string, unknown>) => productsSearchSchema.parse(search),
-  loaderDeps: ({ search: { category, search, minPrice, maxPrice } }) => ({ category, search, minPrice, maxPrice }),
+  loaderDeps: ({ search: { category, search, minPrice, maxPrice } }) => ({
+    category,
+    search,
+    minPrice,
+    maxPrice,
+  }),
   loader: async ({ deps: { category, search, minPrice, maxPrice } }) => {
     try {
       const params = new URLSearchParams();
@@ -31,7 +36,7 @@ export const Route = createFileRoute('/products' as any)({
       if (!res.ok) {
         throw new Error('Failed to fetch products');
       }
-      const data = await res.json() as { products: Product[] } | Product[];
+      const data = (await res.json()) as { products: Product[] } | Product[];
       return Array.isArray(data) ? data : (data.products ?? []);
     } catch (error) {
       console.error('Loader error:', error);
@@ -45,7 +50,7 @@ function ProductsComponent() {
   const search = Route.useSearch() as z.infer<typeof productsSearchSchema>;
   const products = Route.useLoaderData() as Product[];
   const navigate = useNavigate({ from: Route.fullPath });
-  
+
   const filteredProducts = useMemo(() => {
     return filterProducts(products, search);
   }, [search, products]);
@@ -77,19 +82,19 @@ function ProductsComponent() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row gap-8">
         <aside className="w-full md:w-64 flex-shrink-0">
-          <ProductFilter 
-            filters={search} 
-            brands={uniqueBrands} 
-            onFilterChange={handleFilterChange} 
+          <ProductFilter
+            filters={search}
+            brands={uniqueBrands}
+            onFilterChange={handleFilterChange}
           />
         </aside>
-        
+
         <div className="flex-1">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-bold">
-              {search.category 
-                ? `${search.category.charAt(0).toUpperCase() + search.category.slice(1)}` 
-                : "Tất cả sản phẩm"}
+              {search.category
+                ? `${search.category.charAt(0).toUpperCase() + search.category.slice(1)}`
+                : 'Tất cả sản phẩm'}
               <span className="ml-2 text-sm font-normal text-muted-foreground">
                 ({filteredProducts.length} sản phẩm)
               </span>
@@ -105,7 +110,7 @@ function ProductsComponent() {
           ) : (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-dashed">
               <p className="text-muted-foreground">Không tìm thấy sản phẩm nào khớp với bộ lọc.</p>
-              <button 
+              <button
                 onClick={() => handleFilterChange({ category: search.category })}
                 className="mt-4 text-blue-600 font-medium hover:underline"
               >

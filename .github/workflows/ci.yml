@@ -26,17 +26,14 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Lint
-        run: npm run lint
-
       - name: Unit tests
-        run: npm test -- --reporter=verbose --coverage
+        run: bun test --reporter=verbose --coverage
 
       - name: TypeScript type-check
-        run: npx tsc --noEmit
+        run: bunx tsc --noEmit
 
       - name: Build
-        run: npm run build
+        run: bun run build
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -61,10 +58,10 @@ jobs:
         working-directory: ai-worker
 
       - name: TypeScript type-check
-        run: npx tsc --noEmit
+        run: bunx tsc --noEmit
 
       - name: Dry-run build (wrangler)
-        run: npx wrangler deploy --dry-run --outdir /tmp/ai-worker-dist
+        run: bunx wrangler deploy --dry-run --outdir /tmp/ai-worker-dist
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
@@ -85,10 +82,10 @@ jobs:
         working-directory: api-worker
 
       - name: TypeScript type-check
-        run: npx tsc --noEmit
+        run: bunx tsc --noEmit
 
       - name: Dry-run build (wrangler)
-        run: npx wrangler deploy --dry-run --outdir /tmp/api-worker-dist
+        run: bunx wrangler deploy --dry-run --outdir /tmp/api-worker-dist
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}

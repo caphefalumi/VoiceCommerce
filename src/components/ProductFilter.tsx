@@ -1,8 +1,8 @@
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
-import type { FilterOptions } from "@/lib/filter";
-import { cn } from "@/lib/utils";
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Filter } from 'lucide-react';
+import type { FilterOptions } from '@/lib/filter';
+import { cn } from '@/lib/utils';
 
 interface ProductFilterProps {
   filters: FilterOptions;
@@ -16,7 +16,7 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
     const newBrands = currentBrands.includes(brand)
       ? currentBrands.filter((b) => b !== brand)
       : [...currentBrands, brand];
-    
+
     onFilterChange({ ...filters, brand: newBrands });
   };
 
@@ -37,9 +37,9 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
           <span>Bộ lọc</span>
         </div>
         {(filters.brand?.length || filters.minPrice || filters.maxPrice) && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={clearFilters}
             className="text-xs text-blue-600 hover:text-blue-700 h-auto p-0"
           >
@@ -49,7 +49,9 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
       </div>
 
       <div className="flex flex-col gap-3">
-        <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500">Thương hiệu</h4>
+        <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500">
+          Thương hiệu
+        </h4>
         <div className="flex flex-col gap-2">
           {brands.map((brand) => (
             <label key={brand} className="flex items-center gap-3 cursor-pointer group">
@@ -68,7 +70,9 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
       </div>
 
       <div className="flex flex-col gap-3">
-        <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500">Khoảng giá (VND)</h4>
+        <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-500">
+          Khoảng giá (VND)
+        </h4>
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
@@ -76,7 +80,7 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
               <Input
                 type="number"
                 placeholder="0"
-                value={filters.minPrice ?? ""}
+                value={filters.minPrice ?? ''}
                 onChange={(e) => handlePriceChange('minPrice', e.target.value)}
                 className="h-9 text-sm"
               />
@@ -86,13 +90,13 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
               <Input
                 type="number"
                 placeholder="Đến"
-                value={filters.maxPrice ?? ""}
+                value={filters.maxPrice ?? ''}
                 onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-2 pt-2">
             {[
               { label: 'Dưới 5tr', min: 0, max: 5000000 },
@@ -103,12 +107,14 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
                 key={range.label}
                 variant="outline"
                 size="sm"
-                onClick={() => onFilterChange({ ...filters, minPrice: range.min, maxPrice: range.max })}
+                onClick={() =>
+                  onFilterChange({ ...filters, minPrice: range.min, maxPrice: range.max })
+                }
                 className={cn(
-                  "text-[10px] h-7 px-2 rounded-full",
+                  'text-[10px] h-7 px-2 rounded-full',
                   filters.minPrice === range.min && filters.maxPrice === range.max
-                    ? "bg-blue-50 border-blue-200 text-blue-600"
-                    : "text-gray-500"
+                    ? 'bg-blue-50 border-blue-200 text-blue-600'
+                    : 'text-gray-500',
                 )}
               >
                 {range.label}

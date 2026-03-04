@@ -1,34 +1,34 @@
-import { Link, useNavigate } from "@tanstack/react-router"
-import { Search, ShoppingCart, LogOut, LogIn } from "lucide-react"
-import { Input } from "./ui/input"
-import { Button } from "./ui/button"
-import { useCartStore } from "@/store/cart"
-import { useAuthStore, fetchCartOnAuth } from "@/store/auth"
-import { useTranslation } from "react-i18next"
-import { useState, useRef, useEffect } from "react"
+import { Link, useNavigate } from '@tanstack/react-router';
+import { Search, ShoppingCart, LogOut, LogIn } from 'lucide-react';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { useCartStore } from '@/store/cart';
+import { useAuthStore, fetchCartOnAuth } from '@/store/auth';
+import { useTranslation } from 'react-i18next';
+import { useState, useRef, useEffect } from 'react';
 
 export function Header() {
-  const { t, i18n } = useTranslation()
-  const items = useCartStore((state) => state.items)
-  const cartCount = items.reduce((acc, item) => acc + item.quantity, 0)
-  const { user, token, logout } = useAuthStore()
-  const navigate = useNavigate()
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const { t, i18n } = useTranslation();
+  const items = useCartStore((state) => state.items);
+  const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  const { user, token, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng)
-  }
+    i18n.changeLanguage(lng);
+  };
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false)
+        setDropdownOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [])
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   // Sync cart from backend when app loads and user is logged in
   useEffect(() => {
@@ -38,14 +38,19 @@ export function Header() {
   }, [token]);
 
   const handleLogout = () => {
-    logout()
-    setDropdownOpen(false)
-    navigate({ to: '/' })
-  }
+    logout();
+    setDropdownOpen(false);
+    navigate({ to: '/' });
+  };
 
   const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
-    : 'U'
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : 'U';
 
   return (
     <header className="sticky top-0 z-50 w-full bg-primary text-black shadow-md">
@@ -58,7 +63,7 @@ export function Header() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input
             type="search"
-            placeholder={t("search") + "..."}
+            placeholder={t('search') + '...'}
             className="w-full bg-white pl-9 border-none h-10 text-black placeholder:text-gray-500 focus-visible:ring-black/20"
           />
         </div>
@@ -121,13 +126,20 @@ export function Header() {
           ) : (
             <div className="flex items-center gap-2">
               <Link to="/login">
-                <Button variant="ghost" size="sm" className="h-8 px-3 text-black hover:bg-white/30 flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-3 text-black hover:bg-white/30 flex items-center gap-1"
+                >
                   <LogIn className="w-4 h-4" />
                   Đăng nhập
                 </Button>
               </Link>
               <Link to="/register">
-                <Button size="sm" className="h-8 px-3 bg-white text-primary hover:bg-white/90 font-semibold">
+                <Button
+                  size="sm"
+                  className="h-8 px-3 bg-white text-primary hover:bg-white/90 font-semibold"
+                >
                   Đăng ký
                 </Button>
               </Link>
@@ -157,5 +169,5 @@ export function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }

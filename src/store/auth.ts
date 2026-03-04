@@ -6,7 +6,7 @@ import { useCartStore } from './cart';
 export const fetchCartOnAuth = async (token: string) => {
   try {
     const res = await fetch(`${API_BASE}/api/cart`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
       const cart = await res.json();
@@ -56,7 +56,10 @@ export const useAuthStore = create<AuthState>()(
           set({ user: data.user, token: data.token, isLoading: false });
           fetchCartOnAuth(data.token);
         } catch (err: unknown) {
-          set({ error: err instanceof Error ? err.message : 'Đăng nhập thất bại', isLoading: false });
+          set({
+            error: err instanceof Error ? err.message : 'Đăng nhập thất bại',
+            isLoading: false,
+          });
           throw err;
         }
       },
@@ -89,8 +92,8 @@ export const useAuthStore = create<AuthState>()(
       name: 'tgdd-auth',
       // Only persist user and token — not loading/error state
       partialize: (s) => ({ user: s.user, token: s.token }),
-    }
-  )
+    },
+  ),
 );
 
 /** Helper: returns the Authorization header value for fetch calls */

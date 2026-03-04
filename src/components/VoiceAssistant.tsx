@@ -7,7 +7,13 @@ import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { AI_BASE } from '../lib/api';
 
-const AudioVisualizerComponent = ({ audioContextRef, isRecording }: { audioContextRef: React.MutableRefObject<AudioContext | null>, isRecording: boolean }) => {
+const AudioVisualizerComponent = ({
+  audioContextRef,
+  isRecording,
+}: {
+  audioContextRef: React.MutableRefObject<AudioContext | null>;
+  isRecording: boolean;
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -114,7 +120,9 @@ export function VoiceAssistant() {
 
   // Session storage key for product context
   const LAST_PRODUCTS_KEY = 'voice_last_products';
-  const [lastProducts, setLastProducts] = useState<Array<{id: string; name: string; price: number; index: number}>>(() => {
+  const [lastProducts, setLastProducts] = useState<
+    Array<{ id: string; name: string; price: number; index: number }>
+  >(() => {
     if (typeof window === 'undefined') return [];
     try {
       const stored = sessionStorage.getItem(LAST_PRODUCTS_KEY);
@@ -139,7 +147,7 @@ export function VoiceAssistant() {
       reader.readAsDataURL(blob);
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
-        
+
         const response = await fetch(`${AI_BASE}/voice-process`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -148,15 +156,15 @@ export function VoiceAssistant() {
             session_id: sessionId,
             context: {
               user_id: user?.id,
-              last_products: lastProducts
-            }
-          })
+              last_products: lastProducts,
+            },
+          }),
         });
 
         if (!response.ok) throw new Error('Voice processing failed');
-        
+
         const data = await response.json();
-        
+
         if (data.transcribed_text) {
           showFeedback(`🗣️ Bạn: ${data.transcribed_text}`, 5000);
         }
@@ -192,7 +200,7 @@ export function VoiceAssistant() {
                     id: p.id,
                     name: p.name,
                     price: p.price,
-                    index: idx + 1
+                    index: idx + 1,
                   }));
                   setLastProducts(productsWithIndex);
                   sessionStorage.setItem(LAST_PRODUCTS_KEY, JSON.stringify(productsWithIndex));
@@ -211,7 +219,9 @@ export function VoiceAssistant() {
           utterance.rate = 1.0;
           utterance.pitch = 1.0;
           const voices = window.speechSynthesis.getVoices();
-          const vietnameseVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VN'));
+          const vietnameseVoice = voices.find(
+            (v) => v.lang.includes('vi') || v.lang.includes('VN'),
+          );
           if (vietnameseVoice) {
             utterance.voice = vietnameseVoice;
           }
@@ -237,7 +247,9 @@ export function VoiceAssistant() {
       streamRef.current = stream;
 
       // Set up Web Audio API for visualization
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const audioContext = new AudioContextClass();
       audioContextRef.current = audioContext;
 
@@ -258,8 +270,8 @@ export function VoiceAssistant() {
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         processAudio(blob);
-        stream.getTracks().forEach(t => t.stop());
-        
+        stream.getTracks().forEach((t) => t.stop());
+
         // Clean up audio context
         if (audioContextRef.current) {
           audioContextRef.current.close();
@@ -293,18 +305,23 @@ export function VoiceAssistant() {
   return (
     <div className="fixed bottom-20 right-6 z-[60] flex flex-col items-end gap-4 pointer-events-none">
       {feedback && (
-        <div className={cn(
-          "max-w-[280px] bg-white text-gray-800 p-4 rounded-2xl shadow-2xl border border-gray-100",
-          "animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto",
-          "text-sm font-medium leading-relaxed"
-        )}>
+        <div
+          className={cn(
+            'max-w-[280px] bg-white text-gray-800 p-4 rounded-2xl shadow-2xl border border-gray-100',
+            'animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto',
+            'text-sm font-medium leading-relaxed',
+          )}
+        >
           {feedback}
         </div>
       )}
 
       {state === 'recording' && (
         <div className="pointer-events-auto">
-          <AudioVisualizerComponent audioContextRef={audioContextRef} isRecording={state === 'recording'} />
+          <AudioVisualizerComponent
+            audioContextRef={audioContextRef}
+            isRecording={state === 'recording'}
+          />
         </div>
       )}
 
@@ -312,14 +329,14 @@ export function VoiceAssistant() {
         {state === 'recording' && (
           <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-25 scale-150" />
         )}
-        
+
         <Button
           size="icon"
           className={cn(
-            "w-16 h-16 rounded-full shadow-2xl transition-all duration-300 scale-100 hover:scale-110 active:scale-95",
-            state === 'idle' && "bg-yellow-400 hover:bg-yellow-500 text-black",
-            state === 'recording' && "bg-red-500 hover:bg-red-600 text-white",
-            state === 'processing' && "bg-blue-500 hover:bg-blue-600 text-white"
+            'w-16 h-16 rounded-full shadow-2xl transition-all duration-300 scale-100 hover:scale-110 active:scale-95',
+            state === 'idle' && 'bg-yellow-400 hover:bg-yellow-500 text-black',
+            state === 'recording' && 'bg-red-500 hover:bg-red-600 text-white',
+            state === 'processing' && 'bg-blue-500 hover:bg-blue-600 text-white',
           )}
           onClick={toggleRecording}
           disabled={state === 'processing'}
