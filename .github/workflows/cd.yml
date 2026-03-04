@@ -29,7 +29,7 @@ on:
         type: choice
         options: [staging, production]
   workflow_run:
-    workflows: [CI, Security, Terraform]
+    workflows: [CI, Security, Terraform, Lint & Format]
     types: [completed]
     branches: [main]
 
