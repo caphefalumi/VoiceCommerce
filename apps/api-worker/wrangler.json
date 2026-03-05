@@ -2,6 +2,7 @@
   "name": "api-worker",
   "main": "src/index.ts",
   "compatibility_date": "2024-03-01",
+  "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
     {
       "binding": "DB",
@@ -9,6 +10,9 @@
       "database_id": "92130798-781f-4f84-b289-f94cf781dd0f"
     }
   ],
+  "vars": {
+    "BETTER_AUTH_URL": "https://api-worker.dangduytoan13l.workers.dev"
+  },
   "observability": {
     "enabled": true
   }

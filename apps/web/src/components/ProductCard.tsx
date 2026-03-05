@@ -25,7 +25,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
           )}
           <div className="aspect-square overflow-hidden bg-gray-100">
             <img
-              src={product.images[0] || 'https://placehold.co/400x400?text=No+Image'}
+              src={(product.images ?? [])[0] || 'https://placehold.co/400x400?text=No+Image'}
               alt={product.name}
               className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
             />

@@ -4,17 +4,12 @@ import { CartItem } from '@/components/cart/CartItem';
 import { CartSummary } from '@/components/cart/CartSummary';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
+import { authClient } from '@/lib/auth-client';
 
 export const Route = createFileRoute('/cart')({
-  beforeLoad: () => {
-    const stored = localStorage.getItem('tgdd-auth');
-    if (!stored) throw redirect({ to: '/login', search: { redirect: '/cart' } });
-    try {
-      const parsed = JSON.parse(stored);
-      if (!parsed?.state?.token) throw redirect({ to: '/login', search: { redirect: '/cart' } });
-    } catch {
-      throw redirect({ to: '/login', search: { redirect: '/cart' } });
-    }
+  beforeLoad: async () => {
+    const session = await authClient.getSession();
+    if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/cart' } });
   },
   component: CartPage,
 });

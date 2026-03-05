@@ -17,11 +17,11 @@ bun.lock
 .env
 .env.*
 !.env.example
-
+.devs.vars
 # OS
 .DS_Store
 Thumbs.db
-
+*.js.map
 # IDEs
 .vscode
 .idea

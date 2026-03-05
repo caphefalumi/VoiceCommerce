@@ -1,8 +1,20 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { createAuth, type Env as AuthEnv } from './lib/auth';
+import { requireAuth } from './middleware/auth';
+import type { AuthUser } from './middleware/auth';
 
 type Bindings = {
   DB: D1Database;
+  BETTER_AUTH_SECRET: string;
+  BETTER_AUTH_URL: string;
+  MAILERSEND_API_KEY: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+};
+
+type Variables = {
+  user: AuthUser;
 };
 
 interface Product {
@@ -19,25 +31,30 @@ interface Product {
   embedding: string;
 }
 
-interface User {
-  id: string;
-  email: string;
-  username: string;
-  password: string;
-  created_at: string;
+// Cache auth instance per env object (reused within same CF Worker isolate)
+const authCache = new WeakMap<AuthEnv, ReturnType<typeof createAuth>>();
+function getAuth(env: AuthEnv) {
+  let auth = authCache.get(env);
+  if (!auth) {
+    auth = createAuth(env);
+    authCache.set(env, auth);
+  }
+  return auth;
 }
 
-interface CartItem {
-  id: string;
-  user_id: string;
-  product_id: string;
-  quantity: number;
-  created_at: string;
-}
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-const app = new Hono<{ Bindings: Bindings }>();
+app.use('*', cors({
+  origin: ['https://tgdd-frontend.pages.dev', 'http://localhost:5173'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  credentials: true,
+}));
 
-app.use('*', cors({ origin: '*' }));
+app.all('/api/auth/*', (c) => {
+  const auth = getAuth(c.env);
+  return auth.handler(c.req.raw);
+});
 
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -77,7 +94,6 @@ app.get('/api/products', async (c) => {
     
     const { results } = await c.env.DB.prepare(query).bind(...params).all();
     
-    // Transform results to include computed fields
     const products = (results || []).map((row: any) => {
       const price = row.price || 0;
       const originalPrice = row.original_price || price;
@@ -215,114 +231,11 @@ app.get('/api/users/:id', async (c) => {
   }
 });
 
-// ── AUTH ───────────────────────────────────────────────────────────────────
-
-// Simple bcrypt comparison (in production, use proper bcrypt)
-// For demo purposes, using plain text comparison - in production use bcrypt
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  // For demo: if hash starts with $2y$ or $2b$, use proper bcrypt
-  // For now, simple comparison for migrated users (they have bcrypt hashes)
-  if (hash === password) return true;
-  
-  // Simple hash check for demo accounts
-  return false;
-}
-
-// POST /api/auth/login - User login
-app.post('/api/auth/login', async (c) => {
-  try {
-    const { email, password } = await c.req.json();
-    
-    if (!email || !password) {
-      return c.json({ error: 'email and password are required' }, 400);
-    }
-
-    const { results } = await c.env.DB.prepare(
-      'SELECT id, email, username, password FROM users WHERE email = ?'
-    ).bind(email).all();
-    
-    if (results.length === 0) {
-      return c.json({ error: 'Invalid credentials' }, 401);
-    }
-
-    const user = results[0] as User;
-    
-    // For demo purposes - check if password matches (migrated users have bcrypt hashes)
-    // In production, use bcrypt.compare()
-    const valid = await verifyPassword(password, user.password);
-    
-    if (!valid) {
-      return c.json({ error: 'Invalid credentials' }, 401);
-    }
-
-    // Return user without password
-    return c.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.username,
-        role: 'user',
-      },
-      token: `demo-token-${user.id}`
-    });
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
-  }
-});
-
-// POST /api/auth/register - User registration
-app.post('/api/auth/register', async (c) => {
-  try {
-    const body = await c.req.json();
-    // Accept both "username" (API-native) and "name" (sent by frontend)
-    const email: string = (body.email || '').trim();
-    const username: string = (body.username || body.name || '').trim();
-    const password: string = body.password || '';
-
-    if (!email) {
-      return c.json({ error: 'Email là bắt buộc' }, 400);
-    }
-    if (!username) {
-      return c.json({ error: 'Họ và tên là bắt buộc' }, 400);
-    }
-    if (!password) {
-      return c.json({ error: 'Mật khẩu là bắt buộc' }, 400);
-    }
-
-    // Check if email already exists
-    const { results: existing } = await c.env.DB.prepare(
-      'SELECT id FROM users WHERE email = ?'
-    ).bind(email).all();
-
-    if (existing.length > 0) {
-      return c.json({ error: 'Email already registered' }, 409);
-    }
-
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    // In production, hash password with bcrypt
-    const passwordHash = password;
-
-    await c.env.DB.prepare(
-      'INSERT INTO users (id, email, username, password, created_at) VALUES (?, ?, ?, ?, ?)'
-    ).bind(id, email, username, passwordHash, now).run();
-
-    // Return same shape as login so the frontend store works
-    const user = { id, email, name: username, role: 'user' };
-    const token = btoa(`${id}:${email}:${Date.now()}`);
-
-    return c.json({ user, token, message: 'User registered successfully' }, 201);
-  } catch (error: any) {
-    return c.json({ error: error.message }, 500);
-  }
-});
-
 // ── CART ───────────────────────────────────────────────────────────────────
 
-// GET /api/cart/:userId - Get user's cart
-app.get('/api/cart/:userId', async (c) => {
-  const userId = c.req.param('userId');
+// GET /api/cart - Get authenticated user's cart
+app.get('/api/cart', requireAuth, async (c) => {
+  const user = c.get('user');
   try {
     const { results } = await c.env.DB.prepare(
       `SELECT ci.id, ci.user_id, ci.product_id, ci.quantity, ci.created_at,
@@ -330,8 +243,7 @@ app.get('/api/cart/:userId', async (c) => {
        FROM cart_items ci
        JOIN products p ON ci.product_id = p.id
        WHERE ci.user_id = ?`
-    ).bind(userId).all();
-    
+    ).bind(user.id).all();
     return c.json({ cart: results });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
@@ -339,35 +251,28 @@ app.get('/api/cart/:userId', async (c) => {
 });
 
 // POST /api/cart - Add item to cart
-app.post('/api/cart', async (c) => {
+app.post('/api/cart', requireAuth, async (c) => {
+  const user = c.get('user');
   try {
-    const { user_id, product_id, quantity = 1 } = await c.req.json();
-    
-    if (!user_id || !product_id) {
-      return c.json({ error: 'user_id and product_id are required' }, 400);
-    }
+    const { product_id, quantity = 1 } = await c.req.json();
+    if (!product_id) return c.json({ error: 'product_id is required' }, 400);
 
-    // Check if item already in cart
     const { results: existing } = await c.env.DB.prepare(
       'SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?'
-    ).bind(user_id, product_id).all();
+    ).bind(user.id, product_id).all();
 
     if (existing.length > 0) {
-      // Update quantity
-      const existingItem = existing[0] as CartItem;
-      await c.env.DB.prepare(
-        'UPDATE cart_items SET quantity = ? WHERE id = ?'
-      ).bind(existingItem.quantity + quantity, existingItem.id).run();
-      
+      const existingItem = existing[0] as { id: string; quantity: number };
+      await c.env.DB.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?')
+        .bind(existingItem.quantity + quantity, existingItem.id).run();
       return c.json({ message: 'Cart item quantity updated' });
     }
 
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    
     await c.env.DB.prepare(
       'INSERT INTO cart_items (id, user_id, product_id, quantity, created_at) VALUES (?, ?, ?, ?, ?)'
-    ).bind(id, user_id, product_id, quantity, now).run();
+    ).bind(id, user.id, product_id, quantity, now).run();
 
     return c.json({ id, message: 'Item added to cart' }, 201);
   } catch (error: any) {
@@ -375,20 +280,15 @@ app.post('/api/cart', async (c) => {
   }
 });
 
-// DELETE /api/cart/:userId/:productId - Remove item from cart
-app.delete('/api/cart/:userId/:productId', async (c) => {
-  const userId = c.req.param('userId');
+// DELETE /api/cart/:productId - Remove item from cart
+app.delete('/api/cart/:productId', requireAuth, async (c) => {
+  const user = c.get('user');
   const productId = c.req.param('productId');
-  
   try {
     const { results } = await c.env.DB.prepare(
       'DELETE FROM cart_items WHERE user_id = ? AND product_id = ? RETURNING id'
-    ).bind(userId, productId).all();
-    
-    if (results.length === 0) {
-      return c.json({ error: 'Item not found in cart' }, 404);
-    }
-    
+    ).bind(user.id, productId).all();
+    if (results.length === 0) return c.json({ error: 'Item not found in cart' }, 404);
     return c.json({ message: 'Item removed from cart' });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
@@ -420,7 +320,6 @@ app.post('/api/orders', async (c) => {
       now, now
     ).run();
 
-    // Clear the user's cart after order placement
     await c.env.DB.prepare('DELETE FROM cart_items WHERE user_id = ?').bind(user_id).run();
 
     const summary = (Array.isArray(items) ? items : JSON.parse(itemsJson))
@@ -719,5 +618,4 @@ app.patch('/api/admin/tickets/:id/status', async (c) => {
   }
 });
 
-// Export the app
 export default app;

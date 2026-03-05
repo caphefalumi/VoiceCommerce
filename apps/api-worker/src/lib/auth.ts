@@ -107,7 +107,6 @@ export function createAuth(env: Env) {
       defaultCookieAttributes: {
         sameSite: 'None',
         secure: true,
-        partitioned: true,
       },
     },
 

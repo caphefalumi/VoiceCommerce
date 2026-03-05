@@ -4,7 +4,7 @@ import { Link } from '@tanstack/react-router';
 
 export function CartSummary() {
   const { items, total } = useCartStore();
-  const totalPrice = total();
+  const totalPrice = total() || 0;
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
