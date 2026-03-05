@@ -34,4 +34,3 @@ Thumbs.db
 # Project specific
 .sisyphus
 .tanstack
-apps/web/src/routeTree.gen.ts
