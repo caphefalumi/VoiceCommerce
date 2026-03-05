@@ -47,7 +47,7 @@ jobs:
         working-directory: apps/web
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@0.34.2
         with:
           scan-type: 'fs'
           scan-ref: 'apps/web'
@@ -70,7 +70,7 @@ jobs:
         working-directory: apps/ai-worker
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@0.34.2
         with:
           scan-type: 'fs'
           scan-ref: 'apps/ai-worker'
@@ -93,7 +93,7 @@ jobs:
         working-directory: apps/api-worker
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@0.34.2
         with:
           scan-type: 'fs'
           scan-ref: 'apps/api-worker'
@@ -108,7 +108,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Trivy IaC scanner
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@0.34.2
         with:
           scan-type: 'fs'
           scan-ref: 'infra/terraform'
