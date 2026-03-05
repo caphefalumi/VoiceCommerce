@@ -16,31 +16,28 @@ interface CartState {
   total: () => number;
 }
 
-// Ensure auth is referenced safely for API calls. We will lazy load useAuthStore
 import { useAuthStore } from './auth';
 import { API_BASE } from '@/lib/api';
 
 const syncCartAPI = async (method: string, productId: string, quantity?: number) => {
   const user = useAuthStore.getState().user;
-  const token = useAuthStore.getState().token;
-  if (!user?.id || !token) return;
+  if (!user?.id) return;
 
   try {
     if (method === 'DELETE') {
-      await fetch(`${API_BASE}/api/cart/${user.id}/${productId}`, {
+      await fetch(`${API_BASE}/api/cart/${productId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
     } else if (method === 'POST') {
       await fetch(`${API_BASE}/api/cart`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ user_id: user.id, product_id: productId, quantity }),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ product_id: productId, quantity }),
       });
     }
-  } catch (e) {
-    console.error(`Failed to sync cart (${method})`, e);
-  }
+  } catch {}
 };
 
 export const useCartStore = create<CartState>()(
@@ -60,7 +57,6 @@ export const useCartStore = create<CartState>()(
           newItems = [...items, { ...product, quantity: 1 }];
         }
         set({ items: newItems });
-        // Inform backend of +1 quantity or new item if sync is allowed
         if (!skipSync) syncCartAPI('POST', product.id, 1);
       },
       removeFromCart: (productId, skipSync = false) => {
@@ -79,8 +75,6 @@ export const useCartStore = create<CartState>()(
           item.id === productId ? { ...item, quantity } : item,
         );
         set({ items: newItems });
-        // The API backend 'updates' by adding quantity, or if we had a dedicated PUT endpoint we'd use it.
-        // For simplicity with the existing POST endpoint, we send the difference:
         if (diff !== 0 && !skipSync) {
           syncCartAPI('POST', productId, diff);
         }
@@ -92,7 +86,7 @@ export const useCartStore = create<CartState>()(
         set({ items });
       },
       total: () => {
-        return get().items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+        return get().items.reduce((acc, item) => acc + (item.price ?? 0) * (item.quantity ?? 0), 0);
       },
     }),
     {

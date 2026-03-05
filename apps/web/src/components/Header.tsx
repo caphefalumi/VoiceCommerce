@@ -4,21 +4,15 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useCartStore } from '@/store/cart';
 import { useAuthStore, fetchCartOnAuth } from '@/store/auth';
-import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 
 export function Header() {
-  const { t, i18n } = useTranslation();
   const items = useCartStore((state) => state.items);
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
-  const { user, token, logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
-  };
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
@@ -30,12 +24,11 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  // Sync cart from backend when app loads and user is logged in
   useEffect(() => {
-    if (token) {
-      fetchCartOnAuth(token);
+    if (user) {
+      fetchCartOnAuth();
     }
-  }, [token]);
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -63,13 +56,12 @@ export function Header() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input
             type="search"
-            placeholder={t('search') + '...'}
+            placeholder="Tìm kiếm..."
             className="w-full bg-white pl-9 border-none h-10 text-black placeholder:text-gray-500 focus-visible:ring-black/20"
           />
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          {/* Cart - Only show if logged in */}
           {user && (
             <Link to="/cart" className="flex items-center gap-2 hover:opacity-80 font-medium">
               <div className="relative">
@@ -84,7 +76,6 @@ export function Header() {
             </Link>
           )}
 
-          {/* Auth area */}
           {user ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -145,27 +136,6 @@ export function Header() {
               </Link>
             </div>
           )}
-
-          {/* Language switcher */}
-          <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-7 px-2 text-black hover:bg-white/40 ${i18n.language === 'vi' ? 'bg-white/40' : ''}`}
-              onClick={() => changeLanguage('vi')}
-            >
-              VN
-            </Button>
-            <span className="text-black/40">|</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-7 px-2 text-black hover:bg-white/40 ${i18n.language === 'en' ? 'bg-white/40' : ''}`}
-              onClick={() => changeLanguage('en')}
-            >
-              EN
-            </Button>
-          </div>
         </div>
       </div>
     </header>

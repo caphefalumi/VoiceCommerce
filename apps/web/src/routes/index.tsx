@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { CategoryGrid } from '@/components/CategoryGrid';
 import { ProductCard } from '@/components/ProductCard';
-import { useTranslation } from 'react-i18next';
 import type { Product } from '@/types/product';
 import { API_BASE } from '@/lib/api';
 
@@ -21,13 +20,12 @@ export const Route = createFileRoute('/')({
 });
 
 function HomeComponent() {
-  const { t } = useTranslation();
   const products = Route.useLoaderData() as Product[];
 
   return (
     <div className="container mx-auto px-4 space-y-8 pb-12">
       <div className="pt-4">
-        <h1 className="text-2xl font-bold text-gray-800">{t('welcome')}</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Chào mừng</h1>
       </div>
       <CategoryGrid />
 
