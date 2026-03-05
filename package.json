@@ -7,13 +7,19 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:web": "bun --cwd apps/web run dev",
-    "build:web": "bun --cwd apps/web run build",
-    "dev:ai": "bun --cwd apps/ai-worker run dev",
-    "deploy:ai": "bun --cwd apps/ai-worker run deploy",
-    "dev:api": "bun --cwd apps/api-worker run dev",
-    "deploy:api": "bun --cwd apps/api-worker run deploy",
+    "dev:web": "cd apps/web && bun run dev",
+    "build:web": "cd apps/web && bun run build",
+    "dev:ai": "cd apps/ai-worker && bun run dev",
+    "deploy:ai": "cd apps/ai-worker && bun run deploy",
+    "dev:api": "cd apps/api-worker && bun run dev",
+    "deploy:api": "cd apps/api-worker && bun run deploy",
+    "deploy:web": "bun run build:web && cd apps/web && bun run deploy",
+    "deploy:web:only": "cd apps/web && bun run deploy",
+    "deploy:all": "bun run build:web && concurrently \"bun run deploy:web:only\" \"bun run deploy:ai\" \"bun run deploy:api\"",
     "lint": "bun x oxlint apps/*/src",
     "format": "bun x oxfmt --config apps/web/.oxfmtrc.jsonc ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

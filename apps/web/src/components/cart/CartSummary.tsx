@@ -4,8 +4,8 @@ import { Link } from '@tanstack/react-router';
 
 export function CartSummary() {
   const { items, total } = useCartStore();
-  const totalPrice = total() || 0;
-  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  const totalPrice = (total() ?? 0);
+  const itemCount = Array.isArray(items) ? items.reduce((acc, item) => acc + item.quantity, 0) : 0;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 sticky top-20">

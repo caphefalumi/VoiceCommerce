@@ -45,6 +45,8 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       addToCart: (product, skipSync = false) => {
+        if (!product.id || product.price == null || product.price <= 0) return;
+        
         const items = get().items;
         const existingItem = items.find((item) => item.id === product.id);
 
@@ -83,14 +85,33 @@ export const useCartStore = create<CartState>()(
         set({ items: [] });
       },
       setCart: (items) => {
-        set({ items });
+        const safeItems = (Array.isArray(items) ? items : [])
+          .filter((item) => item.id && item.price != null && item.price > 0);
+        set({ items: safeItems });
       },
       total: () => {
-        return get().items.reduce((acc, item) => acc + (item.price ?? 0) * (item.quantity ?? 0), 0);
+        try {
+          const state = get();
+          if (!state) return 0;
+          const items = state.items;
+          if (!Array.isArray(items)) return 0;
+          return items.reduce((acc, item) => acc + (item.price ?? 0) * (item.quantity ?? 0), 0);
+        } catch {
+          return 0;
+        }
       },
     }),
     {
       name: 'cart-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          if (!Array.isArray(state.items)) {
+            state.items = [];
+          } else {
+            state.items = state.items.filter((item) => item.id && item.price != null && item.price > 0);
+          }
+        }
+      },
     },
   ),
 );

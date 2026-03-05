@@ -8,7 +8,7 @@ import { useState, useRef, useEffect } from 'react';
 
 export function Header() {
   const items = useCartStore((state) => state.items);
-  const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  const cartCount = Array.isArray(items) ? items.reduce((acc, item) => acc + item.quantity, 0) : 0;
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);

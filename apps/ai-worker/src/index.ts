@@ -202,7 +202,14 @@ app.post('/voice-process', async (c) => {
     // Build product context for the LLM
     let productContext = '';
     if (lastProducts.length > 0) {
-      productContext = `\n## Sản phẩm đã hiển thị trước đó:\n${lastProducts.map(p => `${p.index}. ${p.name} - ${p.price?.toLocaleString('vi-VN') || 'N/A'} VND (ID: ${p.id})`).join('\n')}\n\nKhi người dùng nói "thêm sản phẩm thứ X" hoặc "sản phẩm thứ X", hãy sử dụng index để xác định sản phẩm.`;
+      productContext = `
+## Sản phẩm đã hiển thị trước đó:
+${lastProducts.map(p => `${p.index}. ${p.name} - ${p.price?.toLocaleString('vi-VN') || 'N/A'} VND (ID: ${p.id})`).join('\n')}
+
+QUAN TRỌNG:
+- Khi người dùng nói "thêm sản phẩm thứ X" hoặc "sản phẩm thứ X", LUÔN LUÔN sử dụng productId tương ứng (ID: ${lastProducts.map(p => p.id).join(' hoặc ')}).
+- KHÔNG BAO GIỜ bỏ qua hoặc tự tạo productId - luôn sử dụng ID thực từ danh sách trên.
+- Nếu người dùng nói tên sản phẩm (ví dụ: "iPhone 17"), hãy dùng ID của sản phẩm đó từ danh sách.`;
     }
     
     const systemPrompt = `You are TGDD AI — the intelligent voice assistant for Thế Giới Di Động (TGDD), Vietnam's largest electronics retailer.
@@ -270,6 +277,7 @@ You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a to
     
     // Detect action for frontend (cart, search, checkout)
     let action: any = null;
+    let searchResults: Array<{id: string; name: string; price: number; brand: string; category: string}> = [];
     if (result.toolResults?.length) {
       for (const tr of result.toolResults as any[]) {
         try {
@@ -281,7 +289,33 @@ You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a to
           }
 
           if (tr.toolName === 'startCheckout') action = { type: 'checkout' };
-          else if (tr.toolName === 'searchProducts') action = { type: 'search', query: messages[0].content };
+          else if (tr.toolName === 'searchProducts') {
+            action = { type: 'search', query: messages[0].content };
+            // Extract results for context in next turn
+            if (parsed?.results) {
+              searchResults = parsed.results.map((p: any, idx: number) => ({
+                id: p.id,
+                name: p.name,
+                price: p.price,
+                brand: p.brand,
+                category: p.category,
+                index: idx + 1
+              }));
+            }
+          }
+          else if (tr.toolName === 'filterProductsByPrice') {
+            action = { type: 'filter', query: messages[0].content };
+            if (parsed?.results) {
+              searchResults = parsed.results.map((p: any, idx: number) => ({
+                id: p.id,
+                name: p.name,
+                price: p.price,
+                brand: p.brand,
+                category: p.category,
+                index: idx + 1
+              }));
+            }
+          }
           else if (tr.toolName === 'addToCart' && parsed?.success) action = { type: 'add_to_cart', payload: parsed };
           else if (tr.toolName === 'removeFromCart' && parsed?.success) action = { type: 'remove_from_cart', payload: parsed };
         } catch {}
@@ -294,6 +328,7 @@ You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a to
       audio_base64: null,
       tool_results: result.toolResults,
       action,
+      search_results: searchResults,
       session_id: session_id || 'default'
     });
   } catch (error: any) {

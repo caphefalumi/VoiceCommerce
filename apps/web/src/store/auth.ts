@@ -28,8 +28,9 @@ export const fetchCartOnAuth = async () => {
       credentials: 'include',
     });
     if (res.ok) {
-      const cart = await res.json();
-      useCartStore.getState().setCart(cart);
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : (data?.cart ?? []);
+      useCartStore.getState().setCart(items);
     }
   } catch {}
 };

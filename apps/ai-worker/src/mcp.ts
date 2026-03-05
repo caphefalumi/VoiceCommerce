@@ -27,6 +27,40 @@ async function generateEmbedding(text: string, env: Env): Promise<number[]> {
   }
 }
 
+async function resolveProduct(productId: string | undefined, productName: string | undefined, env: Env): Promise<{id: string; name: string; brand: string; price: number; category: string} | null> {
+  const searchTerm = productName || productId || '';
+  if (!searchTerm) return null;
+  
+  const embedding = await generateEmbedding(`sản phẩm: ${searchTerm}`, env);
+  if (!embedding.length || !env.VECTORIZE) return null;
+  
+  const result = await env.VECTORIZE.query(embedding, { topK: 10, returnMetadata: 'all' });
+  const matches = result?.matches || [];
+  
+  let match = null;
+  if (productId && productId !== 'null' && productId.trim() !== '') {
+    match = matches.find((m: any) => m.id === productId);
+  }
+  if (!match && productName) {
+    match = matches.find((m: any) => m.metadata?.name?.toLowerCase().includes(productName.toLowerCase()));
+  }
+  if (!match) {
+    match = matches[0];
+  }
+  
+  if (match?.metadata?.name) {
+    return {
+      id: match.id,
+      name: match.metadata.name,
+      brand: match.metadata.brand || '',
+      price: Number(match.metadata.price || 0),
+      category: match.metadata.category || '',
+    };
+  }
+  
+  return null;
+}
+
 // Factory function to create the MCP server bound to the current Cloudflare environment
 export function createCommerceMcpServer(env: Env) {
   const server = new McpServer({
@@ -201,28 +235,8 @@ export function createCommerceMcpServer(env: Env) {
     async ({ productName, productId, quantity, userId }) => {
       log('info', 'tool.addToCart', { productName, productId, quantity, userId });
       try {
-        // Convert quantity to number if string
         const qty = typeof quantity === 'string' ? parseInt(quantity) || 1 : (quantity || 1);
-        let product: any = null;
-
-        if (productId) {
-           product = { id: productId, name: productName || 'Sản phẩm' };
-        } else if (productName) {
-          const embedding = await generateEmbedding(`sản phẩm: ${productName}`, env);
-          if (embedding.length && env.VECTORIZE) {
-            const result = await env.VECTORIZE.query(embedding, { topK: 1, returnMetadata: 'all' });
-            const match = result?.matches?.[0];
-            if (match?.metadata?.name) {
-              product = {
-                id: match.id,
-                name: match.metadata.name,
-                brand: match.metadata.brand || '',
-                price: Number(match.metadata.price || 0),
-                category: match.metadata.category || '',
-              };
-            }
-          }
-        }
+        const product = await resolveProduct(productId, productName, env);
 
         if (!product || !product.id) {
           return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm. Vui lòng nói tên sản phẩm rõ hơn.' }) }] };
@@ -277,33 +291,22 @@ export function createCommerceMcpServer(env: Env) {
     async ({ productName, productId, userId }) => {
       log('info', 'tool.removeFromCart', { productName, productId, userId });
       try {
-        let removedName = productName || 'sản phẩm';
-        let removedId = productId;
+        const product = await resolveProduct(productId, productName, env);
         
-        if (userId && env.DB && (productId || productName)) {
-          if (productId) {
-            await env.DB.prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?').bind(userId, productId).run();
-          } else if (productName) {
-            const embedding = await generateEmbedding(`sản phẩm: ${productName}`, env);
-            if (embedding.length && env.VECTORIZE) {
-              const result = await env.VECTORIZE.query(embedding, { topK: 1, returnMetadata: 'all' });
-              const match = result?.matches?.[0];
-              if (match?.id) {
-                removedId = match.id;
-                removedName = (match.metadata?.name as string) || productName;
-                await env.DB.prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?').bind(userId, match.id).run();
-              }
-            }
-          }
+        if (!product || !product.id || !userId || !env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm trong giỏ hàng.' }) }] };
         }
+        
+        await env.DB.prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?').bind(userId, product.id).run();
+        
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
               success: true,
               action: 'remove_from_cart',
-              productId: removedId,
-              message: `Đã xóa ${removedName} khỏi giỏ hàng.`,
+              productId: product.id,
+              message: `Đã xóa ${product.name} khỏi giỏ hàng.`,
             })
           }]
         };
