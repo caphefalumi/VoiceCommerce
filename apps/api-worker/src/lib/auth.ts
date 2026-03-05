@@ -120,17 +120,15 @@ export function createAuth(env: Env) {
     databaseHooks: {
       session: {
         create: {
-          after: async ({ data }) => {
-            console.log(`[audit] session.created userId=${data?.userId}`);
+          after: async (session: { userId: string }) => {
+            console.log(`[audit] session.created userId=${session.userId}`);
           },
         },
       },
       user: {
         update: {
-          after: async ({ data, oldData }) => {
-            if (oldData?.email !== data.email) {
-              console.log(`[audit] user.email_changed userId=${data.id}`);
-            }
+          after: async function(user: { id: string; email: string }) {
+            console.log(`[audit] user.updated userId=${user.id}`);
           },
         },
       },
