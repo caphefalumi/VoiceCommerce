@@ -89,7 +89,7 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         id: deploy
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
@@ -128,7 +128,7 @@ jobs:
 
       - name: Deploy API Worker (staging)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
@@ -137,7 +137,7 @@ jobs:
 
       - name: Deploy API Worker (production)
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
@@ -175,7 +175,7 @@ jobs:
 
       - name: Deploy AI Worker (staging)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
@@ -184,7 +184,7 @@ jobs:
 
       - name: Deploy AI Worker (production)
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
