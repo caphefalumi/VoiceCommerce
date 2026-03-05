@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "apps/web/src/**"
+      - "apps/web/public/**"
+      - "apps/web/package.json"
+      - "apps/web/vite.config.ts"
+      - "apps/web/index.html"
+      - "apps/api-worker/**"
+      - "apps/ai-worker/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web/src/**"
+      - "apps/web/public/**"
+      - "apps/web/package.json"
+      - "apps/web/vite.config.ts"
+      - "apps/web/index.html"
+      - "apps/api-worker/**"
+      - "apps/ai-worker/**"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  frontend-ci:
+    name: Frontend — Lint / Format / Type-check / Test / Build
+    runs-on: ubuntu-latest
+    if: >
+      contains(github.event.head_commit.modified, 'apps/web/') ||
+      contains(github.event.head_commit.added, 'apps/web/') ||
+      github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/web
+
+      - name: Lint
+        run: bunx oxlint --fix --fix-suggestions
+        working-directory: apps/web
+        continue-on-error: true
+
+      - name: Format
+        run: bunx oxfmt --config .oxfmtrc.jsonc
+        working-directory: apps/web
+
+      - name: Type check
+        run: bunx tsc --noEmit
+        working-directory: apps/web
+
+      - name: Check for changes
+        id: verify-diff
+        run: |
+          git diff --quiet . || echo "changed=true" >> $GITHUB_OUTPUT
+        working-directory: apps/web
+
+      - name: Commit if changed
+        if: steps.verify-diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: auto-format code"
+
+      - name: Unit tests
+        run: bun run test --run --reporter=verbose --coverage || bun test --reporter=verbose --coverage
+        working-directory: apps/web
+
+      - name: Build
+        run: bun run build
+        working-directory: apps/web
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: apps/web/dist/
+          retention-days: 7
+
+  api-worker-ci:
+    name: API Worker — Type-check / Build
+    runs-on: ubuntu-latest
+    if: >
+      contains(github.event.head_commit.modified, 'apps/api-worker/') ||
+      contains(github.event.head_commit.added, 'apps/api-worker/') ||
+      github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/api-worker
+
+      - name: TypeScript type-check
+        run: bunx tsc --noEmit
+        working-directory: apps/api-worker
+
+      - name: Dry-run build (wrangler)
+        run: bunx wrangler deploy --dry-run --outdir /tmp/api-worker-dist
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        working-directory: apps/api-worker
+
+  ai-worker-ci:
+    name: AI Worker — Type-check / Build
+    runs-on: ubuntu-latest
+    if: >
+      contains(github.event.head_commit.modified, 'apps/ai-worker/') ||
+      contains(github.event.head_commit.added, 'apps/ai-worker/') ||
+      github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: apps/ai-worker
+
+      - name: TypeScript type-check
+        run: bunx tsc --noEmit
+        working-directory: apps/ai-worker
+
+      - name: Dry-run build (wrangler)
+        run: bunx wrangler deploy --dry-run --outdir /tmp/ai-worker-dist
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        working-directory: apps/ai-worker
