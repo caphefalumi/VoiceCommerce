@@ -17,7 +17,7 @@ bun.lock
 .env
 .env.*
 !.env.example
-.devs.vars
+.dev.vars
 # OS
 .DS_Store
 Thumbs.db
