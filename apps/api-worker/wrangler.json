@@ -11,7 +11,7 @@
     }
   ],
   "vars": {
-    "BETTER_AUTH_URL": "https://api-worker.dangduytoan13l.workers.dev"
+    "BETTER_AUTH_URL": "https://tgdd-frontend.pages.dev"
   },
   "observability": {
     "enabled": true

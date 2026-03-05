@@ -26,11 +26,11 @@ export function CartItem({ item }: CartItemProps) {
       <div className="flex-1 min-w-0 w-full">
         <h3 className="text-base font-semibold text-gray-900 truncate">{item.name}</h3>
         <p className="text-base font-bold text-destructive mt-1">
-          {item.price.toLocaleString('vi-VN')}₫
+          {(item.price ?? 0).toLocaleString('vi-VN')}₫
         </p>
         {item.originalPrice && (
           <p className="text-xs text-gray-500 line-through">
-            {item.originalPrice.toLocaleString('vi-VN')}₫
+            {(item.originalPrice ?? 0).toLocaleString('vi-VN')}₫
           </p>
         )}
       </div>

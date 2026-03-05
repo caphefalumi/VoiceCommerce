@@ -12,7 +12,8 @@
     "format": "oxfmt .",
     "test": "vitest",
     "seed": "bun scripts/seed.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "wrangler pages deploy dist"
   },
   "dependencies": {
     "@cloudflare/realtimekit": "^1.2.4",
