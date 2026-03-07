@@ -116,10 +116,10 @@ app.get('/health', (c) => c.json({ status: 'ok', service: 'ai-worker', version: 
 app.post('/stt', async (c) => {
   try {
     const { audio_base64 } = await c.req.json();
-    if (!audio_base64) return c.json({ error: 'Missing audio_base64' }, 400);
+    if (!audio_base64) return c.json({ error: 'Thiếu dữ liệu âm thanh (audio_base64)' }, 400);
     const response = await (c.env.AI as any).run('@cf/openai/whisper-large-v3-turbo', {
       audio: audio_base64, language: 'vi',
-      initial_prompt: 'Vietnamese electronics store. Product names in English: iPhone, Samsung Galaxy, OPPO, Xiaomi, MacBook, Dell.',
+      initial_prompt: 'Cửa hàng điện máy Việt Nam. Tên sản phẩm bao gồm: iPhone, Samsung Galaxy, OPPO, Xiaomi, MacBook, Dell.',
     });
     return c.json({ text: normalizeProductNames(response.text || '') });
   } catch (error: any) {
@@ -132,7 +132,7 @@ app.post('/stt', async (c) => {
 app.post('/tts', async (c) => {
   try {
     const { text, lang } = await c.req.json();
-    if (!text) return c.json({ error: 'Missing text' }, 400);
+    if (!text) return c.json({ error: 'Thiếu nội dung văn bản' }, 400);
     const response = await (c.env.AI as any).run('@cf/myshell-ai/melotts', { 
       prompt: text,
       lang: lang || 'en'
@@ -164,7 +164,7 @@ app.post('/voice-process', async (c) => {
   try {
     const { text: inputText, audio_base64, session_id, context } = await c.req.json();
     const userId: string | null = context?.user_id || null;
-    const lastProducts: Array<{id: string; name: string; price: number; index: number}> = context?.last_products || [];
+    const lastSearchResults: Array<{id: string; name: string; price: number; index: number}> = context?.last_search_results || [];
     const conversationHistory: Array<{role: 'user' | 'assistant'; content: string}> = context?.conversation_history || [];
     
     const env = c.env;
@@ -178,7 +178,7 @@ app.post('/voice-process', async (c) => {
         const stt = await (env.AI as any).run('@cf/openai/whisper-large-v3-turbo', {
           audio: audio_base64,
           language: 'vi',
-          initial_prompt: 'Vietnamese electronics store. Product names: iPhone, Samsung, OPPO, Xiaomi, MacBook, Dell.'
+          initial_prompt: 'Cửa hàng điện máy Việt Nam. Tên sản phẩm: iPhone, Samsung, OPPO, Xiaomi, MacBook, Dell.'
         });
         userText = normalizeProductNames(stt.text || '');
       } catch (sttErr) {
@@ -201,7 +201,7 @@ app.post('/voice-process', async (c) => {
       VECTORIZE: env.VECTORIZE,
       VECTORIZE_FAQ: env.VECTORIZE_FAQ,
       DB: env.DB
-    });
+    }, lastSearchResults, userId || '');
     await mcpServer.connect(serverTransport);
     
     const mcpClient = await createMCPClient({ transport: clientTransport as any });
@@ -209,13 +209,13 @@ app.post('/voice-process', async (c) => {
     
     // Build product context for the LLM
     let productContext = '';
-    if (lastProducts.length > 0) {
+    if (lastSearchResults.length > 0) {
       productContext = `
 ## Sản phẩm đã hiển thị trước đó:
-${lastProducts.map(p => `${p.index}. ${p.name} - ${p.price?.toLocaleString('vi-VN') || 'N/A'} VND (ID: ${p.id})`).join('\n')}
+${lastSearchResults.map((p: any) => `${p.index}. ${p.name} - ${p.price?.toLocaleString('vi-VN') || 'N/A'} VND (ID: ${p.id})`).join('\n')}
  
 QUAN TRỌNG:
-- Khi người dùng nói "thêm sản phẩm thứ X", "sản phẩm thứ X", "cái thứ X", "cái đầu tiên" (X=1), "cái thứ hai" (X=2), "cái cuối cùng", LUÔN LUÔN sử dụng productId tương ứng từ danh sách trên (ID: ${lastProducts.map(p => p.id).join(' hoặc ')}).
+- Khi người dùng nói "thêm sản phẩm thứ X", "sản phẩm thứ X", "cái thứ X", "cái đầu tiên" (X=1), "cái thứ hai" (X=2), "cái cuối cùng", LUÔN LUÔN sử dụng productId tương ứng từ danh sách trên (ID: ${lastSearchResults.map((p: any) => p.id).join(' hoặc ')}).
 - "cái đầu tiên" = sản phẩm thứ 1 (index 1)
 - "cái thứ hai" = sản phẩm thứ 2 (index 2)  
 - "cái thứ ba" = sản phẩm thứ 3 (index 3)
@@ -225,16 +225,21 @@ QUAN TRỌNG:
 - Nếu người dùng chỉ nói "sản phẩm thứ X" hoặc tên sản phẩm mà KHÔNG có động từ hành động (như "thêm", "mua", "xóa"), hãy gọi getProductDetails với productId tương ứng để hiển thị thông tin, rồi hỏi người dùng muốn làm gì tiếp theo.`;
     }
     
-    const systemPrompt = `You are TGDD AI — the intelligent voice assistant for Thế Giới Di Động (TGDD), Vietnam's largest electronics retailer.
-You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a tool for commerce actions— never fabricate data.${userId ? `\n\nThe current logged-in User ID is: ${userId}. Always include this userId when calling tools that require it, such as adding to cart or checking out.` : ''}${conversationHistory.length > 0 ? `\n\n## Cuộc trò chuyện gần đây:\n${conversationHistory.map(h => `${h.role === 'user' ? 'User' : 'AI'}: ${h.content}`).join('\n')}` : ''}${productContext}`;
+    const userIdValue = userId || '';
+    const ctxJson = JSON.stringify({ current_user_id: userIdValue });
+    const systemPrompt = `Bạn là TGDD AI — trợ lý giọng nói thông minh của Thế Giới Di Động (TGDD), hệ thống bán lẻ điện tử lớn nhất Việt Nam.
+Bạn giao tiếp chủ yếu bằng tiếng Việt. Hãy trả lời ngắn gọn (1-3 câu). Luôn gọi công cụ (tool) cho các hành động mua sắm — không bao giờ tự tạo dữ liệu giả.
+
+Khi người dùng hỏi về đơn hàng của họ, hãy lấy current_user_id từ dữ liệu JSON này và truyền vào tham số userId: ${ctxJson}
+${conversationHistory.length > 0 ? `\n\n## Cuộc trò chuyện gần đây:\n${conversationHistory.map(h => `${h.role === 'user' ? 'User' : 'AI'}: ${h.content}`).join('\n')}` : ''}${productContext}`;
     
     const messages = [{ role: 'user', content: userText }];
     
     const result = await generateText({
-      model: workersai('@cf/meta/llama-3.3-70b-instruct-fp8-fast') as any,
+      model: workersai('@cf/mistralai/mistral-small-3.1-24b-instruct') as any,
       system: systemPrompt,
       messages: messages as any,
-      tools: mcpTools as any
+      tools: mcpTools as any,
     });
     
     let responseText = result.text;
@@ -289,66 +294,10 @@ You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a to
     if (ctx?.waitUntil) ctx.waitUntil(logFetch);
     
     // Detect action for frontend (cart, search, checkout)
-    let action: any = null;
-    let searchResults: Array<{id: string; name: string; price: number; brand: string; category: string; index?: number}> = [];
-    if (result.toolResults?.length) {
-      for (const tr of result.toolResults as any[]) {
-        try {
-          let parsed: any;
-          if (tr.output?.content?.[0]?.text) {
-            parsed = JSON.parse(tr.output.content[0].text);
-          } else {
-            parsed = typeof tr.result === 'string' ? JSON.parse(tr.result) : tr.result;
-          }
-
-          if (tr.toolName === 'startCheckout') action = { type: 'checkout' };
-          else if (tr.toolName === 'searchProducts') {
-            action = { type: 'search', query: messages[0].content };
-            // Extract results for context in next turn
-            if (parsed?.results) {
-              searchResults = parsed.results.map((p: any, idx: number) => ({
-                id: p.id,
-                name: p.name,
-                price: p.price,
-                brand: p.brand,
-                category: p.category,
-                index: idx + 1
-              }));
-            }
-          }
-          else if (tr.toolName === 'filterProductsByPrice') {
-            action = { type: 'filter', query: messages[0].content };
-            if (parsed?.results) {
-              searchResults = parsed.results.map((p: any, idx: number) => ({
-                id: p.id,
-                name: p.name,
-                price: p.price,
-                brand: p.brand,
-                category: p.category,
-                index: idx + 1
-              }));
-            }
-          }
-          else if (tr.toolName === 'addToCart' && parsed?.success) action = { type: 'add_to_cart', payload: parsed };
-          else if (tr.toolName === 'removeFromCart' && parsed?.success) action = { type: 'remove_from_cart', payload: parsed };
-          else if (tr.toolName === 'viewCart' && parsed?.success) action = { type: 'view_cart', payload: parsed };
-          else if (tr.toolName === 'cancelOrder' && parsed?.success) action = { type: 'cancel_order', payload: parsed };
-          else if (tr.toolName === 'compareProducts' && parsed?.products?.length) action = { type: 'compare', payload: parsed };
-          else if (tr.toolName === 'getProductDetails' && parsed?.product) {
-            action = { type: 'product_details', payload: parsed };
-            const p = parsed.product;
-            searchResults = [{
-              id: p.id,
-              name: p.name,
-              price: p.price,
-              brand: p.brand || '',
-              category: p.category || '',
-              index: 1,
-            }];
-          }
-        } catch {}
-      }
-    }
+    const { processIntent } = await import('./intent');
+    const intentResult = processIntent(result.toolResults || [], userText);
+    const action = intentResult.action;
+    const searchResults = intentResult.searchResults;
 
     return c.json({
       transcribed_text: userText,

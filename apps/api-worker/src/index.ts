@@ -197,7 +197,7 @@ app.get('/api/products/:id', async (c) => {
     ).bind(id).all();
     
     if (results.length === 0) {
-      return c.json({ error: 'Product not found' }, 404);
+      return c.json({ error: 'Không tìm thấy sản phẩm' }, 404);
     }
     
     const row = results[0] as any;
@@ -240,7 +240,7 @@ app.post('/api/products', async (c) => {
     const body = await c.req.json<Partial<Product>>();
     
     if (!body.name || !body.price) {
-      return c.json({ error: 'name and price are required' }, 400);
+      return c.json({ error: 'Tên và giá sản phẩm là bắt buộc' }, 400);
     }
 
     const id = crypto.randomUUID();
@@ -265,7 +265,7 @@ app.post('/api/products', async (c) => {
       now
     ).run();
 
-    return c.json({ id, message: 'Product created successfully' }, 201);
+    return c.json({ id, message: 'Tạo sản phẩm thành công' }, 201);
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -282,7 +282,7 @@ app.get('/api/users/:id', async (c) => {
     ).bind(id).all();
     
     if (results.length === 0) {
-      return c.json({ error: 'User not found' }, 404);
+      return c.json({ error: 'Không tìm thấy người dùng' }, 404);
     }
     return c.json({ user: results[0] });
   } catch (error: any) {
@@ -329,7 +329,7 @@ app.post('/api/cart', requireAuth, async (c) => {
     ).bind(product_id).all();
     
     if (productCheck.length === 0) {
-      return c.json({ error: 'Product not found. It may have been removed from the catalog.', product_id }, 404);
+      return c.json({ error: 'Sản phẩm không tồn tại. Có thể sản phẩm đã bị xóa khỏi danh mục.', product_id }, 404);
     }
 
     const { results: existing } = await c.env.DB.prepare(
@@ -340,7 +340,7 @@ app.post('/api/cart', requireAuth, async (c) => {
       const existingItem = existing[0] as { id: string; quantity: number };
       await c.env.DB.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?')
         .bind(existingItem.quantity + quantity, existingItem.id).run();
-      return c.json({ message: 'Cart item quantity updated' });
+      return c.json({ message: 'Đã cập nhật số lượng sản phẩm trong giỏ hàng' });
     }
 
     const id = crypto.randomUUID();
@@ -349,7 +349,7 @@ app.post('/api/cart', requireAuth, async (c) => {
       'INSERT INTO cart_items (id, user_id, product_id, quantity, created_at) VALUES (?, ?, ?, ?, ?)'
     ).bind(id, user.id, product_id, quantity, now).run();
 
-    return c.json({ id, message: 'Item added to cart' }, 201);
+    return c.json({ id, message: 'Đã thêm sản phẩm vào giỏ hàng' }, 201);
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -363,8 +363,8 @@ app.delete('/api/cart/:productId', requireAuth, async (c) => {
     const { results } = await c.env.DB.prepare(
       'DELETE FROM cart_items WHERE user_id = ? AND product_id = ? RETURNING id'
     ).bind(user.id, productId).all();
-    if (results.length === 0) return c.json({ error: 'Item not found in cart' }, 404);
-    return c.json({ message: 'Item removed from cart' });
+    if (results.length === 0) return c.json({ error: 'Không tìm thấy sản phẩm trong giỏ hàng' }, 404);
+    return c.json({ message: 'Đã xóa sản phẩm khỏi giỏ hàng' });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -378,7 +378,7 @@ app.post('/api/orders', async (c) => {
     const { user_id, user_email, user_name, items, total_price, shipping_address } = await c.req.json();
 
     if (!user_id || !items || !total_price) {
-      return c.json({ error: 'user_id, items, and total_price are required' }, 400);
+      return c.json({ error: 'user_id, items, và total_price là các trường bắt buộc' }, 400);
     }
 
     const id = crypto.randomUUID();
@@ -389,7 +389,7 @@ app.post('/api/orders', async (c) => {
       `INSERT INTO orders (id, user_id, status, total_price, items, shipping_address, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
-      id, user_id, 'confirmed', total_price,
+      id, user_id, 'preparing', total_price,
       itemsJson,
       shipping_address ? JSON.stringify(shipping_address) : null,
       now, now
@@ -448,10 +448,10 @@ app.post('/api/orders', async (c) => {
 
     return c.json({
       id,
-      status: 'confirmed',
+      status: 'preparing',
       total_price,
       confirmation_text: orderSummary,
-      message: 'Order created successfully'
+      message: 'Đặt hàng thành công'
     }, 201);
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
@@ -468,8 +468,8 @@ app.get('/api/orders/:userId', async (c) => {
     ).bind(userId).all();
 
     const statusMap: Record<string, string> = {
-      pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', processing: 'Đang xử lý',
-      shipped: 'Đang vận chuyển', delivered: 'Đã giao hàng', cancelled: 'Đã hủy',
+      pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', preparing: 'Thế giới di động đang chuẩn bị hàng',
+      processing: 'Đang xử lý', shipped: 'Đang vận chuyển', delivered: 'Giao hàng thành công', cancelled: 'Đã hủy',
     };
 
     const orders = (results || []).map((row: any) => ({
@@ -496,13 +496,13 @@ app.get('/api/orders/status/:orderId', async (c) => {
     ).bind(`%${orderId}%`).all();
 
     if (!results.length) {
-      return c.json({ error: 'Order not found' }, 404);
+      return c.json({ error: 'Không tìm thấy đơn hàng' }, 404);
     }
 
     const row = results[0] as any;
     const statusMap: Record<string, string> = {
-      pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', processing: 'Đang xử lý',
-      shipped: 'Đang vận chuyển', delivered: 'Đã giao hàng', cancelled: 'Đã hủy',
+      pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', preparing: 'Thế giới di động đang chuẩn bị hàng',
+      processing: 'Đang xử lý', shipped: 'Đang vận chuyển', delivered: 'Giao hàng thành công', cancelled: 'Đã hủy',
     };
 
     return c.json({
@@ -524,7 +524,7 @@ app.patch('/api/orders/:orderId/status', async (c) => {
   const orderId = c.req.param('orderId');
   try {
     const { status } = await c.req.json();
-    const validStatuses = ['pending','confirmed','processing','shipped','delivered','cancelled'];
+    const validStatuses = ['pending','confirmed','preparing','processing','shipped','delivered','cancelled'];
     if (!validStatuses.includes(status)) {
       return c.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, 400);
     }
@@ -532,7 +532,7 @@ app.patch('/api/orders/:orderId/status', async (c) => {
     await c.env.DB.prepare(
       'UPDATE orders SET status = ?, updated_at = ? WHERE id = ?'
     ).bind(status, now, orderId).run();
-    return c.json({ message: 'Order status updated' });
+    return c.json({ message: 'Đã cập nhật trạng thái đơn hàng' });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -546,7 +546,7 @@ app.post('/api/tickets', async (c) => {
     const { user_id, category, message } = await c.req.json();
 
     if (!category || !message) {
-      return c.json({ error: 'category and message are required' }, 400);
+      return c.json({ error: 'Danh mục và nội dung tin nhắn là bắt buộc' }, 400);
     }
 
     const validCategories = ['product_issue','delivery','payment','return_exchange','warranty','other'];
@@ -572,7 +572,7 @@ app.post('/api/tickets', async (c) => {
       status: 'open',
       category_label: categoryLabels[category],
       confirmation_text: `Yêu cầu hỗ trợ #${id.slice(0, 8).toUpperCase()} — ${categoryLabels[category]} đã được ghi nhận. Nhân viên sẽ liên hệ trong 24 giờ. Hotline: 1800 2091.`,
-      message: 'Support ticket created'
+      message: 'Đã gửi phiếu hỗ trợ thành công'
     }, 201);
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
@@ -631,7 +631,7 @@ app.post('/api/admin/faqs', requireAdmin, async (c) => {
     await c.env.DB.prepare(
       'INSERT INTO faqs (id, question, answer, category, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
     ).bind(id, question, answer, category || 'general', now, now).run();
-    return c.json({ id, message: 'FAQ created' }, 201);
+    return c.json({ id, message: 'Đã tạo FAQ thành công' }, 201);
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -646,7 +646,7 @@ app.put('/api/admin/faqs/:id', requireAdmin, async (c) => {
     await c.env.DB.prepare(
       'UPDATE faqs SET question = ?, answer = ?, category = ?, updated_at = ? WHERE id = ?'
     ).bind(question, answer, category || 'general', now, id).run();
-    return c.json({ message: 'FAQ updated' });
+    return c.json({ message: 'Đã cập nhật FAQ thành công' });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -657,7 +657,7 @@ app.delete('/api/admin/faqs/:id', requireAdmin, async (c) => {
   const id = c.req.param('id');
   try {
     await c.env.DB.prepare('DELETE FROM faqs WHERE id = ?').bind(id).run();
-    return c.json({ message: 'FAQ deleted' });
+    return c.json({ message: 'Đã xóa FAQ thành công' });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -731,7 +731,7 @@ app.patch('/api/admin/tickets/:id/status', requireAdmin, async (c) => {
     await c.env.DB.prepare(
       'UPDATE support_tickets SET status = ? WHERE id = ?'
     ).bind(status, id).run();
-    return c.json({ message: 'Ticket status updated' });
+    return c.json({ message: 'Đã cập nhật trạng thái phiếu hỗ trợ' });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -781,6 +781,40 @@ app.post('/admin/fix-unicode', requireAdmin, async (c) => {
     }
 
     return c.json({ message: `Fixed ${fixed} products`, fixed });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+app.post('/cron/update-order-statuses', async (c) => {
+  try {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+    const { results: toShip } = await c.env.DB.prepare(
+      `UPDATE orders SET status = 'shipped', updated_at = ? 
+       WHERE status IN ('confirmed', 'preparing') AND created_at <= ? AND created_at > ?
+       RETURNING id, status`
+    ).bind(now.toISOString(), oneHourAgo.toISOString(), twoHoursAgo.toISOString()).all();
+
+    const { results: toDeliver } = await c.env.DB.prepare(
+      `UPDATE orders SET status = 'delivered', updated_at = ? 
+       WHERE status = 'shipped' AND created_at <= ?
+       RETURNING id, status`
+    ).bind(now.toISOString(), twoHoursAgo.toISOString()).all();
+
+    await c.env.DB.prepare(
+      `UPDATE orders SET status = 'preparing', updated_at = ? 
+       WHERE status = 'confirmed' AND created_at > ?`
+    ).bind(now.toISOString(), oneHourAgo.toISOString()).run();
+
+    return c.json({ 
+      message: 'Đã cập nhật trạng thái các đơn hàng',
+      shipped: toShip?.length || 0,
+      delivered: toDeliver?.length || 0,
+      timestamp: now.toISOString()
+    });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }

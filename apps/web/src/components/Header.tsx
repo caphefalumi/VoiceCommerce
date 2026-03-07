@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Search, ShoppingCart, LogOut, LogIn } from 'lucide-react';
+import { Search, ShoppingCart, LogOut, LogIn, Package } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useCartStore } from '@/store/cart';
@@ -49,7 +49,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full bg-primary text-black shadow-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 gap-4">
         <Link to="/" className="text-xl font-bold tracking-tight whitespace-nowrap">
-          The Gioi Di Dong
+          Thế giới Di động
         </Link>
 
         <div className="flex-1 max-w-2xl relative">
@@ -100,9 +100,17 @@ export function Header() {
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition"
                     >
-                      🛠️ Admin Dashboard
+                      🛠️ Trang Quản Trị
                     </Link>
                   )}
+                  <Link
+                    to="/orders"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <Package className="w-4 h-4" />
+                    Đơn hàng của tôi
+                  </Link>
                   <button
                     id="logout-button"
                     onClick={handleLogout}
