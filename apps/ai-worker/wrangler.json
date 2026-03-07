@@ -23,13 +23,6 @@
       "database_id": "92130798-781f-4f84-b289-f94cf781dd0f"
     }
   ],
-  "migrations": [
-    {
-      "tag": "v2",
-      "renamed_classes": [],
-      "deleted_classes": ["VoiceCommerceAgent"]
-    }
-  ],
   "observability": {
     "enabled": true
   }
