@@ -5,5 +5,5 @@
 cloudflare_api_token  = "YOUR_CF_API_TOKEN"
 cloudflare_account_id = "YOUR_CF_ACCOUNT_ID"
 github_owner          = "YOUR_GITHUB_USERNAME_OR_ORG"
-github_repo           = "tgdd"
+github_repo           = "YOUR_REPOSITORY_NAME"
 environment           = "production"

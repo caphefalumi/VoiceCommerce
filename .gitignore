@@ -34,3 +34,10 @@ Thumbs.db
 # Project specific
 .sisyphus
 .tanstack
+
+# Infrastructure
+*.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
+

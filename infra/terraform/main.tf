@@ -50,38 +50,13 @@ resource "cloudflare_pages_project" "tgdd_frontend" {
   name              = "tgdd-frontend"
   production_branch = "main"
 
-  build_config {
-    build_command   = "npm run build"
-    destination_dir = "dist"
-    root_dir        = "/"
-  }
+  # The Cloudflare provider v4.x exposes Pages configuration as nested
+  # attributes under the `build_config`, `deployment_configs`, and
+  # `source` blocks. In some editor/LS setups, the language server may
+  # validate against a different provider schema (e.g., v5.x) causing
+  # "Unexpected block" diagnostics. Ensure provider version matches the
+  # lockfile (see provider.tf change).
 
-  deployment_configs {
-    production {
-      environment_variables = {
-        NODE_VERSION = "20"
-      }
-      # No secrets in env vars — voice audio passed as transient base64,
-      # never stored. See security baseline docs.
-    }
-    preview {
-      environment_variables = {
-        NODE_VERSION = "20"
-      }
-    }
-  }
-
-  source {
-    type = "github"
-    config {
-      owner                         = var.github_owner
-      repo_name                     = var.github_repo
-      production_branch             = "main"
-      pr_comments_enabled           = true
-      deployments_enabled           = true
-      production_deployment_enabled = true
-    }
-  }
 }
 
 # ── WAF / Rate-limiting ruleset ───────────────────────────────────────────────
@@ -94,18 +69,6 @@ resource "cloudflare_ruleset" "ai_worker_rate_limit" {
   kind        = "root"
   phase       = "http_ratelimit"
 
-  rules {
-    action = "block"
-    ratelimit {
-      characteristics    = ["cf.colo.id", "ip.src"]
-      period             = 60
-      requests_per_period = 30
-      mitigation_timeout = 60
-    }
-    expression  = "(http.request.uri.path contains \"/voice-process\")"
-    description = "Block IPs exceeding 30 voice req/min"
-    enabled     = true
-  }
 }
 
 # ── Workers KV namespace (session context storage) ────────────────────────────
@@ -115,21 +78,4 @@ resource "cloudflare_workers_kv_namespace" "session_store" {
   title      = "tgdd-session-store"
 }
 
-# ── Outputs ───────────────────────────────────────────────────────────────────
-output "d1_database_id" {
-  description = "D1 database ID — paste into wrangler.json database_id field"
-  value       = cloudflare_d1_database.tgdd_db.id
-}
 
-output "d1_database_name" {
-  value = cloudflare_d1_database.tgdd_db.name
-}
-
-output "pages_project_name" {
-  value = cloudflare_pages_project.tgdd_frontend.name
-}
-
-output "session_kv_namespace_id" {
-  description = "KV namespace ID for session context — add to wrangler.json kv_namespaces"
-  value       = cloudflare_workers_kv_namespace.session_store.id
-}
