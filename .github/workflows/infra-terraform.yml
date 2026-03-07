@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   validate:
-    name: Terraform — fmt + validate
+    name: Terraform - fmt + validate
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,7 +28,7 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: terraform init
-        run: terraform init -backend=false
+        run: terraform init -upgrade -backend=false
 
       - name: terraform validate
         run: terraform validate
