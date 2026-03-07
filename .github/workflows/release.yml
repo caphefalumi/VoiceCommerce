@@ -94,6 +94,7 @@ jobs:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           workingDirectory: apps/web
+          packageManager: bun
           command: pages deploy dist --project-name=tgdd-frontend ${{ startsWith(github.ref, 'refs/tags/v') && '--branch=main' || '--branch=staging' }}
 
       - name: Annotate deployment
