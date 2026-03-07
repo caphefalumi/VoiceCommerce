@@ -1,1 +1,0 @@
-This folder contains the built output assets for the worker "api-worker" generated at 2026-03-04T09:30:18.623Z.

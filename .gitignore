@@ -34,7 +34,8 @@ Thumbs.db
 # Project specific
 .sisyphus
 .tanstack
-
+apps/api-worker/tmp
+apps/api-worker/.wrangler
 # Infrastructure
 *.tfvars
 *.tfstate
