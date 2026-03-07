@@ -3,6 +3,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2024-03-01",
   "compatibility_flags": ["nodejs_compat"],
+  "migrations_dir": "migrations",
   "d1_databases": [
     {
       "binding": "DB",

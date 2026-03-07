@@ -18,8 +18,8 @@ export const Route = createFileRoute('/product/$id' as any)({
     if (!res.ok) {
       throw new Error('Failed to fetch product');
     }
-    const product = (await res.json()) as Product;
-    return { product };
+    const data = (await res.json()) as { product: Product };
+    return { product: data.product };
   },
   component: ProductDetailComponent,
   notFoundComponent: () => (

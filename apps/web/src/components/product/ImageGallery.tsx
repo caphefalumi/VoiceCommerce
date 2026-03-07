@@ -8,6 +8,8 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect fill="%23f3f4f6" width="600" height="600"/><text fill="%239ca3af" font-family="system-ui" font-size="24" x="50%" y="50%" text-anchor="middle" dy=".3em">No Image</text></svg>');
+
 interface ImageGalleryProps {
   images: string[];
   productName: string;
@@ -17,7 +19,7 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Fallback if no images
-  const safeImages = images.length > 0 ? images : ['https://placehold.co/600x600?text=No+Image'];
+  const safeImages = images?.length ? images : [PLACEHOLDER_IMAGE];
 
   return (
     <div className="flex flex-col gap-4">

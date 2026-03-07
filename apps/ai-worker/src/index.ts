@@ -1,8 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
-import { AIChatAgent } from '@cloudflare/ai-chat';
 import { createWorkersAI } from 'workers-ai-provider';
 import { generateText, tool } from 'ai';
-import { z } from 'zod';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
@@ -50,6 +48,15 @@ function normalizeProductNames(text: string): string {
     'giảnh hẹn': 'giỏ hàng', 'giánh hẹn': 'giỏ hàng', 'giành hẹn': 'giỏ hàng',
     'dành hẹn': 'giỏ hàng', 'giản hẹn': 'giỏ hàng', 'dỏ hàng': 'giỏ hàng',
     'giỏ hang': 'giỏ hàng', 'gio hang': 'giỏ hàng', 'gỏ hàng': 'giỏ hàng',
+    // Selection/ordinal phrases - normalize to "sản phẩm thứ X" pattern
+    'cái đầu tiên': 'sản phẩm thứ 1', 'cái thứ nhất': 'sản phẩm thứ 1', 'đầu tiên': 'sản phẩm thứ 1',
+    'cái thứ hai': 'sản phẩm thứ 2', 'cái thứ 2': 'sản phẩm thứ 2', 'thứ hai': 'sản phẩm thứ 2',
+    'cái thứ ba': 'sản phẩm thứ 3', 'cái thứ 3': 'sản phẩm thứ 3', 'thứ ba': 'sản phẩm thứ 3',
+    'cái thứ tư': 'sản phẩm thứ 4', 'cái thứ 4': 'sản phẩm thứ 4', 'thứ tư': 'sản phẩm thứ 4',
+    'cái thứ năm': 'sản phẩm thứ 5', 'cái thứ 5': 'sản phẩm thứ 5', 'thứ năm': 'sản phẩm thứ 5',
+    'cái cuối cùng': 'sản phẩm cuối cùng', 'cuối cùng': 'sản phẩm cuối cùng',
+    // Fix STT misrecognitions
+    'đầu điển thoại': 'đầu tiên',
   };
 
   // Sort by length descending so longer patterns (e.g. 'sam sung') match before
@@ -158,6 +165,7 @@ app.post('/voice-process', async (c) => {
     const { text: inputText, audio_base64, session_id, context } = await c.req.json();
     const userId: string | null = context?.user_id || null;
     const lastProducts: Array<{id: string; name: string; price: number; index: number}> = context?.last_products || [];
+    const conversationHistory: Array<{role: 'user' | 'assistant'; content: string}> = context?.conversation_history || [];
     
     const env = c.env;
     const workersai = createWorkersAI({ binding: env.AI as any });
@@ -205,15 +213,20 @@ app.post('/voice-process', async (c) => {
       productContext = `
 ## Sản phẩm đã hiển thị trước đó:
 ${lastProducts.map(p => `${p.index}. ${p.name} - ${p.price?.toLocaleString('vi-VN') || 'N/A'} VND (ID: ${p.id})`).join('\n')}
-
+ 
 QUAN TRỌNG:
-- Khi người dùng nói "thêm sản phẩm thứ X" hoặc "sản phẩm thứ X", LUÔN LUÔN sử dụng productId tương ứng (ID: ${lastProducts.map(p => p.id).join(' hoặc ')}).
+- Khi người dùng nói "thêm sản phẩm thứ X", "sản phẩm thứ X", "cái thứ X", "cái đầu tiên" (X=1), "cái thứ hai" (X=2), "cái cuối cùng", LUÔN LUÔN sử dụng productId tương ứng từ danh sách trên (ID: ${lastProducts.map(p => p.id).join(' hoặc ')}).
+- "cái đầu tiên" = sản phẩm thứ 1 (index 1)
+- "cái thứ hai" = sản phẩm thứ 2 (index 2)  
+- "cái thứ ba" = sản phẩm thứ 3 (index 3)
+- "cái cuối cùng" = sản phẩm cuối cùng trong danh sách
 - KHÔNG BAO GIỜ bỏ qua hoặc tự tạo productId - luôn sử dụng ID thực từ danh sách trên.
-- Nếu người dùng nói tên sản phẩm (ví dụ: "iPhone 17"), hãy dùng ID của sản phẩm đó từ danh sách.`;
+- Nếu người dùng hỏi về thông số kỹ thuật, cấu hình, tính năng của sản phẩm (ví dụ: "cấu hình iPhone 17 là gì?", "RAM bao nhiêu?", "pin bao nhiêu mAh?"), hãy gọi getProductDetails với productName là tên sản phẩm để lấy thông tin specs.
+- Nếu người dùng chỉ nói "sản phẩm thứ X" hoặc tên sản phẩm mà KHÔNG có động từ hành động (như "thêm", "mua", "xóa"), hãy gọi getProductDetails với productId tương ứng để hiển thị thông tin, rồi hỏi người dùng muốn làm gì tiếp theo.`;
     }
     
     const systemPrompt = `You are TGDD AI — the intelligent voice assistant for Thế Giới Di Động (TGDD), Vietnam's largest electronics retailer.
-You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a tool for commerce actions— never fabricate data.${userId ? `\n\nThe current logged-in User ID is: ${userId}. Always include this userId when calling tools that require it, such as adding to cart or checking out.` : ''}${productContext}`;
+You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a tool for commerce actions— never fabricate data.${userId ? `\n\nThe current logged-in User ID is: ${userId}. Always include this userId when calling tools that require it, such as adding to cart or checking out.` : ''}${conversationHistory.length > 0 ? `\n\n## Cuộc trò chuyện gần đây:\n${conversationHistory.map(h => `${h.role === 'user' ? 'User' : 'AI'}: ${h.content}`).join('\n')}` : ''}${productContext}`;
     
     const messages = [{ role: 'user', content: userText }];
     
@@ -277,7 +290,7 @@ You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a to
     
     // Detect action for frontend (cart, search, checkout)
     let action: any = null;
-    let searchResults: Array<{id: string; name: string; price: number; brand: string; category: string}> = [];
+    let searchResults: Array<{id: string; name: string; price: number; brand: string; category: string; index?: number}> = [];
     if (result.toolResults?.length) {
       for (const tr of result.toolResults as any[]) {
         try {
@@ -318,6 +331,21 @@ You communicate mainly in Vietnamese. Be brief (1-3 sentences). Always call a to
           }
           else if (tr.toolName === 'addToCart' && parsed?.success) action = { type: 'add_to_cart', payload: parsed };
           else if (tr.toolName === 'removeFromCart' && parsed?.success) action = { type: 'remove_from_cart', payload: parsed };
+          else if (tr.toolName === 'viewCart' && parsed?.success) action = { type: 'view_cart', payload: parsed };
+          else if (tr.toolName === 'cancelOrder' && parsed?.success) action = { type: 'cancel_order', payload: parsed };
+          else if (tr.toolName === 'compareProducts' && parsed?.products?.length) action = { type: 'compare', payload: parsed };
+          else if (tr.toolName === 'getProductDetails' && parsed?.product) {
+            action = { type: 'product_details', payload: parsed };
+            const p = parsed.product;
+            searchResults = [{
+              id: p.id,
+              name: p.name,
+              price: p.price,
+              brand: p.brand || '',
+              category: p.category || '',
+              index: 1,
+            }];
+          }
         } catch {}
       }
     }

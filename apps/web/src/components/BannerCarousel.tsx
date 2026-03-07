@@ -7,11 +7,13 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
+const BANNER_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300"><rect fill="%23dbeafe" width="800" height="300"/><text fill="%239ca3af" font-family="system-ui" font-size="24" x="50%" y="50%" text-anchor="middle" dy=".3em">Banner</text></svg>');
+
 const images = [
-  'https://placehold.co/800x300?text=Banner+1',
-  'https://placehold.co/800x300?text=Banner+2',
-  'https://placehold.co/800x300?text=Banner+3',
-  'https://placehold.co/800x300?text=Banner+4',
+  BANNER_PLACEHOLDER,
+  BANNER_PLACEHOLDER,
+  BANNER_PLACEHOLDER,
+  BANNER_PLACEHOLDER,
 ];
 
 export function BannerCarousel() {

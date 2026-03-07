@@ -31,20 +31,42 @@ async function resolveProduct(productId: string | undefined, productName: string
   const searchTerm = productName || productId || '';
   if (!searchTerm) return null;
   
-  const embedding = await generateEmbedding(`sản phẩm: ${searchTerm}`, env);
+  const embedding = await generateEmbedding(searchTerm, env);
   if (!embedding.length || !env.VECTORIZE) return null;
   
   const result = await env.VECTORIZE.query(embedding, { topK: 10, returnMetadata: 'all' });
   const matches = result?.matches || [];
   
+  if (matches.length === 0) return null;
+  
   let match = null;
+  
+  // Priority 1: Exact ID match
   if (productId && productId !== 'null' && productId.trim() !== '') {
     match = matches.find((m: any) => m.id === productId);
   }
+  
+  // Priority 2: Partial name match (case-insensitive)
   if (!match && productName) {
-    match = matches.find((m: any) => m.metadata?.name?.toLowerCase().includes(productName.toLowerCase()));
+    const searchLower = productName.toLowerCase();
+    match = matches.find((m: any) => 
+      m.metadata?.name?.toLowerCase().includes(searchLower) ||
+      searchLower.includes(m.metadata?.name?.toLowerCase())
+    );
   }
+  
+  // Priority 3: Best semantic match (any of top 3 results with score > 0.7)
   if (!match) {
+    for (const m of matches.slice(0, 3)) {
+      if ((m.score || 0) > 0.7 && m.metadata?.name) {
+        match = m;
+        break;
+      }
+    }
+  }
+  
+  // Priority 4: Just take the top result if scores are lower but we have matches
+  if (!match && matches[0]?.metadata?.name) {
     match = matches[0];
   }
   
@@ -178,31 +200,154 @@ export function createCommerceMcpServer(env: Env) {
     }
   );
 
-  // 3. compareProducts
+  // 3. getProductDetails
+  server.registerTool(
+    'getProductDetails',
+    {
+      description: 'Get detailed information about a specific product by ID or name, including specs. Use this when the user asks about product configuration, specs, or details.',
+      inputSchema: z.object({
+        productId: z.string().optional().describe('Product ID from the previously shown list'),
+        productName: z.string().optional().describe('Product name or reference such as "sản phẩm thứ 2" or "iPhone Air"'),
+      })
+    },
+    async ({ productId, productName }) => {
+      log('info', 'tool.getProductDetails', { productId, productName });
+      try {
+        const product = await resolveProduct(productId, productName, env);
+
+        if (!product) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm.' }) }] };
+        }
+
+        // Fetch specs from DB if available
+        let specs: any[] = [];
+        if (product.id && env.DB) {
+          try {
+            const { results } = await env.DB.prepare(
+              'SELECT specs FROM products WHERE id = ?'
+            ).bind(product.id).all();
+            if (results.length > 0 && (results[0] as any).specs) {
+              let specsStr = (results[0] as any).specs;
+              // Handle double-encoded JSON: Unicode escape sequences like \u00e0 stored literally
+              try {
+                specs = JSON.parse(specsStr);
+              } catch {
+                try {
+                  const decoded = specsStr.replace(/\\u([0-9a-fA-F]{4})/g, (match: string, code: string) => 
+                    String.fromCharCode(parseInt(code, 16))
+                  );
+                  specs = JSON.parse(decoded);
+                } catch {
+                  specs = [];
+                }
+              }
+            }
+          } catch (e) {
+            log('warn', 'getProductDetails.specs', { error: String(e) });
+          }
+        }
+
+        const responsePayload: any = {
+          success: true,
+          product: {
+            id: product.id,
+            name: product.name,
+            brand: product.brand,
+            price: product.price,
+            category: product.category,
+            priceFormatted: product.price.toLocaleString('vi-VN') + ' VND',
+          },
+          action: 'product_details',
+        };
+
+        if (specs.length > 0) {
+          responsePayload.product.specs = specs;
+          responsePayload.message = `${product.name} - ${product.price.toLocaleString('vi-VN')} VND. Thông số kỹ thuật: ${specs.slice(0, 3).map((s: any) => s.name + ': ' + s.value).join(', ')}... Bạn muốn thêm vào giỏ hàng hay cần thêm thông tin gì không?`;
+        } else {
+          responsePayload.message = `${product.name} - ${product.price.toLocaleString('vi-VN')} VND. Bạn muốn thêm vào giỏ hàng hay cần thêm thông tin gì không?`;
+        }
+
+        return {
+          content: [{ type: 'text', text: JSON.stringify(responsePayload) }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Lỗi lấy thông tin sản phẩm.' }) }] };
+      }
+    }
+  );
+
+  // 4. viewCart
+  server.registerTool(
+    'viewCart',
+    {
+      description: 'View the current contents of the user\'s shopping cart.',
+      inputSchema: z.object({
+        userId: z.string().describe('User ID to retrieve cart for'),
+      })
+    },
+    async ({ userId }) => {
+      log('info', 'tool.viewCart', { userId });
+      try {
+        if (!env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể truy cập giỏ hàng lúc này.' }) }] };
+        }
+
+        const { results } = await env.DB.prepare(
+          `SELECT ci.product_id, ci.quantity, p.name, p.price, p.brand
+           FROM cart_items ci JOIN products p ON ci.product_id = p.id
+           WHERE ci.user_id = ?`
+        ).bind(userId).all();
+
+        const items = (results as any[]).map(row => ({
+          productId: row.product_id,
+          name: row.name,
+          brand: row.brand || '',
+          price: Number(row.price || 0),
+          quantity: Number(row.quantity || 1),
+          subtotal: Number(row.price || 0) * Number(row.quantity || 1),
+        }));
+
+        const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+
+        if (items.length === 0) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ success: true, items: [], total: 0, action: 'view_cart', message: 'Giỏ hàng của bạn đang trống.' }) }]
+          };
+        }
+
+        const summary = items.map((item, i) => `${i + 1}. ${item.name} x${item.quantity} — ${item.subtotal.toLocaleString('vi-VN')} VND`).join(', ');
+        const message = `Giỏ hàng có ${items.length} sản phẩm: ${summary}. Tổng cộng: ${total.toLocaleString('vi-VN')} VND.`;
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ success: true, items, total, itemCount: items.length, action: 'view_cart', message })
+          }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể xem giỏ hàng. Vui lòng thử lại.' }) }] };
+      }
+    }
+  );
+
+  // 5. compareProducts
   server.registerTool(
     'compareProducts',
     {
-      description: 'Compare 2 or more products side-by-side.',
-      inputSchema: z.object({ productNames: z.array(z.string()).min(2).describe('List of product names to compare') })
+      description: 'Compare 2 or more products side-by-side. Accepts product names, IDs, or a mix of both.',
+      inputSchema: z.object({
+        products: z.array(z.object({
+          productId: z.string().optional().describe('Product ID from the previously shown list'),
+          productName: z.string().optional().describe('Product name'),
+        })).min(2).describe('List of products to compare (by ID or name)'),
+      })
     },
-    async ({ productNames }) => {
+    async ({ products }) => {
       try {
         const comparisons = [];
-        for (const name of productNames.slice(0, 3)) {
-          const embedding = await generateEmbedding(`sản phẩm: ${name}`, env);
-          if (embedding.length && env.VECTORIZE) {
-            const result = await env.VECTORIZE.query(embedding, { topK: 1, returnMetadata: 'all' });
-            const match = result?.matches?.[0];
-            if (match?.metadata?.name) {
-              comparisons.push({
-                id: match.id,
-                name: match.metadata.name,
-                brand: match.metadata.brand || '',
-                price: Number(match.metadata.price || 0),
-                category: match.metadata.category || '',
-              });
-            }
-          }
+        for (const ref of products.slice(0, 3)) {
+          const resolved = await resolveProduct(ref.productId, ref.productName, env);
+          if (resolved) comparisons.push(resolved);
         }
         return {
           content: [{
@@ -210,7 +355,10 @@ export function createCommerceMcpServer(env: Env) {
             text: JSON.stringify({
               products: comparisons,
               count: comparisons.length,
-              message: comparisons.length >= 2 ? `So sánh ${comparisons.map(p => p.name).join(' và ')}` : 'Không đủ sản phẩm để so sánh.'
+              action: 'compare',
+              message: comparisons.length >= 2
+                ? `So sánh ${comparisons.map(p => p.name).join(' và ')}`
+                : 'Không đủ sản phẩm để so sánh.',
             })
           }]
         };
@@ -418,7 +566,67 @@ export function createCommerceMcpServer(env: Env) {
     }
   );
 
-  // 8. getFaqAnswer
+  // 8. cancelOrder
+  server.registerTool(
+    'cancelOrder',
+    {
+      description: 'Cancel a pending or confirmed order for the user.',
+      inputSchema: z.object({
+        orderId: z.string().describe('The order ID or short code to cancel'),
+        userId: z.string().optional().describe('User ID for ownership verification'),
+      })
+    },
+    async ({ orderId, userId }) => {
+      log('info', 'tool.cancelOrder', { orderId, userId });
+      try {
+        if (!env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể hủy đơn hàng lúc này.' }) }] };
+        }
+
+        const { results } = await env.DB.prepare(
+          'SELECT id, status, user_id FROM orders WHERE id LIKE ?'
+        ).bind(`%${orderId}%`).all();
+
+        if (!results.length) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: `Không tìm thấy đơn hàng mã "${orderId}".` }) }] };
+        }
+
+        const order = results[0] as any;
+
+        if (userId && order.user_id !== userId) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Bạn không có quyền hủy đơn hàng này.' }) }] };
+        }
+
+        const nonCancellableStatuses = ['shipped', 'delivered', 'cancelled'];
+        if (nonCancellableStatuses.includes(order.status)) {
+          const statusMap: Record<string, string> = { shipped: 'đang vận chuyển', delivered: 'đã giao hàng', cancelled: 'đã hủy trước đó' };
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ success: false, message: `Đơn hàng #${order.id.slice(0, 8).toUpperCase()} không thể hủy vì ${statusMap[order.status]}.` }) }]
+          };
+        }
+
+        await env.DB.prepare(
+          'UPDATE orders SET status = ?, updated_at = ? WHERE id = ?'
+        ).bind('cancelled', new Date().toISOString(), order.id).run();
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              orderId: order.id,
+              action: 'cancel_order',
+              message: `Đơn hàng #${order.id.slice(0, 8).toUpperCase()} đã được hủy thành công.`,
+            })
+          }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể hủy đơn hàng. Vui lòng thử lại.' }) }] };
+      }
+    }
+  );
+
+  // 9. getFaqAnswer
   server.registerTool(
     'getFaqAnswer',
     {

@@ -16,6 +16,13 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: {
+      '/api': {
+        target: 'https://api-worker.dangduytoan13l.workers.dev',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
   test: {
     globals: true,

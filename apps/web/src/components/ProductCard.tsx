@@ -5,6 +5,8 @@ import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from '@tanstack/react-router';
 
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect fill="%23f3f4f6" width="400" height="400"/><text fill="%239ca3af" font-family="system-ui" font-size="20" x="50%" y="50%" text-anchor="middle" dy=".3em">No Image</text></svg>');
+
 interface ProductCardProps {
   product: Product;
   className?: string;
@@ -25,7 +27,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
           )}
           <div className="aspect-square overflow-hidden bg-gray-100">
             <img
-              src={(product.images ?? [])[0] || 'https://placehold.co/400x400?text=No+Image'}
+              src={(product.images ?? [])[0] || PLACEHOLDER_IMAGE}
               alt={product.name}
               className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
             />
