@@ -1,8 +1,67 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createAuth, type Env as AuthEnv } from './lib/auth';
-import { requireAuth } from './middleware/auth';
+import { requireAuth, requireAdmin } from './middleware/auth';
 import type { AuthUser } from './middleware/auth';
+
+// Helper to parse specs from DB format to frontend format
+function parseSpecs(specsJson: string): Record<string, string> {
+  try {
+    const specs = JSON.parse(specsJson);
+    if (Array.isArray(specs)) {
+      const result: Record<string, string> = {};
+      for (const item of specs) {
+        if (item.label && item.value) {
+          result[item.label] = item.value;
+        }
+      }
+      return result;
+    }
+    return specs;
+  } catch {
+    return {};
+  }
+}
+
+// Helper to decode Unicode escape sequences in strings
+function decodeUnicodeStr(str: string): string {
+  if (!str) return str;
+  try {
+    if (str.includes('\\u')) {
+      return str.replace(/\\u([0-9a-fA-F]{4})/g, (_: string, code: string) => 
+        String.fromCharCode(parseInt(code, 16))
+      );
+    }
+    return str;
+  } catch {
+    return str;
+  }
+}
+
+// Helper to parse reviews from DB format to frontend format
+function parseReviews(reviewsJson: string): Array<{
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}> {
+  try {
+    const reviews = JSON.parse(reviewsJson);
+    if (Array.isArray(reviews)) {
+      return reviews.map((r: any, index: number) => ({
+        id: `review-${index}`,
+        userName: r.userName || `User ${index + 1}`,
+        rating: r.rating || r.star || 0,
+        comment: decodeUnicodeStr(r.content || r.comment || r.review || ''),
+        date: r.date || r.createdAt || new Date().toISOString(),
+      }));
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
 
 type Bindings = {
   DB: D1Database;
@@ -116,8 +175,8 @@ app.get('/api/products', async (c) => {
         stock: row.stock || 0,
         description: row.description,
         images: row.images ? JSON.parse(row.images) : [],
-        specs: row.specs ? JSON.parse(row.specs) : [],
-        reviews: row.reviews ? JSON.parse(row.reviews) : [],
+        specs: row.specs ? parseSpecs(row.specs) : {},
+        reviews: row.reviews ? parseReviews(row.reviews) : [],
         url: row.url,
         createdAt: row.created_at,
       };
@@ -163,8 +222,8 @@ app.get('/api/products/:id', async (c) => {
       stock: row.stock || 0,
       description: row.description,
       images: row.images ? JSON.parse(row.images) : [],
-      specs: row.specs ? JSON.parse(row.specs) : [],
-      reviews: row.reviews ? JSON.parse(row.reviews) : [],
+      specs: row.specs ? parseSpecs(row.specs) : {},
+      reviews: row.reviews ? parseReviews(row.reviews) : [],
       url: row.url,
       createdAt: row.created_at,
     };
@@ -241,10 +300,17 @@ app.get('/api/cart', requireAuth, async (c) => {
       `SELECT ci.id, ci.user_id, ci.product_id, ci.quantity, ci.created_at,
               p.name, p.price, p.images, p.brand
        FROM cart_items ci
-       JOIN products p ON ci.product_id = p.id
+       LEFT JOIN products p ON ci.product_id = p.id
        WHERE ci.user_id = ?`
     ).bind(user.id).all();
-    return c.json({ cart: results });
+    
+    const cart = (results || []).map((row: any) => ({
+      ...row,
+      images: row.images ? (Array.isArray(row.images) ? row.images : JSON.parse(row.images)) : [],
+      product_exists: row.name !== null,
+    })).filter((item: any) => item.product_exists);
+    
+    return c.json({ cart });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
@@ -256,6 +322,15 @@ app.post('/api/cart', requireAuth, async (c) => {
   try {
     const { product_id, quantity = 1 } = await c.req.json();
     if (!product_id) return c.json({ error: 'product_id is required' }, 400);
+
+    // Validate product exists in products table
+    const { results: productCheck } = await c.env.DB.prepare(
+      'SELECT id FROM products WHERE id = ?'
+    ).bind(product_id).all();
+    
+    if (productCheck.length === 0) {
+      return c.json({ error: 'Product not found. It may have been removed from the catalog.', product_id }, 404);
+    }
 
     const { results: existing } = await c.env.DB.prepare(
       'SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?'
@@ -300,7 +375,7 @@ app.delete('/api/cart/:productId', requireAuth, async (c) => {
 // POST /api/orders - Create a new order (checkout flow, FR9/FR10)
 app.post('/api/orders', async (c) => {
   try {
-    const { user_id, items, total_price, shipping_address } = await c.req.json();
+    const { user_id, user_email, user_name, items, total_price, shipping_address } = await c.req.json();
 
     if (!user_id || !items || !total_price) {
       return c.json({ error: 'user_id, items, and total_price are required' }, 400);
@@ -322,16 +397,60 @@ app.post('/api/orders', async (c) => {
 
     await c.env.DB.prepare('DELETE FROM cart_items WHERE user_id = ?').bind(user_id).run();
 
-    const summary = (Array.isArray(items) ? items : JSON.parse(itemsJson))
+    const itemsList = (Array.isArray(items) ? items : JSON.parse(itemsJson));
+    const summary = itemsList
       .map((item: any, i: number) =>
         `${i + 1}. ${item.name} x${item.quantity} — ${(item.price * item.quantity).toLocaleString('vi-VN')} VND`
       ).join('\n');
+
+    const orderSummary = `Đơn hàng #${id.slice(0, 8).toUpperCase()} đã được xác nhận!\n${summary}\nTổng cộng: ${Number(total_price).toLocaleString('vi-VN')} VND. Cảm ơn bạn đã mua hàng tại TGDD!`;
+
+    // Send confirmation email via MailerSend
+    const mailerSendKey = c.env.MAILERSEND_API_KEY;
+    if (mailerSendKey && user_email) {
+      try {
+        const emailRes = await fetch('https://api.mailersend.com/v1/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${mailerSendKey}`,
+          },
+          body: JSON.stringify({
+            from: { email: 'noreply@tgdd.shop', name: 'TGDD - Thế Giới Di Động' },
+            to: [{ email: user_email, name: user_name || 'Khách hàng' }],
+            subject: `Xác nhận đơn hàng #${id.slice(0, 8).toUpperCase()} - TGDD`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #facc15;">Xác nhận đơn hàng</h2>
+                <p>Xin chào <strong>${user_name || 'Quý khách'}</strong>,</p>
+                <p>Cảm ơn bạn đã đặt hàng tại <strong>Thế Giới Di Động</strong>!</p>
+                <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                  <p><strong>Mã đơn hàng:</strong> #${id.slice(0, 8).toUpperCase()}</p>
+                  <p><strong>Ngày đặt:</strong> ${new Date(now).toLocaleString('vi-VN')}</p>
+                  <p><strong>Tổng tiền:</strong> ${Number(total_price).toLocaleString('vi-VN')} VND</p>
+                </div>
+                <h3>Sản phẩm đã đặt:</h3>
+                <ul>
+                  ${itemsList.map((item: any) => `<li>${item.name} x${item.quantity} - ${(item.price * item.quantity).toLocaleString('vi-VN')} VND</li>`).join('')}
+                </ul>
+                <p>Đơn hàng sẽ được giao đến địa chỉ: ${shipping_address?.address || 'N/A'}, ${shipping_address?.city || ''}</p>
+                <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">Trân trọng,<br>Thế Giới Di Động</p>
+              </div>
+            `,
+            text: `Xin chào ${user_name || 'Quý khách'},\n\nCảm ơn bạn đã đặt hàng tại Thế Giới Di Động!\n\nMã đơn hàng: #${id.slice(0, 8).toUpperCase()}\nTổng tiền: ${Number(total_price).toLocaleString('vi-VN')} VND\n\nSản phẩm:\n${summary}\n\nTrân trọng,\nThế Giới Di Động`,
+          }),
+        });
+        console.log('MailerSend response:', emailRes.status);
+      } catch (emailErr) {
+        console.error('Failed to send email:', emailErr);
+      }
+    }
 
     return c.json({
       id,
       status: 'confirmed',
       total_price,
-      confirmation_text: `Đơn hàng #${id.slice(0, 8).toUpperCase()} đã được xác nhận!\n${summary}\nTổng cộng: ${Number(total_price).toLocaleString('vi-VN')} VND. Cảm ơn bạn đã mua hàng tại TGDD!`,
+      confirmation_text: orderSummary,
       message: 'Order created successfully'
     }, 201);
   } catch (error: any) {
@@ -489,7 +608,7 @@ app.get('/api/tickets/:userId', async (c) => {
 // ── ADMIN: FAQ Knowledge Base (FR14) ──────────────────────────────────────────
 
 // GET /api/admin/faqs - List all FAQs
-app.get('/api/admin/faqs', async (c) => {
+app.get('/api/admin/faqs', requireAdmin, async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
       'SELECT id, question, answer, category, created_at, updated_at FROM faqs ORDER BY created_at DESC'
@@ -501,7 +620,7 @@ app.get('/api/admin/faqs', async (c) => {
 });
 
 // POST /api/admin/faqs - Create FAQ entry
-app.post('/api/admin/faqs', async (c) => {
+app.post('/api/admin/faqs', requireAdmin, async (c) => {
   try {
     const { question, answer, category } = await c.req.json();
     if (!question || !answer) {
@@ -519,7 +638,7 @@ app.post('/api/admin/faqs', async (c) => {
 });
 
 // PUT /api/admin/faqs/:id - Update FAQ entry
-app.put('/api/admin/faqs/:id', async (c) => {
+app.put('/api/admin/faqs/:id', requireAdmin, async (c) => {
   const id = c.req.param('id');
   try {
     const { question, answer, category } = await c.req.json();
@@ -534,7 +653,7 @@ app.put('/api/admin/faqs/:id', async (c) => {
 });
 
 // DELETE /api/admin/faqs/:id - Delete FAQ entry
-app.delete('/api/admin/faqs/:id', async (c) => {
+app.delete('/api/admin/faqs/:id', requireAdmin, async (c) => {
   const id = c.req.param('id');
   try {
     await c.env.DB.prepare('DELETE FROM faqs WHERE id = ?').bind(id).run();
@@ -547,7 +666,7 @@ app.delete('/api/admin/faqs/:id', async (c) => {
 // ── ADMIN: Voice Interaction Logs (FR15) ────────────────────────────────────────
 
 // GET /api/admin/voice-logs - List all voice logs
-app.get('/api/admin/voice-logs', async (c) => {
+app.get('/api/admin/voice-logs', requireAdmin, async (c) => {
   try {
     const limit = parseInt(c.req.query('limit') || '50');
     const { results } = await c.env.DB.prepare(
@@ -577,7 +696,7 @@ app.post('/api/admin/voice-logs', async (c) => {
 // ── ADMIN: Support Tickets Admin View (FR15) ─────────────────────────────────────
 
 // GET /api/admin/tickets - List ALL tickets (admin)
-app.get('/api/admin/tickets', async (c) => {
+app.get('/api/admin/tickets', requireAdmin, async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
       'SELECT id, user_id, category, message, status, created_at FROM support_tickets ORDER BY created_at DESC LIMIT 100'
@@ -601,7 +720,7 @@ app.get('/api/admin/tickets', async (c) => {
 });
 
 // PATCH /api/admin/tickets/:id/status - Update ticket status
-app.patch('/api/admin/tickets/:id/status', async (c) => {
+app.patch('/api/admin/tickets/:id/status', requireAdmin, async (c) => {
   const id = c.req.param('id');
   try {
     const { status } = await c.req.json();
@@ -613,6 +732,55 @@ app.patch('/api/admin/tickets/:id/status', async (c) => {
       'UPDATE support_tickets SET status = ? WHERE id = ?'
     ).bind(status, id).run();
     return c.json({ message: 'Ticket status updated' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ADMIN: Fix double-encoded Unicode in specs/reviews
+app.post('/admin/fix-unicode', requireAdmin, async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(`
+      SELECT id, name, specs, reviews FROM products WHERE specs IS NOT NULL
+    `).all();
+
+    let fixed = 0;
+    for (const row of results as any[]) {
+      const id = row.id;
+      let specsFixed = row.specs;
+      let reviewsFixed = row.reviews;
+
+      // Check for Unicode escape sequences (backslash + u)
+      if (specsFixed && specsFixed.includes('\\u')) {
+        try {
+          // Decode \uXXXX sequences to actual Unicode characters
+          specsFixed = specsFixed.replace(/\\u([0-9a-fA-F]{4})/g, (_: string, code: string) => 
+            String.fromCharCode(parseInt(code, 16))
+          );
+        } catch (e) {
+          console.error('Failed to fix specs for', id, e);
+        }
+      }
+
+      if (reviewsFixed && reviewsFixed.includes('\\u')) {
+        try {
+          reviewsFixed = reviewsFixed.replace(/\\u([0-9a-fA-F]{4})/g, (_: string, code: string) => 
+            String.fromCharCode(parseInt(code, 16))
+          );
+        } catch (e) {
+          console.error('Failed to fix reviews for', id, e);
+        }
+      }
+
+      if (specsFixed !== row.specs || reviewsFixed !== row.reviews) {
+        await c.env.DB.prepare(`
+          UPDATE products SET specs = ?, reviews = ? WHERE id = ?
+        `).bind(specsFixed, reviewsFixed, id).run();
+        fixed++;
+      }
+    }
+
+    return c.json({ message: `Fixed ${fixed} products`, fixed });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }

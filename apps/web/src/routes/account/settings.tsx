@@ -6,8 +6,18 @@ import { User, Loader2 } from 'lucide-react';
 
 export const Route = createFileRoute('/account/settings')({
   beforeLoad: async () => {
-    const session = await authClient.getSession();
-    if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/account/settings' } });
+    let currentUser = useAuthStore.getState().user;
+    if (!currentUser) {
+      const session = await authClient.getSession();
+      if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/account/settings' } });
+      const u = session.data.user;
+      useAuthStore.getState()._setUser({
+        id: u.id,
+        email: u.email,
+        name: u.name ?? '',
+        role: (u as { role?: string }).role ?? 'user',
+      });
+    }
   },
   component: AccountSettingsPage,
 });

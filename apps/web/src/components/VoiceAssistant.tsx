@@ -120,12 +120,26 @@ export function VoiceAssistant() {
 
   // Session storage key for product context
   const LAST_PRODUCTS_KEY = 'voice_last_products';
+  const CONVERSATION_HISTORY_KEY = 'voice_conversation_history';
+  const MAX_HISTORY_LENGTH = 6;
   const [lastProducts, setLastProducts] = useState<
     Array<{ id: string; name: string; price: number; index: number }>
   >(() => {
     if (typeof window === 'undefined') return [];
     try {
       const stored = sessionStorage.getItem(LAST_PRODUCTS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [conversationHistory, setConversationHistory] = useState<
+    Array<{ role: 'user' | 'assistant'; content: string }>
+  >(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = sessionStorage.getItem(CONVERSATION_HISTORY_KEY);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -157,6 +171,7 @@ export function VoiceAssistant() {
             context: {
               user_id: user?.id,
               last_products: lastProducts,
+              conversation_history: conversationHistory.slice(-MAX_HISTORY_LENGTH),
             },
           }),
         });
@@ -241,6 +256,19 @@ export function VoiceAssistant() {
 
         if (data.response_text && !data.audio_base64) {
           showFeedback(`💬 ${data.response_text}`, 10000);
+        }
+
+        if (data.transcribed_text || data.response_text) {
+          const newHistory = [...conversationHistory];
+          if (data.transcribed_text) {
+            newHistory.push({ role: 'user', content: data.transcribed_text });
+          }
+          if (data.response_text) {
+            newHistory.push({ role: 'assistant', content: data.response_text });
+          }
+          const trimmedHistory = newHistory.slice(-MAX_HISTORY_LENGTH);
+          setConversationHistory(trimmedHistory);
+          sessionStorage.setItem(CONVERSATION_HISTORY_KEY, JSON.stringify(trimmedHistory));
         }
 
         setState('idle');

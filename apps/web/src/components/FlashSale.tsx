@@ -11,6 +11,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/types/product';
 
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect fill="%23f3f4f6" width="400" height="400"/><text fill="%239ca3af" font-family="system-ui" font-size="20" x="50%" y="50%" text-anchor="middle" dy=".3em">No Image</text></svg>');
+
 function CountdownTimer() {
   const [timeLeft, setTimeLeft] = React.useState(0);
 
@@ -107,7 +109,7 @@ export function FlashSale({ products }: FlashSaleProps) {
                       </div>
                       <div className="aspect-square p-4 bg-white flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                         <img
-                          src={product.images[0] || 'https://placehold.co/400x400?text=No+Image'}
+                          src={product.images[0] || PLACEHOLDER_IMAGE}
                           alt={product.name}
                           className="max-h-full max-w-full object-contain"
                         />

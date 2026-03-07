@@ -3,11 +3,12 @@ interface TechSpecsProps {
 }
 
 export function TechSpecs({ specs }: TechSpecsProps) {
+  const safeSpecs = specs || {};
   return (
     <div className="overflow-hidden rounded-lg border">
       <table className="w-full text-sm text-left">
         <tbody>
-          {Object.entries(specs).map(([key, value], index) => (
+          {Object.entries(safeSpecs).map(([key, value], index) => (
             <tr
               key={key}
               className={`border-b last:border-0 ${index % 2 === 0 ? 'bg-muted/30' : 'bg-background'}`}

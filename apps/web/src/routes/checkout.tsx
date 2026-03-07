@@ -1,9 +1,12 @@
 import { createFileRoute, useNavigate, Link, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useCartStore } from '@/store/cart';
+import { useAuthStore } from '@/store/auth';
+import { authClient } from '@/lib/auth-client';
+import { API_BASE } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,16 +18,18 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export const Route = createFileRoute('/checkout')({
-  beforeLoad: () => {
-    // If the router context has no session/user, redirect to login
-    // We use localStorage directly since context isn't wired up here
-    const stored = localStorage.getItem('tgdd-auth');
-    if (!stored) throw redirect({ to: '/login', search: { redirect: '/checkout' } });
-    try {
-      const parsed = JSON.parse(stored);
-      if (!parsed?.state?.token) throw redirect({ to: '/login' });
-    } catch {
-      throw redirect({ to: '/login' });
+  beforeLoad: async () => {
+    let currentUser = useAuthStore.getState().user;
+    if (!currentUser) {
+      const session = await authClient.getSession();
+      if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/checkout' } });
+      const u = session.data.user;
+      useAuthStore.getState()._setUser({
+        id: u.id,
+        email: u.email,
+        name: u.name ?? '',
+        role: (u as { role?: string }).role ?? 'user',
+      });
     }
   },
   component: CheckoutPage,
@@ -34,6 +39,7 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const { items, total, clearCart } = useCartStore();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -55,11 +61,57 @@ function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      setShowSuccess(true);
-      console.log('Order placed:', { items, total: total(), customer: formData });
+    if (!validate()) return;
+    
+    setIsLoading(true);
+    try {
+      const session = await authClient.getSession();
+      const currentUser = session?.data?.user;
+      if (!currentUser) {
+        setErrors({ submit: 'Vui lòng đăng nhập lại' });
+        setIsLoading(false);
+        return;
+      }
+
+      const orderItems = items.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        images: item.images,
+      }));
+
+      const res = await fetch(`${API_BASE}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          user_name: formData.name,
+          items: orderItems,
+          total_price: total(),
+          shipping_address: {
+            name: formData.name,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        setShowSuccess(true);
+      } else {
+        const data = await res.json();
+        setErrors({ submit: data.error || 'Đặt hàng thất bại. Vui lòng thử lại.' });
+      }
+    } catch {
+      setErrors({ submit: 'Có lỗi xảy ra. Vui lòng thử lại.' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -203,9 +255,14 @@ function CheckoutPage() {
               <Button
                 className="w-full mt-6 h-12 text-lg font-bold bg-destructive hover:bg-destructive/90 uppercase"
                 onClick={handleSubmit}
+                disabled={isLoading}
               >
-                XÁC NHẬN
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+                {isLoading ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN'}
               </Button>
+              {errors.submit && (
+                <p className="text-sm text-red-500 mt-2 text-center">{errors.submit}</p>
+              )}
             </div>
           </div>
         </div>

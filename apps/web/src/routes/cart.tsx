@@ -1,5 +1,6 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { useCartStore } from '@/store/cart';
+import { useAuthStore } from '@/store/auth';
 import { CartItem } from '@/components/cart/CartItem';
 import { CartSummary } from '@/components/cart/CartSummary';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,16 @@ export const Route = createFileRoute('/cart')({
   beforeLoad: async () => {
     const session = await authClient.getSession();
     if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/cart' } });
+    const currentUser = useAuthStore.getState().user;
+    if (!currentUser) {
+      const u = session.data.user;
+      useAuthStore.getState()._setUser({
+        id: u.id,
+        email: u.email,
+        name: u.name ?? '',
+        role: (u as { role?: string }).role ?? 'user',
+      });
+    }
   },
   component: CartPage,
 });

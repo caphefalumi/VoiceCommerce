@@ -94,7 +94,7 @@ function AdminPage() {
   const loadFaqs = useCallback(async () => {
     setFaqLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/faqs`);
+      const res = await fetch(`${API_BASE}/api/admin/faqs`, { credentials: 'include' });
       const data = await res.json();
       setFaqs(data.faqs || []);
     } catch {
@@ -123,6 +123,7 @@ function AdminPage() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(payload),
     });
 
@@ -140,7 +141,7 @@ function AdminPage() {
 
   const deleteFaq = async (id: string) => {
     if (!confirm('Xóa FAQ này?')) return;
-    await fetch(`${API_BASE}/api/admin/faqs/${id}`, { method: 'DELETE' });
+    await fetch(`${API_BASE}/api/admin/faqs/${id}`, { method: 'DELETE', credentials: 'include' });
     loadFaqs();
   };
 
@@ -149,7 +150,7 @@ function AdminPage() {
   const loadLogs = useCallback(async () => {
     setLogsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/voice-logs?limit=100`);
+      const res = await fetch(`${API_BASE}/api/admin/voice-logs?limit=100`, { credentials: 'include' });
       const data = await res.json();
       setLogs(data.logs || []);
     } finally {
@@ -162,7 +163,7 @@ function AdminPage() {
   const loadTickets = useCallback(async () => {
     setTicketsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/tickets`);
+      const res = await fetch(`${API_BASE}/api/admin/tickets`, { credentials: 'include' });
       const data = await res.json();
       setTickets(data.tickets || []);
     } finally {
@@ -174,6 +175,7 @@ function AdminPage() {
     await fetch(`${API_BASE}/api/admin/tickets/${id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ status }),
     });
     loadTickets();
@@ -572,13 +574,21 @@ function AdminPage() {
                           <select
                             value={ticket.status}
                             onChange={(e) => updateTicketStatus(ticket.id, e.target.value)}
-                            className="text-xs bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-blue-500"
+                            className="text-xs bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-blue-500 mb-2 block w-full"
                           >
                             <option value="open">Mở</option>
                             <option value="in_progress">Đang xử lý</option>
                             <option value="resolved">Đã giải quyết</option>
                             <option value="closed">Đóng</option>
                           </select>
+                          {ticket.status !== 'resolved' && ticket.status !== 'closed' && (
+                            <div className="flex flex-col gap-1 mt-1">
+                              <span className="text-[10px] text-slate-400">Cách giải quyết:</span>
+                              <Button size="sm" onClick={() => updateTicketStatus(ticket.id, 'resolved')} className="text-[10px] h-6 px-2 bg-green-600 hover:bg-green-700">Giải quyết hoàn tiền</Button>
+                              <Button size="sm" onClick={() => updateTicketStatus(ticket.id, 'resolved')} className="text-[10px] h-6 px-2 bg-blue-600 hover:bg-blue-700">Gửi mail hướng dẫn</Button>
+                              <Button size="sm" onClick={() => updateTicketStatus(ticket.id, 'resolved')} className="text-[10px] h-6 px-2 bg-purple-600 hover:bg-purple-700">Đồng ý đổi trả</Button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}

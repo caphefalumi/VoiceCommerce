@@ -84,7 +84,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
       <div className="grid gap-4">
         <div className="grid grid-cols-2 gap-2 text-sm">
-          {Object.entries(product.specs)
+          {Object.entries(product.specs || {})
             .slice(0, 4)
             .map(([key, value]) => (
               <div key={key} className="flex justify-between border-b pb-1">

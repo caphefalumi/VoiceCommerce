@@ -8,32 +8,17 @@ interface ReviewSectionProps {
 }
 
 export function ReviewSection({ rating, reviewCount, reviews }: ReviewSectionProps) {
-  const displayReviews: Review[] =
-    reviews && reviews.length > 0
-      ? reviews
-      : [
-          {
-            id: '1',
-            userName: 'Nguyen Van A',
-            rating: 5,
-            comment: 'Great product, fast delivery!',
-            date: '2023-10-25',
-          },
-          {
-            id: '2',
-            userName: 'Tran Thi B',
-            rating: 4,
-            comment: 'Good quality but a bit expensive.',
-            date: '2023-10-20',
-          },
-          {
-            id: '3',
-            userName: 'Le Van C',
-            rating: 5,
-            comment: 'Perfect for my needs.',
-            date: '2023-10-15',
-          },
-        ];
+  const displayReviews: Review[] = reviews && reviews.length > 0 ? reviews : [];
+
+  if (displayReviews.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Star className="h-12 w-12 text-muted-foreground/30 mb-4" />
+        <p className="text-muted-foreground">Chưa có đánh giá nào cho sản phẩm này.</p>
+        <p className="text-sm text-muted-foreground/70">Hãy là người đầu tiên đánh giá!</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
