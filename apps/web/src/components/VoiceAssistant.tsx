@@ -118,28 +118,27 @@ export function VoiceAssistant() {
     feedbackTimeoutRef.current = setTimeout(() => setFeedback(null), duration);
   }, []);
 
-  // Session storage key for product context
-  const LAST_PRODUCTS_KEY = 'voice_last_products';
+  // Session storage key for conversation history
   const CONVERSATION_HISTORY_KEY = 'voice_conversation_history';
+  const LAST_SEARCH_RESULTS_KEY = 'voice_last_search_results';
   const MAX_HISTORY_LENGTH = 6;
-  const [lastProducts, setLastProducts] = useState<
-    Array<{ id: string; name: string; price: number; index: number }>
-  >(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const stored = sessionStorage.getItem(LAST_PRODUCTS_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-
   const [conversationHistory, setConversationHistory] = useState<
     Array<{ role: 'user' | 'assistant'; content: string }>
   >(() => {
     if (typeof window === 'undefined') return [];
     try {
       const stored = sessionStorage.getItem(CONVERSATION_HISTORY_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [lastSearchResults, setLastSearchResults] = useState<
+    Array<{ id: string; name: string; price: number; index: number }>
+  >(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = sessionStorage.getItem(LAST_SEARCH_RESULTS_KEY);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -170,8 +169,8 @@ export function VoiceAssistant() {
             session_id: sessionId,
             context: {
               user_id: user?.id,
-              last_products: lastProducts,
               conversation_history: conversationHistory.slice(-MAX_HISTORY_LENGTH),
+              last_search_results: lastSearchResults,
             },
           }),
         });
@@ -185,8 +184,9 @@ export function VoiceAssistant() {
         }
 
         // Handle specific actions returned by the backend (Cart/Navigation)
-        if (data.action?.type === 'checkout') {
-          navigate({ to: '/checkout' });
+        if (data.action?.type === 'checkout_start' || data.action?.type === 'checkout') {
+          showFeedback('🛒 Đang chuyển bạn đến trang thanh toán...');
+          setTimeout(() => navigate({ to: '/checkout' }), 1000);
         } else if (data.action?.type === 'search' && data.action.query) {
           navigate({ to: '/products', search: { search: data.action.query } });
         } else if (data.action?.type === 'add_to_cart' && data.action.payload?.product) {
@@ -217,19 +217,14 @@ export function VoiceAssistant() {
                 }
                 
                 if (parsed?.results && Array.isArray(parsed.results)) {
-                  interface ProductResult {
-                    id: string;
-                    name: string;
-                    price: number;
-                  }
-                  const productsWithIndex = (parsed.results as ProductResult[]).map((p, idx) => ({
+                  const productsWithIndex = parsed.results.map((p: any, idx: number) => ({
                     id: p.id,
                     name: p.name,
                     price: p.price,
                     index: idx + 1,
                   }));
-                  setLastProducts(productsWithIndex);
-                  sessionStorage.setItem(LAST_PRODUCTS_KEY, JSON.stringify(productsWithIndex));
+                  setLastSearchResults(productsWithIndex);
+                  sessionStorage.setItem(LAST_SEARCH_RESULTS_KEY, JSON.stringify(productsWithIndex));
                 }
               } catch (e) {
                 console.error('Failed to parse tool results:', e);

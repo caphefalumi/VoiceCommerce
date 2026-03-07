@@ -36,7 +36,7 @@ export function ReviewSection({ rating, reviewCount, reviews }: ReviewSectionPro
               />
             ))}
           </div>
-          <p className="text-sm text-muted-foreground">Based on {reviewCount} reviews</p>
+          <p className="text-sm text-muted-foreground">Dựa trên {reviewCount} đánh giá</p>
         </div>
 
         <div className="hidden h-16 w-px bg-border sm:mx-8 sm:block"></div>
@@ -63,7 +63,7 @@ export function ReviewSection({ rating, reviewCount, reviews }: ReviewSectionPro
       </div>
 
       <div className="flex flex-col gap-6">
-        <h3 className="text-xl font-semibold">User Reviews</h3>
+        <h3 className="text-xl font-semibold">Đánh giá của khách hàng</h3>
         <div className="grid gap-6">
           {displayReviews.map((review) => (
             <div key={review.id} className="flex gap-4 border-b pb-6 last:border-0">

@@ -27,49 +27,122 @@ async function generateEmbedding(text: string, env: Env): Promise<number[]> {
   }
 }
 
-async function resolveProduct(productId: string | undefined, productName: string | undefined, env: Env): Promise<{id: string; name: string; brand: string; price: number; category: string} | null> {
-  const searchTerm = productName || productId || '';
+type LastSearchResult = { id: string; name: string; price: number; index: number };
+
+function resolveOrdinal(text: string): number | null {
+  const t = text.toLowerCase().trim();
+  const wordMap: Record<string, number> = {
+    'nhất': 1, 'một': 1, '1': 1, 'đầu tiên': 1,
+    'hai': 2, '2': 2,
+    'ba': 3, '3': 3,
+    'tư': 4, 'bốn': 4, '4': 4,
+    'năm': 5, '5': 5,
+  };
+  const m = t.match(/(?:thứ\s+|số\s+)(\S+)/);
+  if (m) return wordMap[m[1]] ?? null;
+  if (/đầu tiên/.test(t)) return 1;
+  return null;
+}
+
+async function fetchSpecs(productId: string, env: Env): Promise<any[]> {
+  if (!productId || !env.DB) return [];
+  try {
+    const { results } = await env.DB.prepare('SELECT specs FROM products WHERE id = ?').bind(productId).all();
+    if (!results.length || !(results[0] as any).specs) return [];
+    const raw = (results[0] as any).specs as string;
+    try { return JSON.parse(raw); } catch {
+      try {
+        return JSON.parse(raw.replace(/\\u([0-9a-fA-F]{4})/g, (_: string, c: string) => String.fromCharCode(parseInt(c, 16))));
+      } catch { return []; }
+    }
+  } catch { return []; }
+}
+
+
+async function resolveProduct(
+  productId: string | undefined,
+  productName: string | undefined,
+  env: Env,
+  lastSearchResults: LastSearchResult[] = [],
+): Promise<{id: string; name: string; brand: string; price: number; category: string; images: string[]} | null> {
+
+  const textToCheck = productName || '';
+  if (textToCheck && lastSearchResults.length > 0) {
+    const ordinal = resolveOrdinal(textToCheck);
+    if (ordinal !== null) {
+      const match = lastSearchResults.find(p => p.index === ordinal) || lastSearchResults[ordinal - 1];
+      if (match) {
+        log('info', 'resolveProduct.ordinal', { ordinal, resolvedId: match.id, resolvedName: match.name });
+        const { results } = await env.DB.prepare(
+          'SELECT id, name, brand, price, category, images FROM products WHERE id = ?'
+        ).bind(match.id).all().catch(() => ({ results: [] }));
+        if (results.length > 0) {
+          const row = results[0] as any;
+          return { 
+            id: row.id, 
+            name: row.name, 
+            brand: row.brand || '', 
+            price: Number(row.price || 0), 
+            category: row.category || '',
+            images: row.images ? JSON.parse(row.images) : []
+          };
+        }
+        return { id: match.id, name: match.name, brand: '', price: match.price, category: '', images: [] };
+      }
+    }
+  }
+
+  const cleanId = productId && productId !== 'null' ? productId.trim() : '';
+
+  if (cleanId && env.DB) {
+    try {
+      const { results } = await env.DB.prepare(
+        'SELECT id, name, brand, price, category, images FROM products WHERE id = ?'
+      ).bind(cleanId).all();
+      if (results.length > 0) {
+        const row = results[0] as any;
+        return { 
+          id: row.id, 
+          name: row.name, 
+          brand: row.brand || '', 
+          price: Number(row.price || 0), 
+          category: row.category || '',
+          images: row.images ? JSON.parse(row.images) : []
+        };
+      }
+    } catch (e) {
+      log('warn', 'resolveProduct.dbLookup', { error: String(e) });
+    }
+  }
+
+  const searchTerm = productName || cleanId;
   if (!searchTerm) return null;
-  
+
   const embedding = await generateEmbedding(searchTerm, env);
   if (!embedding.length || !env.VECTORIZE) return null;
-  
+
   const result = await env.VECTORIZE.query(embedding, { topK: 10, returnMetadata: 'all' });
   const matches = result?.matches || [];
-  
   if (matches.length === 0) return null;
-  
-  let match = null;
-  
-  // Priority 1: Exact ID match
-  if (productId && productId !== 'null' && productId.trim() !== '') {
-    match = matches.find((m: any) => m.id === productId);
-  }
-  
-  // Priority 2: Partial name match (case-insensitive)
-  if (!match && productName) {
+
+  let match: any = null;
+
+  if (productName) {
     const searchLower = productName.toLowerCase();
-    match = matches.find((m: any) => 
+    match = matches.find((m: any) =>
       m.metadata?.name?.toLowerCase().includes(searchLower) ||
       searchLower.includes(m.metadata?.name?.toLowerCase())
     );
   }
-  
-  // Priority 3: Best semantic match (any of top 3 results with score > 0.7)
+
   if (!match) {
     for (const m of matches.slice(0, 3)) {
-      if ((m.score || 0) > 0.7 && m.metadata?.name) {
-        match = m;
-        break;
-      }
+      if ((m.score || 0) > 0.7 && m.metadata?.name) { match = m; break; }
     }
   }
-  
-  // Priority 4: Just take the top result if scores are lower but we have matches
-  if (!match && matches[0]?.metadata?.name) {
-    match = matches[0];
-  }
-  
+
+  if (!match && matches[0]?.metadata?.name) match = matches[0];
+
   if (match?.metadata?.name) {
     return {
       id: match.id,
@@ -77,14 +150,15 @@ async function resolveProduct(productId: string | undefined, productName: string
       brand: match.metadata.brand || '',
       price: Number(match.metadata.price || 0),
       category: match.metadata.category || '',
+      images: match.metadata.images ? (typeof match.metadata.images === 'string' ? JSON.parse(match.metadata.images) : match.metadata.images) : [],
     };
   }
-  
+
   return null;
 }
 
-// Factory function to create the MCP server bound to the current Cloudflare environment
-export function createCommerceMcpServer(env: Env) {
+export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchResult[] = [], userId?: string) {
+  const ctxUserId = userId;
   const server = new McpServer({
     name: 'TGDD VoiceCommerce MCP Server',
     version: '2.0.0',
@@ -94,9 +168,9 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'searchProducts',
     {
-      description: 'Search for products in the TGDD catalog by name, model, or category.',
+      description: 'Tìm kiếm sản phẩm trong danh mục TGDD theo tên, model hoặc danh mục.',
       inputSchema: z.object({
-        query: z.string().describe('Product name, model, or category in Vietnamese or English'),
+        query: z.string().describe('Tên sản phẩm, model hoặc danh mục bằng tiếng Việt hoặc tiếng Anh'),
       })
     },
     async ({ query }) => {
@@ -144,11 +218,11 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'filterProductsByPrice',
     {
-      description: 'Search products within a price range.',
+      description: 'Tìm kiếm sản phẩm trong một khoảng giá.',
       inputSchema: z.object({
-        query: z.string().describe('Product type or name'),
-        minPrice: z.union([z.number(), z.string()]).optional().describe('Minimum price in VND'),
-        maxPrice: z.union([z.number(), z.string()]).optional().describe('Maximum price in VND'),
+        query: z.string().describe('Loại hoặc tên sản phẩm'),
+        minPrice: z.union([z.number(), z.string()]).optional().describe('Giá tối thiểu bằng VND'),
+        maxPrice: z.union([z.number(), z.string()]).optional().describe('Giá tối đa bằng VND'),
       })
     },
     async ({ query, minPrice, maxPrice }) => {
@@ -204,10 +278,10 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'getProductDetails',
     {
-      description: 'Get detailed information about a specific product by ID or name, including specs. Use this when the user asks about product configuration, specs, or details.',
+      description: 'Lấy thông tin chi tiết về một sản phẩm cụ thể theo ID hoặc tên, bao gồm cả thông số kỹ thuật. Sử dụng khi người dùng hỏi về cấu hình, thông số hoặc chi tiết sản phẩm.',
       inputSchema: z.object({
-        productId: z.string().optional().describe('Product ID from the previously shown list'),
-        productName: z.string().optional().describe('Product name or reference such as "sản phẩm thứ 2" or "iPhone Air"'),
+        productId: z.string().optional().describe('ID sản phẩm từ danh sách đã hiển thị trước đó'),
+        productName: z.string().optional().describe('Tên sản phẩm hoặc tham chiếu như "sản phẩm thứ 2" hoặc "iPhone Air"'),
       })
     },
     async ({ productId, productName }) => {
@@ -219,33 +293,7 @@ export function createCommerceMcpServer(env: Env) {
           return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm.' }) }] };
         }
 
-        // Fetch specs from DB if available
-        let specs: any[] = [];
-        if (product.id && env.DB) {
-          try {
-            const { results } = await env.DB.prepare(
-              'SELECT specs FROM products WHERE id = ?'
-            ).bind(product.id).all();
-            if (results.length > 0 && (results[0] as any).specs) {
-              let specsStr = (results[0] as any).specs;
-              // Handle double-encoded JSON: Unicode escape sequences like \u00e0 stored literally
-              try {
-                specs = JSON.parse(specsStr);
-              } catch {
-                try {
-                  const decoded = specsStr.replace(/\\u([0-9a-fA-F]{4})/g, (match: string, code: string) => 
-                    String.fromCharCode(parseInt(code, 16))
-                  );
-                  specs = JSON.parse(decoded);
-                } catch {
-                  specs = [];
-                }
-              }
-            }
-          } catch (e) {
-            log('warn', 'getProductDetails.specs', { error: String(e) });
-          }
-        }
+        const specs = await fetchSpecs(product.id, env);
 
         const responsePayload: any = {
           success: true,
@@ -262,7 +310,7 @@ export function createCommerceMcpServer(env: Env) {
 
         if (specs.length > 0) {
           responsePayload.product.specs = specs;
-          responsePayload.message = `${product.name} - ${product.price.toLocaleString('vi-VN')} VND. Thông số kỹ thuật: ${specs.slice(0, 3).map((s: any) => s.name + ': ' + s.value).join(', ')}... Bạn muốn thêm vào giỏ hàng hay cần thêm thông tin gì không?`;
+          responsePayload.message = `${product.name} - ${product.price.toLocaleString('vi-VN')} VND. Thông số kỹ thuật: ${specs.slice(0, 3).map((s: any) => s.label + ': ' + s.value).join(', ')}... Bạn muốn thêm vào giỏ hàng hay cần thêm thông tin gì không?`;
         } else {
           responsePayload.message = `${product.name} - ${product.price.toLocaleString('vi-VN')} VND. Bạn muốn thêm vào giỏ hàng hay cần thêm thông tin gì không?`;
         }
@@ -280,13 +328,15 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'viewCart',
     {
-      description: 'View the current contents of the user\'s shopping cart.',
+      description: 'Xem nội dung hiện tại trong giỏ hàng của người dùng.',
       inputSchema: z.object({
-        userId: z.string().describe('User ID to retrieve cart for'),
+        userId: z.string().describe('ID người dùng để lấy giỏ hàng'),
       })
     },
     async ({ userId }) => {
-      log('info', 'tool.viewCart', { userId });
+      const isValidId = userId && /^[a-zA-Z0-9_-]+$/.test(userId) && userId.length > 5;
+      const uid = isValidId ? userId : ctxUserId;
+      log('info', 'tool.viewCart', { userId: uid });
       try {
         if (!env.DB) {
           return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể truy cập giỏ hàng lúc này.' }) }] };
@@ -296,7 +346,7 @@ export function createCommerceMcpServer(env: Env) {
           `SELECT ci.product_id, ci.quantity, p.name, p.price, p.brand
            FROM cart_items ci JOIN products p ON ci.product_id = p.id
            WHERE ci.user_id = ?`
-        ).bind(userId).all();
+        ).bind(uid).all();
 
         const items = (results as any[]).map(row => ({
           productId: row.product_id,
@@ -334,20 +384,63 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'compareProducts',
     {
-      description: 'Compare 2 or more products side-by-side. Accepts product names, IDs, or a mix of both.',
+      description: 'So sánh 2 hoặc nhiều sản phẩm cạnh nhau bao gồm đầy đủ thông số kỹ thuật. Sau khi nhận được kết quả từ công cụ, hãy cung cấp bản so sánh chi tiết các thông số chính (màn hình, chip, RAM, pin, camera) và đề xuất trường hợp sử dụng tốt nhất cho từng sản phẩm. Truyền sản phẩm dưới dạng mảng các đối tượng chứa tên hoặc ID sản phẩm. Ví dụ: [{"productName":"iPhone 17"},{"productName":"Samsung Galaxy S25"}]',
       inputSchema: z.object({
-        products: z.array(z.object({
-          productId: z.string().optional().describe('Product ID from the previously shown list'),
-          productName: z.string().optional().describe('Product name'),
-        })).min(2).describe('List of products to compare (by ID or name)'),
+        products: z.union([
+          z.array(z.object({
+            productId: z.string().optional(),
+            productName: z.string().optional(),
+          })),
+          z.string().transform(s =>
+            s.split(/[,;]+/).map(p => p.trim()).filter(Boolean).map(p => ({ productName: p }))
+          ),
+        ]).describe('Các sản phẩm cần so sánh — mảng {productId?,productName?} hoặc danh sách tên cách nhau bằng dấu phẩy'),
       })
     },
     async ({ products }) => {
       try {
-        const comparisons = [];
-        for (const ref of products.slice(0, 3)) {
-          const resolved = await resolveProduct(ref.productId, ref.productName, env);
-          if (resolved) comparisons.push(resolved);
+        const refs = Array.isArray(products) ? products : (products as any[]);
+        const comparisons: any[] = [];
+        for (const ref of refs.slice(0, 3)) {
+          const resolved = await resolveProduct(
+            (ref as any).productId,
+            (ref as any).productName,
+            env,
+            lastSearchResults,
+          );
+          if (resolved) {
+            const allSpecs = await fetchSpecs(resolved.id, env);
+            comparisons.push({
+              id: resolved.id,
+              name: resolved.name,
+              brand: resolved.brand,
+              price: resolved.price,
+              priceFormatted: resolved.price.toLocaleString('vi-VN') + ' VND',
+              category: resolved.category,
+              specs: allSpecs,
+            });
+          }
+        }
+        let message = 'Không đủ sản phẩm để so sánh.';
+        if (comparisons.length >= 2) {
+          const prompt = comparisons.map(p => {
+            const specText = p.specs.length > 0
+              ? p.specs.map((s: any) => `${s.label}: ${s.value}`).join('\n')
+              : 'Không có thông số';
+            return `${p.name} (${p.priceFormatted}):\n${specText}`;
+          }).join('\n\n---\n\n');
+
+          try {
+            const glmResult = await (env.AI as any).run('@cf/zai-org/glm-4.7-flash', {
+              messages: [
+                { role: 'system', content: 'Bạn là tư vấn viên tại Thế Giới Di Động. So sánh các sản phẩm và gợi ý trường hợp sử dụng tốt nhất cho từng sản phẩm bằng tiếng Việt. Xưng hô với khách hàng là "Quý khách". Trả lời bằng văn xuôi thuần túy, KHÔNG dùng bảng, KHÔNG dùng markdown, KHÔNG dùng bullet points, KHÔNG dùng ký tự đặc biệt. QUAN TRỌNG: Toàn bộ câu trả lời CHỈ được phép có đúng 4 câu.' },
+                { role: 'user', content: prompt }
+              ]
+            });
+            message = glmResult?.choices?.[0]?.message?.content || glmResult?.response || comparisons.map(p => p.name).join(' vs ');
+          } catch {
+            message = comparisons.map(p => `${p.name} (${p.priceFormatted})`).join(' vs ');
+          }
         }
         return {
           content: [{
@@ -356,9 +449,7 @@ export function createCommerceMcpServer(env: Env) {
               products: comparisons,
               count: comparisons.length,
               action: 'compare',
-              message: comparisons.length >= 2
-                ? `So sánh ${comparisons.map(p => p.name).join(' và ')}`
-                : 'Không đủ sản phẩm để so sánh.',
+              message,
             })
           }]
         };
@@ -372,16 +463,17 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'addToCart',
     {
-      description: 'Add a product to the shopping cart.',
+      description: 'Thêm sản phẩm vào giỏ hàng.',
       inputSchema: z.object({
-        productName: z.string().optional().describe('Product name if specified by user'),
-        productId: z.string().optional().describe('Product ID to add'),
-        quantity: z.union([z.number().int(), z.string()]).default(1).describe('Quantity to add'),
-        userId: z.string().optional().describe('User ID if available'),
+        productName: z.string().optional().describe('Tên sản phẩm nếu được người dùng chỉ định'),
+        productId: z.string().optional().describe('ID sản phẩm cần thêm'),
+        quantity: z.union([z.number().int(), z.string()]).default(1).describe('Số lượng cần thêm'),
+        userId: z.string().optional().describe('ID người dùng nếu có'),
       })
     },
     async ({ productName, productId, quantity, userId }) => {
-      log('info', 'tool.addToCart', { productName, productId, quantity, userId });
+      const uid = userId || ctxUserId;
+      log('info', 'tool.addToCart', { productName, productId, quantity, userId: uid });
       try {
         const qty = typeof quantity === 'string' ? parseInt(quantity) || 1 : (quantity || 1);
         const product = await resolveProduct(productId, productName, env);
@@ -390,17 +482,17 @@ export function createCommerceMcpServer(env: Env) {
           return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm. Vui lòng nói tên sản phẩm rõ hơn.' }) }] };
         }
 
-        if (userId && env.DB) {
+        if (uid && env.DB) {
           try {
             const { results } = await env.DB.prepare('SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?')
-               .bind(userId, product.id).all();
+               .bind(uid, product.id).all();
 
             if (results.length > 0) {
               const item = results[0] as any;
               await env.DB.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?').bind(item.quantity + quantity, item.id).run();
             } else {
               await env.DB.prepare('INSERT INTO cart_items (id, user_id, product_id, quantity, created_at) VALUES (?, ?, ?, ?, ?)')
-                .bind(crypto.randomUUID(), userId, product.id, quantity, new Date().toISOString()).run();
+                .bind(crypto.randomUUID(), uid, product.id, quantity, new Date().toISOString()).run();
             }
           } catch (dbErr) {
              console.error('D1 cart insert error', dbErr);
@@ -429,23 +521,24 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'removeFromCart',
     {
-      description: 'Remove a product from the shopping cart.',
+      description: 'Xóa sản phẩm khỏi giỏ hàng.',
       inputSchema: z.object({
-        productName: z.string().optional().describe('Product name to remove'),
-        productId: z.string().optional().describe('Product ID to remove'),
-        userId: z.string().optional().describe('User ID'),
+        productName: z.string().optional().describe('Tên sản phẩm cần xóa'),
+        productId: z.string().optional().describe('ID sản phẩm cần xóa'),
+        userId: z.string().optional().describe('ID người dùng'),
       })
     },
     async ({ productName, productId, userId }) => {
-      log('info', 'tool.removeFromCart', { productName, productId, userId });
+      const uid = userId || ctxUserId;
+      log('info', 'tool.removeFromCart', { productName, productId, userId: uid });
       try {
         const product = await resolveProduct(productId, productName, env);
         
-        if (!product || !product.id || !userId || !env.DB) {
+        if (!product || !product.id || !uid || !env.DB) {
           return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm trong giỏ hàng.' }) }] };
         }
         
-        await env.DB.prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?').bind(userId, product.id).run();
+        await env.DB.prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?').bind(uid, product.id).run();
         
         return {
           content: [{
@@ -468,8 +561,8 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'startCheckout',
     {
-      description: 'Start the checkout process. Reads the user\'s cart, creates a draft order.',
-      inputSchema: z.object({ userId: z.string().optional().describe('User ID to read cart from') })
+      description: 'Bắt đầu quy trình thanh toán. Đọc giỏ hàng của người dùng và tạo đơn hàng nháp.',
+      inputSchema: z.object({ userId: z.string().optional().describe('ID người dùng để đọc giỏ hàng') })
     },
     async ({ userId }) => {
       try {
@@ -519,13 +612,16 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'getOrderStatus',
     {
-      description: 'Look up the status of an order.',
+      description: 'Tra cứu trạng thái của một đơn hàng.',
       inputSchema: z.object({
-        orderId: z.string().optional().describe('Order ID or order code'),
-        userId: z.string().optional().describe('User ID to list all orders'),
+        orderId: z.string().optional().describe('Mã đơn hàng hoặc mã code'),
+        userId: z.string().optional().describe('ID người dùng để liệt kê tất cả đơn hàng'),
       })
     },
     async ({ orderId, userId }) => {
+      const isValidId = userId && /^[a-zA-Z0-9_-]+$/.test(userId) && userId.length > 5;
+      const uid = isValidId ? userId : ctxUserId;
+      log('info', 'tool.getOrderStatus', { orderId, userId: uid });
       try {
         if (!env.DB) return { content: [{ type: 'text', text: JSON.stringify({ orders: [], message: 'Lỗi tra cứu.' }) }] };
 
@@ -548,8 +644,8 @@ export function createCommerceMcpServer(env: Env) {
           };
         }
 
-        if (userId) {
-          const { results } = await env.DB.prepare('SELECT id, status, total_price, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 5').bind(userId).all();
+        if (uid) {
+          const { results } = await env.DB.prepare('SELECT id, status, total_price, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 5').bind(uid).all();
           return {
              content: [{
                type: 'text', text: JSON.stringify({
@@ -570,10 +666,10 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'cancelOrder',
     {
-      description: 'Cancel a pending or confirmed order for the user.',
+      description: 'Hủy một đơn hàng đang chờ hoặc đã xác nhận cho người dùng.',
       inputSchema: z.object({
-        orderId: z.string().describe('The order ID or short code to cancel'),
-        userId: z.string().optional().describe('User ID for ownership verification'),
+        orderId: z.string().describe('ID đơn hàng hoặc mã ngắn để hủy'),
+        userId: z.string().optional().describe('ID người dùng để xác minh quyền sở hữu'),
       })
     },
     async ({ orderId, userId }) => {
@@ -630,8 +726,8 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'getFaqAnswer',
     {
-      description: 'Answer frequently asked questions about store policies.',
-      inputSchema: z.object({ question: z.string().describe('The FAQ question') })
+      description: 'Trả lời các câu hỏi thường gặp về chính sách của cửa hàng.',
+      inputSchema: z.object({ question: z.string().describe('Câu hỏi FAQ') })
     },
     async ({ question }) => {
       try {
@@ -655,11 +751,11 @@ export function createCommerceMcpServer(env: Env) {
   server.registerTool(
     'createSupportTicket',
     {
-      description: 'Create a customer support ticket.',
+      description: 'Tạo một phiếu hỗ trợ khách hàng.',
       inputSchema: z.object({
-        category: z.enum(['product_issue', 'delivery', 'payment', 'return_exchange', 'warranty', 'other']).describe('Ticket category'),
-        message: z.string().describe('Description of the issue'),
-        userId: z.string().optional().describe('User ID'),
+        category: z.enum(['product_issue', 'delivery', 'payment', 'return_exchange', 'warranty', 'other']).describe('Danh mục yêu cầu hỗ trợ'),
+        message: z.string().describe('Mô tả vấn đề'),
+        userId: z.string().optional().describe('ID người dùng'),
       })
     },
     async ({ category, message, userId }) => {

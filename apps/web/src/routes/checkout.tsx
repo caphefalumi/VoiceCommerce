@@ -221,7 +221,7 @@ function CheckoutPage() {
                   >
                     <div className="h-16 w-16 flex-shrink-0 bg-gray-50 rounded border border-gray-100 p-1">
                       <img
-                        src={item.images[0]}
+                        src={item.images?.[0] || 'https://placehold.co/100x100?text=No+Image'}
                         alt={item.name}
                         className="h-full w-full object-contain"
                       />

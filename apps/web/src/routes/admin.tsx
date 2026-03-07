@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { Button } from '../components/ui/button';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { Link } from '@tanstack/react-router';
+import { ArrowLeft } from 'lucide-react';
 
 interface Faq {
   id: string;
@@ -67,13 +67,10 @@ const FAQ_CATEGORIES = [
   'support',
 ];
 
-// ─── Admin Page ───────────────────────────────────────────────────────────────
-
 function AdminPage() {
   const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState<Tab>('faqs');
 
-  // ── FAQ State ──
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [faqLoading, setFaqLoading] = useState(false);
   const [editingFaq, setEditingFaq] = useState<Faq | null>(null);
@@ -81,15 +78,11 @@ function AdminPage() {
   const [showFaqForm, setShowFaqForm] = useState(false);
   const [faqError, setFaqError] = useState<string | null>(null);
 
-  // ── Voice Logs State ──
   const [logs, setLogs] = useState<VoiceLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
 
-  // ── Tickets State ──
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
-
-  // ── FAQ CRUD ──────────────────────────────────────────────────────────────
 
   const loadFaqs = useCallback(async () => {
     setFaqLoading(true);
@@ -145,8 +138,6 @@ function AdminPage() {
     loadFaqs();
   };
 
-  // ── Voice Logs ───────────────────────────────────────────────────────────
-
   const loadLogs = useCallback(async () => {
     setLogsLoading(true);
     try {
@@ -157,8 +148,6 @@ function AdminPage() {
       setLogsLoading(false);
     }
   }, []);
-
-  // ── Tickets ──────────────────────────────────────────────────────────────
 
   const loadTickets = useCallback(async () => {
     setTicketsLoading(true);
@@ -181,423 +170,353 @@ function AdminPage() {
     loadTickets();
   };
 
-  // Load data on tab switch
   useEffect(() => {
     if (activeTab === 'faqs') loadFaqs();
     else if (activeTab === 'logs') loadLogs();
     else if (activeTab === 'tickets') loadTickets();
   }, [activeTab, loadFaqs, loadLogs, loadTickets]);
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-[#0f172a] text-gray-100">
-      {/* Header */}
-      <div className="border-b border-slate-700 bg-[#1e293b] px-6 py-4 flex items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-xl">
-            🛠️
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">TGDD Admin Dashboard</h1>
-            <p className="text-xs text-slate-400">Quản trị hệ thống Voice Commerce</p>
-          </div>
+    <div className="bg-[#f3f3f3] min-h-screen pb-20">
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Link to="/">
+            <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-white rounded-full">
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+          </Link>
+          <h1 className="text-xl font-bold text-gray-900 uppercase">Trang Quản Trị</h1>
         </div>
-        <div className="ml-auto text-sm text-slate-400">
-          👤 {user?.name || user?.email || 'Admin'} &nbsp;|&nbsp;{' '}
-          {new Date().toLocaleDateString('vi-VN')}
-        </div>
-      </div>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-3 gap-4 px-6 py-4 bg-[#1e293b] border-b border-slate-700">
-        {[
-          {
-            label: 'Câu hỏi FAQ',
-            value: faqs.length,
-            icon: '📚',
-            color: 'from-blue-500 to-cyan-500',
-          },
-          {
-            label: 'Cuộc hội thoại',
-            value: logs.length,
-            icon: '🎙️',
-            color: 'from-violet-500 to-purple-600',
-          },
-          {
-            label: 'Phiếu hỗ trợ',
-            value: tickets.length,
-            icon: '🎫',
-            color: 'from-orange-500 to-red-500',
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="flex items-center gap-3 bg-slate-800/50 rounded-xl px-4 py-3"
-          >
-            <div
-              className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center text-lg shrink-0`}
-            >
-              {stat.icon}
-            </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="text-xs text-slate-400">{stat.label}</div>
+              <p className="font-medium">{user?.name || user?.email || 'Admin'}</p>
+              <p className="text-sm text-gray-500">{new Date().toLocaleDateString('vi-VN')}</p>
+            </div>
+            <div className="flex gap-2 text-sm">
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">FAQ: {faqs.length}</span>
+              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full">Logs: {logs.length}</span>
+              <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full">Tickets: {tickets.length}</span>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Tab Navigation */}
-      <div className="flex gap-1 px-6 pt-4">
-        {[
-          { key: 'faqs', label: '📚 FAQ', desc: 'Quản lý kiến thức' },
-          { key: 'logs', label: '🎙️ Voice Logs', desc: 'Nhật ký tương tác' },
-          { key: 'tickets', label: '🎫 Tickets', desc: 'Phiếu hỗ trợ' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as Tab)}
-            className={`px-5 py-2.5 rounded-t-xl text-sm font-medium transition-all ${
-              activeTab === tab.key
-                ? 'bg-slate-800 text-white border-t border-x border-slate-600'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+        <div className="flex gap-1 mb-4">
+          {[
+            { key: 'faqs', label: 'FAQ' },
+            { key: 'logs', label: 'Nhật ký giọng nói' },
+            { key: 'tickets', label: 'Phiếu hỗ trợ' },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as Tab)}
+              className={`px-5 py-2.5 rounded-t-lg text-sm font-medium transition-all ${
+                activeTab === tab.key
+                  ? 'bg-white text-black border-t border-x border-gray-200'
+                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      {/* Content Area */}
-      <div className="mx-6 mb-6 bg-slate-800 rounded-b-xl rounded-tr-xl border border-slate-700 overflow-hidden">
-        {/* ── FAQ Tab ── */}
-        {activeTab === 'faqs' && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold">Cơ sở kiến thức FAQ</h2>
-                <p className="text-sm text-slate-400 mt-0.5">
-                  Quản lý câu hỏi thường gặp — trả lời tự động qua giọng nói
-                </p>
+        <div className="bg-white rounded-b-lg rounded-tr-lg border border-gray-200 p-6">
+          {activeTab === 'faqs' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold">Quản lý FAQ</h2>
+                <Button
+                  onClick={() => {
+                    setShowFaqForm(true);
+                    setEditingFaq(null);
+                    setFaqError(null);
+                  }}
+                  className="bg-primary text-black hover:bg-primary/90"
+                >
+                  + Thêm FAQ
+                </Button>
               </div>
-              <Button
-                onClick={() => {
-                  setShowFaqForm(true);
-                  setEditingFaq(null);
-                  setFaqError(null);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
-              >
-                ＋ Thêm FAQ
-              </Button>
-            </div>
 
-            {/* FAQ Form */}
-            {(showFaqForm || editingFaq) && (
-              <div className="mb-6 bg-slate-900 border border-slate-600 rounded-xl p-5">
-                <h3 className="font-medium mb-4 text-slate-200">
-                  {editingFaq ? '✏️ Chỉnh sửa FAQ' : '➕ Thêm FAQ mới'}
-                </h3>
-                {faqError && (
-                  <div className="mb-3 text-sm text-red-400 bg-red-900/30 border border-red-700 rounded-lg px-3 py-2">
-                    {faqError}
-                  </div>
-                )}
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Câu hỏi *</label>
-                    <input
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                      placeholder="Ví dụ: Chính sách đổi trả như thế nào?"
-                      value={editingFaq ? editingFaq.question : newFaq.question}
-                      onChange={(e) =>
-                        editingFaq
-                          ? setEditingFaq({ ...editingFaq, question: e.target.value })
-                          : setNewFaq({ ...newFaq, question: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Câu trả lời *</label>
-                    <textarea
-                      rows={3}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
-                      placeholder="Nhập câu trả lời chi tiết..."
-                      value={editingFaq ? editingFaq.answer : newFaq.answer}
-                      onChange={(e) =>
-                        editingFaq
-                          ? setEditingFaq({ ...editingFaq, answer: e.target.value })
-                          : setNewFaq({ ...newFaq, answer: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Danh mục</label>
-                    <select
-                      className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                      value={editingFaq ? editingFaq.category : newFaq.category}
-                      onChange={(e) =>
-                        editingFaq
-                          ? setEditingFaq({ ...editingFaq, category: e.target.value })
-                          : setNewFaq({ ...newFaq, category: e.target.value })
-                      }
-                    >
-                      {FAQ_CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      onClick={saveFaq}
-                      className="bg-green-600 hover:bg-green-700 text-white text-sm"
-                    >
-                      💾 Lưu
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setEditingFaq(null);
-                        setShowFaqForm(false);
-                        setFaqError(null);
-                      }}
-                      variant="outline"
-                      className="text-sm border-slate-600 text-slate-300 hover:bg-slate-700"
-                    >
-                      Hủy
-                    </Button>
+              {(showFaqForm || editingFaq) && (
+                <div className="mb-6 bg-gray-50 border border-gray-200 rounded-xl p-5">
+                  <h3 className="font-medium mb-4">
+                    {editingFaq ? 'Chỉnh sửa FAQ' : 'Thêm FAQ mới'}
+                  </h3>
+                  {faqError && (
+                    <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      {faqError}
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Câu hỏi *</label>
+                      <input
+                        className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black"
+                        placeholder="Ví dụ: Chính sách đổi trả như thế nào?"
+                        value={editingFaq ? editingFaq.question : newFaq.question}
+                        onChange={(e) =>
+                          editingFaq
+                            ? setEditingFaq({ ...editingFaq, question: e.target.value })
+                            : setNewFaq({ ...newFaq, question: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Câu trả lời *</label>
+                      <textarea
+                        rows={3}
+                        className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black resize-none"
+                        placeholder="Nhập câu trả lời chi tiết..."
+                        value={editingFaq ? editingFaq.answer : newFaq.answer}
+                        onChange={(e) =>
+                          editingFaq
+                            ? setEditingFaq({ ...editingFaq, answer: e.target.value })
+                            : setNewFaq({ ...newFaq, answer: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Danh mục</label>
+                      <select
+                        className="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black"
+                        value={editingFaq ? editingFaq.category : newFaq.category}
+                        onChange={(e) =>
+                          editingFaq
+                            ? setEditingFaq({ ...editingFaq, category: e.target.value })
+                            : setNewFaq({ ...newFaq, category: e.target.value })
+                        }
+                      >
+                        {FAQ_CATEGORIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button onClick={saveFaq} className="bg-green-600 hover:bg-green-700 text-white text-sm">
+                        Lưu
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setEditingFaq(null);
+                          setShowFaqForm(false);
+                          setFaqError(null);
+                        }}
+                        variant="outline"
+                        className="text-sm"
+                      >
+                        Hủy
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* FAQ List */}
-            {faqLoading ? (
-              <div className="text-center py-12 text-slate-400">⏳ Đang tải...</div>
-            ) : faqs.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                <div className="text-4xl mb-2">📭</div>
-                Chưa có FAQ nào. Nhấn "Thêm FAQ" để bắt đầu.
+              {faqLoading ? (
+                <div className="text-center py-12 text-gray-500">Đang tải...</div>
+              ) : faqs.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  Chưa có FAQ nào. Nhấn "Thêm FAQ" để bắt đầu.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {faqs.map((faq) => (
+                    <div
+                      key={faq.id}
+                      className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                              {faq.category}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(faq.created_at).toLocaleDateString('vi-VN')}
+                            </span>
+                          </div>
+                          <p className="font-medium text-sm mb-1">{faq.question}</p>
+                          <p className="text-sm text-gray-600 leading-relaxed">{faq.answer}</p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => {
+                              setEditingFaq(faq);
+                              setShowFaqForm(false);
+                              setFaqError(null);
+                            }}
+                            className="text-xs px-2.5 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 transition-colors"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => deleteFaq(faq.id)}
+                            className="text-xs px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 transition-colors"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'logs' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold">Nhật ký tương tác giọng nói</h2>
+                <button
+                  onClick={loadLogs}
+                  className="text-sm px-3 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors"
+                >
+                  Làm mới
+                </button>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {faqs.map((faq) => (
-                  <div
-                    key={faq.id}
-                    className="bg-slate-900 border border-slate-700 rounded-xl p-4 hover:border-slate-500 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700/50">
-                            {faq.category}
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            {new Date(faq.created_at).toLocaleDateString('vi-VN')}
+
+              {logsLoading ? (
+                <div className="text-center py-12 text-gray-500">Đang tải...</div>
+              ) : logs.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  Chưa có nhật ký nào.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {logs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          {log.intent && (
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full font-mono ${INTENT_COLORS[log.intent] || 'bg-gray-200 text-gray-700'}`}
+                            >
+                              {log.intent}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500">
+                            {log.session_id?.slice(0, 8)} ·{' '}
+                            {new Date(log.created_at).toLocaleString('vi-VN')}
                           </span>
                         </div>
-                        <p className="font-medium text-sm text-white mb-1">❓ {faq.question}</p>
-                        <p className="text-sm text-slate-300 leading-relaxed">💬 {faq.answer}</p>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          onClick={() => {
-                            setEditingFaq(faq);
-                            setShowFaqForm(false);
-                            setFaqError(null);
-                          }}
-                          className="text-xs px-2.5 py-1 rounded-lg bg-blue-900/40 hover:bg-blue-800 text-blue-300 transition-colors"
-                        >
-                          ✏️ Sửa
-                        </button>
-                        <button
-                          onClick={() => deleteFaq(faq.id)}
-                          className="text-xs px-2.5 py-1 rounded-lg bg-red-900/40 hover:bg-red-800 text-red-400 transition-colors"
-                        >
-                          🗑️ Xóa
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Voice Logs Tab ── */}
-        {activeTab === 'logs' && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold">Nhật ký tương tác giọng nói</h2>
-                <p className="text-sm text-slate-400 mt-0.5">
-                  Toàn bộ lịch sử cuộc hội thoại giữa người dùng và AI
-                </p>
-              </div>
-              <button
-                onClick={loadLogs}
-                className="text-sm px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-              >
-                🔄 Làm mới
-              </button>
-            </div>
-
-            {logsLoading ? (
-              <div className="text-center py-12 text-slate-400">⏳ Đang tải...</div>
-            ) : logs.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                <div className="text-4xl mb-2">🎙️</div>
-                Chưa có nhật ký nào. Hãy thử nói chuyện với trợ lý giọng nói!
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {logs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="bg-slate-900 border border-slate-700 rounded-xl p-4 hover:border-slate-500 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        {log.intent && (
-                          <span
-                            className={`text-xs px-2 py-0.5 rounded-full font-mono ${INTENT_COLORS[log.intent] || 'bg-slate-700 text-slate-300'}`}
-                          >
-                            {log.intent}
+                        {log.user_id && (
+                          <span className="text-xs text-gray-500">
+                            {log.user_id.slice(0, 8)}
                           </span>
                         )}
-                        <span className="text-xs text-slate-500">
-                          {log.session_id?.slice(0, 8)} ·{' '}
-                          {new Date(log.created_at).toLocaleString('vi-VN')}
-                        </span>
                       </div>
-                      {log.user_id && (
-                        <span className="text-xs text-slate-500">
-                          👤 {log.user_id.slice(0, 8)}…
-                        </span>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex gap-2">
-                        <span className="text-blue-400 shrink-0 mt-0.5">🗣</span>
-                        <p className="text-sm text-slate-200">{log.user_text}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="text-green-400 shrink-0 mt-0.5">🤖</span>
-                        <p className="text-sm text-slate-300">{log.response_text}</p>
+                      <div className="space-y-1.5">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">Người dùng:</p>
+                          <p className="text-sm text-gray-800">{log.user_text}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">AI:</p>
+                          <p className="text-sm text-gray-600">{log.response_text}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Tickets Tab ── */}
-        {activeTab === 'tickets' && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold">Phiếu hỗ trợ khách hàng</h2>
-                <p className="text-sm text-slate-400 mt-0.5">
-                  Quản lý tất cả yêu cầu hỗ trợ từ người dùng
-                </p>
-              </div>
-              <button
-                onClick={loadTickets}
-                className="text-sm px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-              >
-                🔄 Làm mới
-              </button>
+                  ))}
+                </div>
+              )}
             </div>
+          )}
 
-            {ticketsLoading ? (
-              <div className="text-center py-12 text-slate-400">⏳ Đang tải...</div>
-            ) : tickets.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                <div className="text-4xl mb-2">🎫</div>
-                Chưa có phiếu hỗ trợ nào.
+          {activeTab === 'tickets' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold">Phiếu hỗ trợ khách hàng</h2>
+                <button
+                  onClick={loadTickets}
+                  className="text-sm px-3 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors"
+                >
+                  Làm mới
+                </button>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs text-slate-500 border-b border-slate-700">
-                      <th className="pb-3 pr-4">Mã</th>
-                      <th className="pb-3 pr-4">Người dùng</th>
-                      <th className="pb-3 pr-4">Danh mục</th>
-                      <th className="pb-3 pr-4 max-w-xs">Nội dung</th>
-                      <th className="pb-3 pr-4">Trạng thái</th>
-                      <th className="pb-3 pr-4">Ngày tạo</th>
-                      <th className="pb-3">Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800">
-                    {tickets.map((ticket) => (
-                      <tr key={ticket.id} className="hover:bg-slate-800/50 transition-colors">
-                        <td className="py-3 pr-4">
-                          <span className="font-mono text-xs text-slate-300">
-                            #{ticket.short_id}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 text-slate-400 text-xs">
-                          {ticket.user_id ? ticket.user_id.slice(0, 8) + '…' : 'Khách'}
-                        </td>
-                        <td className="py-3 pr-4">
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
-                            {ticket.category_label}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 max-w-xs">
-                          <p className="text-slate-300 text-xs truncate">{ticket.message}</p>
-                        </td>
-                        <td className="py-3 pr-4">
-                          <span
-                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ticket.status] || 'bg-slate-700 text-slate-300'}`}
-                          >
-                            {ticket.status === 'open'
-                              ? 'Mở'
-                              : ticket.status === 'in_progress'
-                                ? 'Đang xử lý'
-                                : ticket.status === 'resolved'
-                                  ? 'Đã giải quyết'
-                                  : 'Đóng'}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 text-xs text-slate-500">
-                          {new Date(ticket.created_at).toLocaleDateString('vi-VN')}
-                        </td>
-                        <td className="py-3">
-                          <select
-                            value={ticket.status}
-                            onChange={(e) => updateTicketStatus(ticket.id, e.target.value)}
-                            className="text-xs bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-blue-500 mb-2 block w-full"
-                          >
-                            <option value="open">Mở</option>
-                            <option value="in_progress">Đang xử lý</option>
-                            <option value="resolved">Đã giải quyết</option>
-                            <option value="closed">Đóng</option>
-                          </select>
-                          {ticket.status !== 'resolved' && ticket.status !== 'closed' && (
-                            <div className="flex flex-col gap-1 mt-1">
-                              <span className="text-[10px] text-slate-400">Cách giải quyết:</span>
-                              <Button size="sm" onClick={() => updateTicketStatus(ticket.id, 'resolved')} className="text-[10px] h-6 px-2 bg-green-600 hover:bg-green-700">Giải quyết hoàn tiền</Button>
-                              <Button size="sm" onClick={() => updateTicketStatus(ticket.id, 'resolved')} className="text-[10px] h-6 px-2 bg-blue-600 hover:bg-blue-700">Gửi mail hướng dẫn</Button>
-                              <Button size="sm" onClick={() => updateTicketStatus(ticket.id, 'resolved')} className="text-[10px] h-6 px-2 bg-purple-600 hover:bg-purple-700">Đồng ý đổi trả</Button>
-                            </div>
-                          )}
-                        </td>
+
+              {ticketsLoading ? (
+                <div className="text-center py-12 text-gray-500">Đang tải...</div>
+              ) : tickets.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  Chưa có phiếu hỗ trợ nào.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
+                        <th className="pb-3 pr-4">Mã</th>
+                        <th className="pb-3 pr-4">Người dùng</th>
+                        <th className="pb-3 pr-4">Danh mục</th>
+                        <th className="pb-3 pr-4 max-w-xs">Nội dung</th>
+                        <th className="pb-3 pr-4">Trạng thái</th>
+                        <th className="pb-3 pr-4">Ngày tạo</th>
+                        <th className="pb-3">Hành động</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {tickets.map((ticket) => (
+                        <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-3 pr-4">
+                            <span className="font-mono text-xs text-gray-600">
+                              #{ticket.short_id}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 text-gray-600 text-xs">
+                            {ticket.user_id ? ticket.user_id.slice(0, 8) : 'Khách'}
+                          </td>
+                          <td className="py-3 pr-4">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                              {ticket.category_label}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 max-w-xs">
+                            <p className="text-gray-600 text-xs truncate">{ticket.message}</p>
+                          </td>
+                          <td className="py-3 pr-4">
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ticket.status] || 'bg-gray-100 text-gray-700'}`}
+                            >
+                               {ticket.status === 'open'
+                                ? 'Mở'
+                                : ticket.status === 'in_progress'
+                                  ? 'Đang xử lý'
+                                  : ticket.status === 'resolved'
+                                    ? 'Đã giải quyết'
+                                    : 'Đóng'}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 text-xs text-gray-500">
+                            {new Date(ticket.created_at).toLocaleDateString('vi-VN')}
+                          </td>
+                          <td className="py-3">
+                            <select
+                              value={ticket.status}
+                              onChange={(e) => updateTicketStatus(ticket.id, e.target.value)}
+                              className="text-xs bg-white border border-gray-300 rounded-lg px-2 py-1 text-gray-700 focus:outline-none focus:border-black"
+                            >
+                              <option value="open">Mở</option>
+                              <option value="in_progress">Đang xử lý</option>
+                              <option value="resolved">Đã giải quyết</option>
+                              <option value="closed">Đóng</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
