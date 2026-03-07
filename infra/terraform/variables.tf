@@ -10,16 +10,6 @@ variable "cloudflare_account_id" {
   sensitive   = true
 }
 
-variable "github_owner" {
-  type        = string
-  description = "GitHub organisation or username that owns the repo"
-}
-
-variable "github_repo" {
-  type        = string
-  description = "GitHub repository name (without the owner prefix)"
-  default     = "tgdd"
-}
 
 variable "environment" {
   type        = string

@@ -786,38 +786,58 @@ app.post('/admin/fix-unicode', requireAdmin, async (c) => {
   }
 });
 
+// ── CRON TASKS ───────────────────────────────────────────────────────────────
+
+async function updateOrderStatuses(env: Bindings) {
+  const now = new Date();
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+  const { results: toShip } = await env.DB.prepare(
+    `UPDATE orders SET status = 'shipped', updated_at = ? 
+     WHERE status IN ('confirmed', 'preparing') AND created_at <= ? AND created_at > ?
+     RETURNING id`
+  ).bind(now.toISOString(), oneHourAgo.toISOString(), twoHoursAgo.toISOString()).all();
+
+  const { results: toDeliver } = await env.DB.prepare(
+    `UPDATE orders SET status = 'delivered', updated_at = ? 
+     WHERE status = 'shipped' AND created_at <= ?
+     RETURNING id`
+  ).bind(now.toISOString(), twoHoursAgo.toISOString()).all();
+
+  await env.DB.prepare(
+    `UPDATE orders SET status = 'preparing', updated_at = ? 
+     WHERE status = 'confirmed' AND created_at > ?`
+  ).bind(now.toISOString(), oneHourAgo.toISOString()).run();
+
+  return {
+    shipped: toShip?.length || 0,
+    delivered: toDeliver?.length || 0,
+    timestamp: now.toISOString()
+  };
+}
+
 app.post('/cron/update-order-statuses', async (c) => {
   try {
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-
-    const { results: toShip } = await c.env.DB.prepare(
-      `UPDATE orders SET status = 'shipped', updated_at = ? 
-       WHERE status IN ('confirmed', 'preparing') AND created_at <= ? AND created_at > ?
-       RETURNING id, status`
-    ).bind(now.toISOString(), oneHourAgo.toISOString(), twoHoursAgo.toISOString()).all();
-
-    const { results: toDeliver } = await c.env.DB.prepare(
-      `UPDATE orders SET status = 'delivered', updated_at = ? 
-       WHERE status = 'shipped' AND created_at <= ?
-       RETURNING id, status`
-    ).bind(now.toISOString(), twoHoursAgo.toISOString()).all();
-
-    await c.env.DB.prepare(
-      `UPDATE orders SET status = 'preparing', updated_at = ? 
-       WHERE status = 'confirmed' AND created_at > ?`
-    ).bind(now.toISOString(), oneHourAgo.toISOString()).run();
-
+    const result = await updateOrderStatuses(c.env);
     return c.json({ 
       message: 'Đã cập nhật trạng thái các đơn hàng',
-      shipped: toShip?.length || 0,
-      delivered: toDeliver?.length || 0,
-      timestamp: now.toISOString()
+      ...result
     });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(_event: ScheduledEvent, env: Bindings, _ctx: ExecutionContext) {
+    console.log('Running scheduled task: update-order-statuses');
+    try {
+      const result = await updateOrderStatuses(env);
+      console.log('Scheduled task completed:', result);
+    } catch (error) {
+      console.error('Scheduled task failed:', error);
+    }
+  }
+};
