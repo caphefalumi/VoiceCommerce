@@ -42,3 +42,4 @@ apps/api-worker/.wrangler
 *.tfstate.*
 .terraform/
 
+tmp/

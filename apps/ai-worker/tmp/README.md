@@ -1,1 +1,0 @@
-This folder contains the built output assets for the worker "ai-worker" generated at 2026-03-04T09:29:40.200Z.
