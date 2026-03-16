@@ -22,6 +22,9 @@ export function ProductInfo({ product }: ProductInfoProps) {
     style: 'currency',
     currency: 'VND',
   });
+  const discountPercentage = Number(product.discountPercentage ?? 0);
+  const hasDiscount = discountPercentage > 0;
+  const showOriginalPrice = hasDiscount && typeof product.originalPrice === 'number';
 
   const handleBuyNow = () => {
     if (!user) {
@@ -71,13 +74,13 @@ export function ProductInfo({ product }: ProductInfoProps) {
       <div className="rounded-lg bg-muted/30 p-4">
         <div className="flex items-baseline gap-3">
           <span className="text-3xl font-bold text-red-600">{formatter.format(product.price)}</span>
-          {product.originalPrice && (
+          {showOriginalPrice && (
             <span className="text-lg text-muted-foreground line-through">
-              {formatter.format(product.originalPrice)}
+              {formatter.format(product.originalPrice as number)}
             </span>
           )}
-          {product.discountPercentage && (
-            <Badge variant="destructive">-{product.discountPercentage}%</Badge>
+          {hasDiscount && (
+            <Badge variant="destructive">-{discountPercentage}%</Badge>
           )}
         </div>
       </div>

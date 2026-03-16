@@ -9,6 +9,8 @@ interface CartItemProps {
 
 export function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeFromCart } = useCartStore();
+  const discountPercentage = Number(item.discountPercentage ?? 0);
+  const showOriginalPrice = discountPercentage > 0 && typeof item.originalPrice === 'number';
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b border-gray-100 last:border-0">
@@ -28,9 +30,9 @@ export function CartItem({ item }: CartItemProps) {
         <p className="text-base font-bold text-destructive mt-1">
           {(item.price ?? 0).toLocaleString('vi-VN')}₫
         </p>
-        {item.originalPrice && (
+        {showOriginalPrice && (
           <p className="text-xs text-gray-500 line-through">
-            {(item.originalPrice ?? 0).toLocaleString('vi-VN')}₫
+            {(item.originalPrice as number).toLocaleString('vi-VN')}₫
           </p>
         )}
       </div>

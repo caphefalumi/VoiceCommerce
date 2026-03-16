@@ -17,6 +17,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
     style: 'currency',
     currency: 'VND',
   }).format(product.price);
+  const discountPercentage = Number(product.discountPercentage ?? 0);
+  const hasDiscount = discountPercentage > 0;
+  const showOriginalPrice = hasDiscount && typeof product.originalPrice === 'number';
 
   return (
     <Link to={`/product/${product.id}` as any} className={cn('block h-full', className)}>
@@ -52,17 +55,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-red-600 font-bold text-lg">{formattedPrice}</span>
-            {product.originalPrice && (
+            {showOriginalPrice && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground line-through">
                   {new Intl.NumberFormat('vi-VN', {
                     style: 'currency',
                     currency: 'VND',
-                  }).format(product.originalPrice)}
+                  }).format(product.originalPrice as number)}
                 </span>
-                {product.discountPercentage && (
+                {hasDiscount && (
                   <span className="text-xs text-red-600 bg-red-50 px-1 rounded">
-                    -{product.discountPercentage}%
+                    -{discountPercentage}%
                   </span>
                 )}
               </div>

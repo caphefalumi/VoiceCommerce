@@ -25,7 +25,7 @@ export const Route = createRootRoute({
   component: () => (
     <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
       <Header />
-      <main className="flex-1 w-full max-w-[100vw] overflow-x-hidden">
+      <main className="flex-1 w-full max-w-[100vw] overflow-x-hidden pb-20 md:pb-0">
         <Outlet />
       </main>
       <Footer />

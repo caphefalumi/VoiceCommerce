@@ -253,7 +253,7 @@ function CheckoutPage() {
               </div>
 
               <Button
-                className="w-full mt-6 h-12 text-lg font-bold bg-destructive hover:bg-destructive/90 uppercase"
+                className="w-full mt-6 h-12 text-lg font-bold bg-destructive hover:bg-destructive/90 text-white uppercase"
                 onClick={handleSubmit}
                 disabled={isLoading}
               >

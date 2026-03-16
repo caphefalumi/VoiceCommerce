@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Filter } from 'lucide-react';
 import type { FilterOptions } from '@/lib/filter';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 
 interface ProductFilterProps {
   filters: FilterOptions;
@@ -11,6 +12,17 @@ interface ProductFilterProps {
 }
 
 export function ProductFilter({ filters, brands, onFilterChange }: ProductFilterProps) {
+  const [draftMinPrice, setDraftMinPrice] = useState(filters.minPrice?.toString() ?? '');
+  const [draftMaxPrice, setDraftMaxPrice] = useState(filters.maxPrice?.toString() ?? '');
+
+  useEffect(() => {
+    setDraftMinPrice(filters.minPrice?.toString() ?? '');
+  }, [filters.minPrice]);
+
+  useEffect(() => {
+    setDraftMaxPrice(filters.maxPrice?.toString() ?? '');
+  }, [filters.maxPrice]);
+
   const handleBrandToggle = (brand: string) => {
     const currentBrands = filters.brand || [];
     const newBrands = currentBrands.includes(brand)
@@ -20,12 +32,22 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
     onFilterChange({ ...filters, brand: newBrands });
   };
 
-  const handlePriceChange = (type: 'minPrice' | 'maxPrice', value: string) => {
-    const numValue = value === '' ? undefined : parseInt(value);
-    onFilterChange({ ...filters, [type]: numValue });
+  const parsePrice = (value: string) => {
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  };
+
+  const applyPriceFilters = () => {
+    onFilterChange({
+      ...filters,
+      minPrice: parsePrice(draftMinPrice),
+      maxPrice: parsePrice(draftMaxPrice),
+    });
   };
 
   const clearFilters = () => {
+    setDraftMinPrice('');
+    setDraftMaxPrice('');
     onFilterChange({ category: filters.category });
   };
 
@@ -80,8 +102,8 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
               <Input
                 type="number"
                 placeholder="0"
-                value={filters.minPrice ?? ''}
-                onChange={(e) => handlePriceChange('minPrice', e.target.value)}
+                value={draftMinPrice}
+                onChange={(e) => setDraftMinPrice(e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
@@ -90,12 +112,16 @@ export function ProductFilter({ filters, brands, onFilterChange }: ProductFilter
               <Input
                 type="number"
                 placeholder="Đến"
-                value={filters.maxPrice ?? ''}
-                onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
+                value={draftMaxPrice}
+                onChange={(e) => setDraftMaxPrice(e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
           </div>
+
+          <Button size="sm" onClick={applyPriceFilters} className="w-full">
+            Áp dụng
+          </Button>
 
           <div className="flex flex-wrap gap-2 pt-2">
             {[

@@ -2,9 +2,12 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { Search, ShoppingCart, LogOut, LogIn, Package } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
+import { CategoryTopNav } from './CategoryTopNav';
 import { useCartStore } from '@/store/cart';
 import { useAuthStore, fetchCartOnAuth } from '@/store/auth';
 import { useState, useRef, useEffect } from 'react';
+import { API_BASE } from '@/lib/api';
+import type { Product } from '@/types/product';
 
 export function Header() {
   const items = useCartStore((state) => state.items);
@@ -13,16 +16,89 @@ export function Header() {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<Product[]>([]);
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchSuggestions([]);
+      }
     }
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/products`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { products: Product[] } | Product[];
+        const products = Array.isArray(data) ? data : (data.products ?? []);
+        setAllProducts(products);
+      } catch {
+        setAllProducts([]);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  const normalizeText = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    const queryTokens = normalizeText(trimmed).split(' ').filter(Boolean);
+
+    const matched = allProducts
+      .filter((product) => {
+        const searchableContent = normalizeText(
+          [
+            product.name,
+            product.brand,
+            product.description,
+            ...Object.values(product.specs || {}),
+          ]
+            .filter(Boolean)
+            .join(' '),
+        );
+
+        return queryTokens.every((token) => searchableContent.includes(token));
+      })
+      .slice(0, 5);
+
+    setSearchSuggestions(matched);
+  }, [searchQuery, allProducts]);
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+
+    setSearchSuggestions([]);
+    navigate({
+      to: '/products',
+      search: { search: trimmed, page: 1 } as any,
+    });
+  };
 
   useEffect(() => {
     if (user) {
@@ -52,13 +128,45 @@ export function Header() {
           Thế giới Di động
         </Link>
 
-        <div className="flex-1 max-w-2xl relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Tìm kiếm..."
-            className="w-full bg-white pl-9 border-none h-10 text-black placeholder:text-gray-500 focus-visible:ring-black/20"
-          />
+        <div className="flex-1 max-w-2xl relative" ref={searchRef}>
+          <form onSubmit={handleSearchSubmit}>
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Tìm kiếm..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white pl-9 border-none h-10 text-black placeholder:text-gray-500 focus-visible:ring-black/20"
+            />
+          </form>
+
+          {searchQuery.trim().length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-2 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden z-50">
+              {searchSuggestions.length > 0 ? (
+                searchSuggestions.map((product) => (
+                  <Link
+                    key={product.id}
+                    to={'/product/$id' as any}
+                    params={{ id: product.id } as any}
+                    onClick={() => setSearchSuggestions([])}
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50"
+                  >
+                    <img
+                      src={product.images?.[0] || 'https://placehold.co/60x60?text=No+Image'}
+                      alt={product.name}
+                      className="h-10 w-10 rounded border border-gray-100 object-contain"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-gray-900">{product.name}</p>
+                      <p className="text-xs text-gray-500">{product.brand}</p>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-gray-500">Không có gợi ý phù hợp</div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="hidden md:flex items-center gap-4">
@@ -146,6 +254,7 @@ export function Header() {
           )}
         </div>
       </div>
+      <CategoryTopNav />
     </header>
   );
 }

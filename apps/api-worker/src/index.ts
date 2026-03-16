@@ -170,8 +170,6 @@ app.get('/api/products', async (c) => {
       params.push(parseFloat(maxPrice));
     }
     
-    query += ' LIMIT 200';
-    
     const { results } = await c.env.DB.prepare(query).bind(...params).all();
     
     const products = (results || []).map((row: any) => {

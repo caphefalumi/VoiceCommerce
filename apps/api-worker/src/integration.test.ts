@@ -71,7 +71,6 @@ describe("Products API", () => {
       query += " AND price <= ?";
       params.push(parseFloat(maxPrice));
     }
-    query += " LIMIT 200";
     
     const { results } = await (c.env as any).DB.prepare(query).bind(...params).all();
     return c.json({ products: results });
