@@ -16,17 +16,17 @@ A modern e-commerce platform with AI-powered voice commerce capabilities, built 
 
 </div>
 
-## 📋 Overview
+## Overview
 
 TGDD is a full-stack e-commerce platform featuring:
 
-- **🛒 Web Frontend** - Modern React 19 application with TanStack Router
-- **🔌 REST API** - Edge-deployed API Worker with Hono
-- **🤖 AI Agent** - Voice commerce powered by Cloudflare Workers AI
-- **🔐 Authentication** - Secure auth with Better Auth
-- **💾 Database** - Drizzle ORM with SQLite
+- **Web Frontend** - Modern React 19 application with TanStack Router
+- **REST API** - Edge-deployed API Worker with Hono
+- **AI Agent** - Voice commerce powered by Cloudflare Workers AI
+- **Authentication** - Secure auth with Better Auth
+- **Database** - Drizzle ORM with SQLite
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -45,7 +45,7 @@ TGDD is a full-stack e-commerce platform featuring:
                     Cloudflare D1 / KV
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -91,7 +91,7 @@ bun run deploy:api   # Deploy API Worker
 bun run deploy:all
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 tgdd/
@@ -117,7 +117,7 @@ tgdd/
 └── packages/          # Shared packages (if any)
 ```
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -128,7 +128,7 @@ tgdd/
 | Edge | Cloudflare Pages, Cloudflare Workers |
 | Package Manager | Bun |
 
-## 🔧 Environment Variables
+## Environment Variables
 
 Create `.env` files in each app directory:
 
@@ -149,7 +149,7 @@ BETTER_AUTH_SECRET=<your-auth-secret>
 CF_AI_API_TOKEN=<your-cloudflare-ai-token>
 ```
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
@@ -157,6 +157,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-Built with ❤️ using [Cloudflare Workers](https://workers.cloudflare.com)
+Built using [Cloudflare Workers](https://workers.cloudflare.com)
 
 </div>
