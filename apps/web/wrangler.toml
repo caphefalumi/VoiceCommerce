@@ -1,4 +1,4 @@
 name = "tgdd-frontend"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-03-01"
-account_id: "cf5f13bd5550ea98e75fea6f3ddd321b"
+account_id = "cf5f13bd5550ea98e75fea6f3ddd321b"
