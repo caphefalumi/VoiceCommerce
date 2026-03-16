@@ -3,22 +3,8 @@ name: Security Scan
 on:
   push:
     branches: ["**"]
-    paths:
-      - "apps/web/package.json"
-      - "apps/ai-worker/package.json"
-      - "apps/api-worker/package.json"
-      - "infra/terraform/**"
-      - ".github/workflows/security-scan.yml"
-      - ".github/workflows/codeql.yml"
   pull_request:
     branches: [main]
-    paths:
-      - "apps/web/package.json"
-      - "apps/ai-worker/package.json"
-      - "apps/api-worker/package.json"
-      - "infra/terraform/**"
-      - ".github/workflows/security-scan.yml"
-      - ".github/workflows/codeql.yml"
   schedule:
     - cron: '42 19 * * 1'
 
