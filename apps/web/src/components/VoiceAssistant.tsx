@@ -137,6 +137,65 @@ export function VoiceAssistant() {
   const cartItems = useCartStore((s) => s.items);
   const user = useAuthStore((s) => s.user);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const decodeBase64AudioToDataUrl = useCallback((audioBase64: string) => {
+    if (audioBase64.startsWith('data:audio/')) {
+      return audioBase64;
+    }
+
+    // Fallback to mp3 container when backend doesn't include a data URL prefix.
+    return `data:audio/mpeg;base64,${audioBase64}`;
+  }, []);
+
+  const getVietnameseVoice = useCallback(async (): Promise<SpeechSynthesisVoice | null> => {
+    const pickVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return null;
+
+      return (
+        voices.find((voice) => voice.lang.toLowerCase() === 'vi-vn') ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('vi')) ||
+        null
+      );
+    };
+
+    const immediate = pickVoice();
+    if (immediate) return immediate;
+
+    return await new Promise((resolve) => {
+      const timeoutId = window.setTimeout(() => {
+        window.speechSynthesis.onvoiceschanged = null;
+        resolve(pickVoice());
+      }, 1200);
+
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.clearTimeout(timeoutId);
+        window.speechSynthesis.onvoiceschanged = null;
+        resolve(pickVoice());
+      };
+
+      window.speechSynthesis.getVoices();
+    });
+  }, []);
+
+  const speakVietnamese = useCallback(
+    async (text: string) => {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'vi-VN';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      const vietnameseVoice = await getVietnameseVoice();
+      if (vietnameseVoice) {
+        utterance.voice = vietnameseVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    },
+    [getVietnameseVoice],
+  );
 
   const showFeedback = useCallback((text: string, duration = 5000) => {
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
@@ -299,19 +358,24 @@ export function VoiceAssistant() {
           }
         }
 
-        if (data.response_text) {
-          const utterance = new SpeechSynthesisUtterance(data.response_text);
-          utterance.lang = 'vi-VN';
-          utterance.rate = 1.0;
-          utterance.pitch = 1.0;
-          const voices = window.speechSynthesis.getVoices();
-          const vietnameseVoice = voices.find(
-            (v) => v.lang.includes('vi') || v.lang.includes('VN'),
-          );
-          if (vietnameseVoice) {
-            utterance.voice = vietnameseVoice;
+        if (data.audio_base64) {
+          try {
+            const dataUrl = decodeBase64AudioToDataUrl(data.audio_base64);
+            if (activeAudioRef.current) {
+              activeAudioRef.current.pause();
+              activeAudioRef.current = null;
+            }
+
+            const audio = new Audio(dataUrl);
+            activeAudioRef.current = audio;
+            await audio.play();
+          } catch {
+            if (data.response_text) {
+              await speakVietnamese(data.response_text);
+            }
           }
-          window.speechSynthesis.speak(utterance);
+        } else if (data.response_text) {
+          await speakVietnamese(data.response_text);
         }
 
         if (data.response_text && !data.audio_base64) {
@@ -417,6 +481,16 @@ export function VoiceAssistant() {
       mediaRecorderRef.current.stop();
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        activeAudioRef.current = null;
+      }
+      window.speechSynthesis.cancel();
+    };
+  }, []);
 
   const toggleRecording = () => {
     if (state === 'idle') {
