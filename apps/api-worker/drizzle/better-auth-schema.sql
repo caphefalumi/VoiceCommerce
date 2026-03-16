@@ -9,7 +9,11 @@ CREATE TABLE IF NOT EXISTS "user" (
   role TEXT DEFAULT 'user',
   banned INTEGER DEFAULT 0,
   ban_reason TEXT,
-  ban_expires INTEGER
+  ban_expires INTEGER,
+  delivery_recipient_name TEXT,
+  delivery_phone TEXT,
+  delivery_address TEXT,
+  delivery_city TEXT
 );
 
 CREATE TABLE IF NOT EXISTS session (

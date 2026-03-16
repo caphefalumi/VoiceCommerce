@@ -25,6 +25,27 @@ interface VoiceLog {
   created_at: string;
 }
 
+interface VoiceSessionSummary {
+  id: string;
+  user_id: string | null;
+  created_at: string;
+  updated_at: string;
+  last_intent: string | null;
+  last_user_text: string | null;
+  last_response_text: string | null;
+  message_count: number;
+}
+
+interface VoiceMessage {
+  id: string;
+  session_id: string;
+  user_id: string | null;
+  role: 'user' | 'assistant';
+  text: string;
+  intent: string | null;
+  created_at: string;
+}
+
 interface Ticket {
   id: string;
   short_id: string;
@@ -80,6 +101,10 @@ function AdminPage() {
 
   const [logs, setLogs] = useState<VoiceLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [sessions, setSessions] = useState<VoiceSessionSummary[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [sessionMessages, setSessionMessages] = useState<VoiceMessage[]>([]);
+  const [sessionMessagesLoading, setSessionMessagesLoading] = useState(false);
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
@@ -149,6 +174,33 @@ function AdminPage() {
     }
   }, []);
 
+  const loadVoiceSessions = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/voice-sessions?limit=100`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      setSessions(data.sessions || []);
+    } catch {
+      setSessions([]);
+    }
+  }, []);
+
+  const loadSessionMessages = useCallback(async (sessionId: string) => {
+    setSessionMessagesLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/voice-sessions/${sessionId}/messages`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      setSessionMessages(data.messages || []);
+    } catch {
+      setSessionMessages([]);
+    } finally {
+      setSessionMessagesLoading(false);
+    }
+  }, []);
+
   const loadTickets = useCallback(async () => {
     setTicketsLoading(true);
     try {
@@ -172,9 +224,21 @@ function AdminPage() {
 
   useEffect(() => {
     if (activeTab === 'faqs') loadFaqs();
-    else if (activeTab === 'logs') loadLogs();
+    else if (activeTab === 'logs') {
+      loadLogs();
+      loadVoiceSessions();
+    }
     else if (activeTab === 'tickets') loadTickets();
-  }, [activeTab, loadFaqs, loadLogs, loadTickets]);
+  }, [activeTab, loadFaqs, loadLogs, loadTickets, loadVoiceSessions]);
+
+  useEffect(() => {
+    if (activeTab !== 'logs') return;
+    if (!selectedSessionId) {
+      setSessionMessages([]);
+      return;
+    }
+    loadSessionMessages(selectedSessionId);
+  }, [activeTab, selectedSessionId, loadSessionMessages]);
 
   return (
     <div className="bg-[#f3f3f3] min-h-screen pb-20">
@@ -372,7 +436,11 @@ function AdminPage() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Nhật ký tương tác giọng nói</h2>
                 <button
-                  onClick={loadLogs}
+                  onClick={() => {
+                    loadLogs();
+                    loadVoiceSessions();
+                    if (selectedSessionId) loadSessionMessages(selectedSessionId);
+                  }}
                   className="text-sm px-3 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors"
                 >
                   Làm mới
@@ -386,7 +454,7 @@ function AdminPage() {
                   Chưa có nhật ký nào.
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 mb-8">
                   {logs.map((log) => (
                     <div
                       key={log.id}
@@ -426,6 +494,79 @@ function AdminPage() {
                   ))}
                 </div>
               )}
+
+              <div className="mt-8 border-t border-gray-200 pt-6">
+                <h3 className="text-base font-semibold mb-3">Phiên hội thoại giọng nói theo người dùng</h3>
+                {sessions.length === 0 ? (
+                  <div className="text-sm text-gray-500">Chưa có phiên hội thoại nào.</div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+                      {sessions.map((session) => (
+                        <button
+                          key={session.id}
+                          type="button"
+                          onClick={() => setSelectedSessionId(session.id)}
+                          className={`w-full text-left border rounded-xl p-3 transition-colors ${
+                            selectedSessionId === session.id
+                              ? 'border-blue-400 bg-blue-50'
+                              : 'border-gray-200 bg-white hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-mono text-xs text-gray-700">{session.id.slice(0, 12)}</span>
+                            <span className="text-xs text-gray-500">{session.message_count} tin</span>
+                          </div>
+                          <div className="text-xs text-gray-500 mb-1">
+                            user: {session.user_id ? session.user_id.slice(0, 12) : 'guest'}
+                          </div>
+                          {session.last_intent && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${INTENT_COLORS[session.last_intent] || 'bg-gray-200 text-gray-700'}`}>
+                              {session.last_intent}
+                            </span>
+                          )}
+                          <p className="text-xs text-gray-600 mt-2 line-clamp-2">{session.last_user_text || 'Không có nội dung user'}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(session.updated_at).toLocaleString('vi-VN')}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 min-h-[280px]">
+                      {!selectedSessionId ? (
+                        <div className="text-sm text-gray-500">Chọn một phiên bên trái để xem toàn bộ hội thoại.</div>
+                      ) : sessionMessagesLoading ? (
+                        <div className="text-sm text-gray-500">Đang tải hội thoại...</div>
+                      ) : sessionMessages.length === 0 ? (
+                        <div className="text-sm text-gray-500">Phiên này chưa có tin nhắn.</div>
+                      ) : (
+                        <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                          {sessionMessages.map((message) => (
+                            <div
+                              key={message.id}
+                              className={`rounded-lg px-3 py-2 border text-sm ${
+                                message.role === 'user'
+                                  ? 'bg-blue-50 border-blue-200 text-blue-900'
+                                  : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] uppercase tracking-wide font-semibold">{message.role}</span>
+                                <span className="text-[10px] opacity-70">{new Date(message.created_at).toLocaleTimeString('vi-VN')}</span>
+                              </div>
+                              <div>{message.text}</div>
+                              {message.intent && (
+                                <div className="text-[10px] mt-1 opacity-80">intent: {message.intent}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

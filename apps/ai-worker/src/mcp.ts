@@ -29,6 +29,22 @@ async function generateEmbedding(text: string, env: Env): Promise<number[]> {
 
 type LastSearchResult = { id: string; name: string; price: number; index: number };
 
+type CartCheckoutItem = {
+  productId: string;
+  name: string;
+  brand: string;
+  price: number;
+  quantity: number;
+  subtotal: number;
+};
+
+type DeliveryInfo = {
+  recipientName: string;
+  phone: string;
+  address: string;
+  city: string;
+};
+
 function resolveOrdinal(text: string): number | null {
   const t = text.toLowerCase().trim();
   const wordMap: Record<string, number> = {
@@ -56,6 +72,137 @@ async function fetchSpecs(productId: string, env: Env): Promise<any[]> {
       } catch { return []; }
     }
   } catch { return []; }
+}
+
+function isCompleteDeliveryInfo(info: DeliveryInfo | null): info is DeliveryInfo {
+  if (!info) return false;
+  return Boolean(
+    info.recipientName.trim() &&
+      info.phone.trim() &&
+      info.address.trim() &&
+      info.city.trim(),
+  );
+}
+
+function formatCartSummary(items: CartCheckoutItem[], totalPrice: number): string {
+  const lines = items.map(
+    (item, idx) =>
+      `${idx + 1}. ${item.name} x${item.quantity} — ${item.subtotal.toLocaleString('vi-VN')} VND`,
+  );
+  return `${lines.join('; ')}. Tổng cộng: ${totalPrice.toLocaleString('vi-VN')} VND.`;
+}
+
+async function getCartForCheckout(env: Env, userId: string): Promise<{ items: CartCheckoutItem[]; totalPrice: number }> {
+  if (!env.DB || !userId) return { items: [], totalPrice: 0 };
+  const { results } = await env.DB
+    .prepare(
+      `SELECT ci.product_id, ci.quantity, p.name, p.price, p.brand
+       FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.user_id = ?`,
+    )
+    .bind(userId)
+    .all();
+
+  const items = (results as Array<Record<string, unknown>>).map((row) => {
+    const price = Number(row.price || 0);
+    const quantity = Number(row.quantity || 1);
+    return {
+      productId: String(row.product_id || ''),
+      name: String(row.name || ''),
+      brand: String(row.brand || ''),
+      price,
+      quantity,
+      subtotal: price * quantity,
+    };
+  });
+  const totalPrice = items.reduce((sum, item) => sum + item.subtotal, 0);
+  return { items, totalPrice };
+}
+
+async function getUserDeliveryInfo(env: Env, userId: string): Promise<DeliveryInfo | null> {
+  if (!env.DB || !userId) return null;
+  try {
+    const { results } = await env.DB
+      .prepare(
+        `SELECT name, delivery_recipient_name, delivery_phone, delivery_address, delivery_city
+         FROM "user" WHERE id = ?`,
+      )
+      .bind(userId)
+      .all();
+
+    if (!results.length) return null;
+    const row = results[0] as Record<string, unknown>;
+    return {
+      recipientName: String(row.delivery_recipient_name || row.name || ''),
+      phone: String(row.delivery_phone || ''),
+      address: String(row.delivery_address || ''),
+      city: String(row.delivery_city || ''),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function upsertUserDeliveryInfo(env: Env, userId: string, delivery: DeliveryInfo): Promise<void> {
+  if (!env.DB || !userId) return;
+  await env.DB
+    .prepare(
+      `UPDATE "user"
+       SET delivery_recipient_name = ?,
+           delivery_phone = ?,
+           delivery_address = ?,
+           delivery_city = ?,
+           updated_at = ?
+       WHERE id = ?`,
+    )
+    .bind(
+      delivery.recipientName,
+      delivery.phone,
+      delivery.address,
+      delivery.city,
+      Date.now(),
+      userId,
+    )
+    .run();
+}
+
+async function createOrderFromCart(env: Env, userId: string, items: CartCheckoutItem[], totalPrice: number, delivery: DeliveryInfo) {
+  const orderId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const orderItems = items.map((item) => ({
+    productId: item.productId,
+    name: item.name,
+    brand: item.brand,
+    price: item.price,
+    quantity: item.quantity,
+  }));
+
+  if (env.DB) {
+    await env.DB
+      .prepare(
+        `INSERT INTO orders (id, user_id, status, total_price, items, shipping_address, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        orderId,
+        userId,
+        'confirmed',
+        totalPrice,
+        JSON.stringify(orderItems),
+        JSON.stringify({
+          name: delivery.recipientName,
+          phone: delivery.phone,
+          address: delivery.address,
+          city: delivery.city,
+        }),
+        now,
+        now,
+      )
+      .run();
+
+    await env.DB.prepare('DELETE FROM cart_items WHERE user_id = ?').bind(userId).run();
+  }
+
+  return { orderId, orderItems };
 }
 
 
@@ -561,44 +708,61 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
   server.registerTool(
     'startCheckout',
     {
-      description: 'Bắt đầu quy trình thanh toán. Đọc giỏ hàng của người dùng và tạo đơn hàng nháp.',
+      description:
+        'Bắt đầu quy trình thanh toán bằng giọng nói: đọc lại toàn bộ giỏ hàng, số lượng, tổng tiền và yêu cầu người dùng xác nhận lần cuối.',
       inputSchema: z.object({ userId: z.string().optional().describe('ID người dùng để đọc giỏ hàng') })
     },
     async ({ userId }) => {
       try {
-        let cartItems: any[] = [];
-        let totalPrice = 0;
+        const uid = userId || ctxUserId;
+        const { items, totalPrice } = await getCartForCheckout(env, uid || '');
 
-        if (userId && env.DB) {
-          const { results } = await env.DB.prepare(
-            `SELECT ci.id, ci.product_id, ci.quantity, p.name, p.price, p.brand
-             FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.user_id = ?`
-          ).bind(userId).all();
-          cartItems = results as any[];
-          totalPrice = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+        if (!uid) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: false,
+                  action: 'checkout_review',
+                  message: 'Bạn cần đăng nhập trước khi thanh toán.',
+                }),
+              },
+            ],
+          };
         }
 
-        if (cartItems.length === 0) {
+        if (items.length === 0) {
           return { content: [{ type: 'text', text: JSON.stringify({ success: false, action: 'checkout_start', message: 'Giỏ hàng của bạn đang trống.' }) }] };
         }
 
-        const orderId = crypto.randomUUID();
-        const now = new Date().toISOString();
-        const orderItems = cartItems.map((item: any) => ({
-          productId: item.product_id, name: item.name, brand: item.brand, price: item.price, quantity: item.quantity,
-        }));
+        const summary = formatCartSummary(items, totalPrice);
+        const profile = await getUserDeliveryInfo(env, uid);
+        const hasSavedDelivery = isCompleteDeliveryInfo(profile);
 
-        if (userId && env.DB) {
-          await env.DB.prepare('INSERT INTO orders (id, user_id, status, total_price, items, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-            .bind(orderId, userId, 'confirmed', totalPrice, JSON.stringify(orderItems), now, now).run();
-        }
+        const message = hasSavedDelivery
+          ? `Bạn sắp thanh toán các sản phẩm sau: ${summary} Địa chỉ giao hàng đã lưu: ${profile.recipientName}, ${profile.phone}, ${profile.address}, ${profile.city}. Nếu bạn đồng ý đặt hàng, vui lòng nói "xác nhận đặt hàng".`
+          : `Bạn sắp thanh toán các sản phẩm sau: ${summary} Vui lòng xác nhận bằng cách nói "xác nhận thanh toán" để tôi chuyển bạn đến trang checkout nhập thông tin giao hàng.`;
 
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
-              success: true, action: 'checkout_start', orderId, totalPrice, items: orderItems, itemCount: cartItems.length,
-              message: `Đơn hàng #${orderId.slice(0, 8).toUpperCase()} đã được tạo! Tổng cộng: ${totalPrice.toLocaleString('vi-VN')} VND.`,
+              success: true,
+              action: 'checkout_review',
+              totalPrice,
+              items,
+              itemCount: items.length,
+              hasSavedDelivery,
+              savedDelivery: hasSavedDelivery
+                ? {
+                    name: profile.recipientName,
+                    phone: profile.phone,
+                    address: profile.address,
+                    city: profile.city,
+                  }
+                : null,
+              message,
             })
           }]
         };
@@ -608,7 +772,147 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
     }
   );
 
-  // 7. getOrderStatus
+  server.registerTool(
+    'confirmCheckout',
+    {
+      description:
+        'Xác nhận thanh toán lần cuối. Nếu người dùng đã có thông tin giao hàng thì xác nhận địa chỉ và đặt hàng ngay. Nếu chưa có, hướng dẫn sang trang checkout để nhập thông tin.',
+      inputSchema: z.object({
+        userId: z.string().optional().describe('ID người dùng để xử lý thanh toán'),
+        confirmed: z
+          .union([z.boolean(), z.string()])
+          .optional()
+          .describe('Người dùng có xác nhận đặt hàng hay không (true/false hoặc "yes"/"no")'),
+        name: z.string().optional().describe('Tên người nhận (nếu người dùng đọc địa chỉ mới)'),
+        phone: z.string().optional().describe('Số điện thoại nhận hàng'),
+        address: z.string().optional().describe('Địa chỉ giao hàng'),
+        city: z.string().optional().describe('Tỉnh/Thành phố'),
+      }),
+    },
+    async ({ userId, confirmed, name, phone, address, city }) => {
+      try {
+        const uid = userId || ctxUserId;
+        if (!uid) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ success: false, action: 'checkout_review', message: 'Bạn cần đăng nhập trước khi đặt hàng.' }) }],
+          };
+        }
+
+        const confirmationText = String(confirmed ?? '').toLowerCase().trim();
+        const isConfirmed =
+          confirmed === true ||
+          confirmationText === 'true' ||
+          confirmationText === 'yes' ||
+          confirmationText === 'y' ||
+          confirmationText === 'đồng ý' ||
+          confirmationText === 'xac nhan';
+
+        if (!isConfirmed) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: false,
+                  action: 'checkout_review',
+                  message:
+                    'Tôi chưa nhận được xác nhận đặt hàng. Nếu bạn muốn tiếp tục, hãy nói "xác nhận đặt hàng".',
+                }),
+              },
+            ],
+          };
+        }
+
+        const { items, totalPrice } = await getCartForCheckout(env, uid);
+        if (!items.length) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: false,
+                  action: 'checkout_start',
+                  message: 'Giỏ hàng của bạn đang trống, chưa thể đặt hàng.',
+                }),
+              },
+            ],
+          };
+        }
+
+        const savedDelivery = await getUserDeliveryInfo(env, uid);
+        const providedDelivery: DeliveryInfo = {
+          recipientName: name || '',
+          phone: phone || '',
+          address: address || '',
+          city: city || '',
+        };
+
+        const chosenDelivery = isCompleteDeliveryInfo(providedDelivery)
+          ? providedDelivery
+          : isCompleteDeliveryInfo(savedDelivery)
+            ? savedDelivery
+            : null;
+
+        if (!chosenDelivery) {
+          const summary = formatCartSummary(items, totalPrice);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: true,
+                  action: 'checkout_start',
+                  requiresAddressForm: true,
+                  totalPrice,
+                  items,
+                  message: `Bạn đã xác nhận thanh toán: ${summary} Tôi sẽ đưa bạn tới trang checkout để điền thông tin giao hàng trước khi đặt đơn.`,
+                }),
+              },
+            ],
+          };
+        }
+
+        await upsertUserDeliveryInfo(env, uid, chosenDelivery);
+        const { orderId } = await createOrderFromCart(env, uid, items, totalPrice, chosenDelivery);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: true,
+                action: 'checkout_complete',
+                orderId,
+                totalPrice,
+                items,
+                shippingAddress: {
+                  name: chosenDelivery.recipientName,
+                  phone: chosenDelivery.phone,
+                  address: chosenDelivery.address,
+                  city: chosenDelivery.city,
+                },
+                message: `Đã xác nhận và đặt đơn hàng #${orderId.slice(0, 8).toUpperCase()}. Tổng tiền ${totalPrice.toLocaleString('vi-VN')} VND. Giao đến ${chosenDelivery.address}, ${chosenDelivery.city}.`,
+              }),
+            },
+          ],
+        };
+      } catch {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                action: 'checkout_review',
+                message: 'Không thể xác nhận thanh toán lúc này. Vui lòng thử lại.',
+              }),
+            },
+          ],
+        };
+      }
+    },
+  );
+
   server.registerTool(
     'getOrderStatus',
     {
@@ -662,7 +966,6 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
     }
   );
 
-  // 8. cancelOrder
   server.registerTool(
     'cancelOrder',
     {
@@ -722,7 +1025,6 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
     }
   );
 
-  // 9. getFaqAnswer
   server.registerTool(
     'getFaqAnswer',
     {
@@ -747,7 +1049,6 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
     }
   );
 
-  // 9. createSupportTicket
   server.registerTool(
     'createSupportTicket',
     {

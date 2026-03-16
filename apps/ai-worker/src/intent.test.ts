@@ -14,7 +14,28 @@ describe("processIntent", () => {
   test("handles startCheckout", () => {
     const toolResults = [{ toolName: "startCheckout", result: "{}" }];
     const result = processIntent(toolResults, "checkout");
-    expect(result.action).toEqual({ type: "checkout_start" });
+    expect(result.action).toEqual({ type: "checkout_start", payload: {} });
+  });
+
+  test("handles startCheckout review action", () => {
+    const payload = { action: "checkout_review", message: "review" };
+    const toolResults = [{ toolName: "startCheckout", result: JSON.stringify(payload) }];
+    const result = processIntent(toolResults, "checkout");
+    expect(result.action).toEqual({ type: "checkout_review", payload });
+  });
+
+  test("handles confirmCheckout complete action", () => {
+    const payload = { action: "checkout_complete", orderId: "o1" };
+    const toolResults = [{ toolName: "confirmCheckout", result: JSON.stringify(payload) }];
+    const result = processIntent(toolResults, "xac nhan dat hang");
+    expect(result.action).toEqual({ type: "checkout_complete", payload });
+  });
+
+  test("handles confirmCheckout route-to-checkout action", () => {
+    const payload = { action: "checkout_start", requiresAddressForm: true };
+    const toolResults = [{ toolName: "confirmCheckout", result: JSON.stringify(payload) }];
+    const result = processIntent(toolResults, "xac nhan thanh toan");
+    expect(result.action).toEqual({ type: "checkout_start", payload });
   });
 
   test("handles searchProducts with content array", () => {

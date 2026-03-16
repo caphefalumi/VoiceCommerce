@@ -90,6 +90,27 @@ interface Product {
   embedding: string;
 }
 
+type VoiceMessage = {
+  id: string;
+  session_id: string;
+  user_id: string | null;
+  role: 'user' | 'assistant';
+  text: string;
+  intent: string | null;
+  created_at: string;
+};
+
+type VoiceSessionSummary = {
+  id: string;
+  user_id: string | null;
+  created_at: string;
+  updated_at: string;
+  last_intent: string | null;
+  last_user_text: string | null;
+  last_response_text: string | null;
+  message_count: number;
+};
+
 // Cache auth instance per env object (reused within same CF Worker isolate)
 const authCache = new WeakMap<AuthEnv, ReturnType<typeof createAuth>>();
 function getAuth(env: AuthEnv) {
@@ -397,6 +418,28 @@ app.post('/api/orders', async (c) => {
 
     await c.env.DB.prepare('DELETE FROM cart_items WHERE user_id = ?').bind(user_id).run();
 
+    if (shipping_address?.address && shipping_address?.city) {
+      await c.env.DB
+        .prepare(
+          `UPDATE "user"
+           SET delivery_recipient_name = ?,
+               delivery_phone = ?,
+               delivery_address = ?,
+               delivery_city = ?,
+               updated_at = ?
+           WHERE id = ?`,
+        )
+        .bind(
+          shipping_address?.name || user_name || null,
+          shipping_address?.phone || null,
+          shipping_address?.address,
+          shipping_address?.city,
+          Date.now(),
+          user_id,
+        )
+        .run();
+    }
+
     const itemsList = (Array.isArray(items) ? items : JSON.parse(itemsJson));
     const summary = itemsList
       .map((item: any, i: number) =>
@@ -682,12 +725,129 @@ app.get('/api/admin/voice-logs', requireAdmin, async (c) => {
 app.post('/api/admin/voice-logs', async (c) => {
   try {
     const { session_id, user_id, user_text, response_text, intent } = await c.req.json();
+    const normalizedSessionId = session_id || crypto.randomUUID();
+    const normalizedUserId = user_id || null;
+    const normalizedIntent = intent || null;
+    const normalizedUserText = (user_text || '').toString();
+    const normalizedResponseText = (response_text || '').toString();
+
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
+
+    await c.env.DB
+      .prepare(
+        `INSERT INTO voice_sessions (id, user_id, created_at, updated_at, last_intent, last_user_text, last_response_text)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           user_id = COALESCE(excluded.user_id, voice_sessions.user_id),
+           updated_at = excluded.updated_at,
+           last_intent = excluded.last_intent,
+           last_user_text = excluded.last_user_text,
+           last_response_text = excluded.last_response_text`,
+      )
+      .bind(
+        normalizedSessionId,
+        normalizedUserId,
+        now,
+        now,
+        normalizedIntent,
+        normalizedUserText,
+        normalizedResponseText,
+      )
+      .run();
+
     await c.env.DB.prepare(
       'INSERT INTO voice_logs (id, session_id, user_id, user_text, response_text, intent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, session_id || null, user_id || null, user_text || '', response_text || '', intent || null, now).run();
+    ).bind(id, normalizedSessionId, normalizedUserId, normalizedUserText, normalizedResponseText, normalizedIntent, now).run();
+
+    const userMessageId = crypto.randomUUID();
+    await c.env.DB
+      .prepare(
+        `INSERT INTO voice_messages (id, session_id, user_id, role, text, intent, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(userMessageId, normalizedSessionId, normalizedUserId, 'user', normalizedUserText, normalizedIntent, now)
+      .run();
+
+    const assistantMessageId = crypto.randomUUID();
+    await c.env.DB
+      .prepare(
+        `INSERT INTO voice_messages (id, session_id, user_id, role, text, intent, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        assistantMessageId,
+        normalizedSessionId,
+        normalizedUserId,
+        'assistant',
+        normalizedResponseText,
+        normalizedIntent,
+        now,
+      )
+      .run();
+
     return c.json({ id }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+app.get('/api/admin/voice-sessions', requireAdmin, async (c) => {
+  try {
+    const limit = parseInt(c.req.query('limit') || '100');
+    const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 200) : 100;
+    const { results } = await c.env.DB
+      .prepare(
+        `SELECT
+           vs.id,
+           vs.user_id,
+           vs.created_at,
+           vs.updated_at,
+           vs.last_intent,
+           vs.last_user_text,
+           vs.last_response_text,
+           COUNT(vm.id) AS message_count
+         FROM voice_sessions vs
+         LEFT JOIN voice_messages vm ON vm.session_id = vs.id
+         GROUP BY
+           vs.id,
+           vs.user_id,
+           vs.created_at,
+           vs.updated_at,
+           vs.last_intent,
+           vs.last_user_text,
+           vs.last_response_text
+         ORDER BY vs.updated_at DESC
+         LIMIT ?`,
+      )
+      .bind(safeLimit)
+      .all();
+
+    const sessions = (results || []).map((row: any) => ({
+      ...row,
+      message_count: Number(row.message_count || 0),
+    })) as VoiceSessionSummary[];
+
+    return c.json({ sessions });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+app.get('/api/admin/voice-sessions/:sessionId/messages', requireAdmin, async (c) => {
+  try {
+    const sessionId = c.req.param('sessionId');
+    const { results } = await c.env.DB
+      .prepare(
+        `SELECT id, session_id, user_id, role, text, intent, created_at
+         FROM voice_messages
+         WHERE session_id = ?
+         ORDER BY created_at ASC, id ASC`,
+      )
+      .bind(sessionId)
+      .all();
+
+    return c.json({ messages: (results || []) as VoiceMessage[] });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }

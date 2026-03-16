@@ -37,7 +37,17 @@ export function processIntent(toolResults: any[], userMessage: string): { action
       const toolName = tr.toolName;
 
       if (toolName === 'startCheckout') {
-        action = { type: 'checkout_start' };
+        if (parsed?.action === 'checkout_review') {
+          action = { type: 'checkout_review', payload: parsed };
+        } else {
+          action = { type: 'checkout_start', payload: parsed };
+        }
+      } else if (toolName === 'confirmCheckout') {
+        if (parsed?.action === 'checkout_complete') {
+          action = { type: 'checkout_complete', payload: parsed };
+        } else {
+          action = { type: 'checkout_start', payload: parsed };
+        }
       } else if (toolName === 'searchProducts') {
         action = { type: 'search', query: userMessage };
         if (parsed?.results) {

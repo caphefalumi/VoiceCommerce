@@ -12,6 +12,10 @@ export const user = sqliteTable('user', {
   banned: integer('banned', { mode: 'boolean' }).default(false),
   banReason: text('ban_reason'),
   banExpires: integer('ban_expires', { mode: 'timestamp_ms' }),
+  deliveryRecipientName: text('delivery_recipient_name'),
+  deliveryPhone: text('delivery_phone'),
+  deliveryAddress: text('delivery_address'),
+  deliveryCity: text('delivery_city'),
 });
 
 export const session = sqliteTable('session', {

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Mic, Loader2, Square } from 'lucide-react';
+import { Mic, Loader2, Square, MessageSquare, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useCartStore } from '../store/cart';
 import { useAuthStore } from '../store/auth';
@@ -89,6 +89,31 @@ const AudioVisualizerComponent = ({
 
 type AssistantState = 'idle' | 'recording' | 'processing';
 
+type DebugChatMessage = {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  text: string;
+  timestamp: number;
+  actionType?: string;
+  toolNames?: string[];
+};
+
+const DEBUG_CHAT_HISTORY_KEY = 'voice_debug_chat_history';
+const MAX_DEBUG_CHAT_ITEMS = 30;
+
+function formatToolNames(toolResults: unknown): string[] {
+  if (!Array.isArray(toolResults)) return [];
+  return toolResults
+    .map((tr) => {
+      if (typeof tr === 'object' && tr !== null && 'toolName' in tr) {
+        const candidate = (tr as { toolName?: unknown }).toolName;
+        return typeof candidate === 'string' ? candidate : null;
+      }
+      return null;
+    })
+    .filter((v): v is string => Boolean(v));
+}
+
 export function VoiceAssistant() {
   const [state, setState] = useState<AssistantState>('idle');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -108,6 +133,7 @@ export function VoiceAssistant() {
   const navigate = useNavigate();
   const addToCart = useCartStore((s) => s.addToCart);
   const removeFromCart = useCartStore((s) => s.removeFromCart);
+  const clearCart = useCartStore((s) => s.clearCart);
   const cartItems = useCartStore((s) => s.items);
   const user = useAuthStore((s) => s.user);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -144,6 +170,36 @@ export function VoiceAssistant() {
       return [];
     }
   });
+  const [debugChatOpen, setDebugChatOpen] = useState(false);
+  const [debugMessages, setDebugMessages] = useState<DebugChatMessage[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = sessionStorage.getItem(DEBUG_CHAT_HISTORY_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const appendDebugMessages = useCallback((messages: Omit<DebugChatMessage, 'id' | 'timestamp'>[]) => {
+    if (!messages.length) return;
+    setDebugMessages((prev) => {
+      const now = Date.now();
+      const mapped = messages.map((msg, idx) => ({
+        ...msg,
+        id: `${now}-${idx}-${Math.random().toString(36).slice(2, 8)}`,
+        timestamp: now + idx,
+      }));
+      const next = [...prev, ...mapped].slice(-MAX_DEBUG_CHAT_ITEMS);
+      sessionStorage.setItem(DEBUG_CHAT_HISTORY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const clearDebugMessages = useCallback(() => {
+    setDebugMessages([]);
+    sessionStorage.removeItem(DEBUG_CHAT_HISTORY_KEY);
+  }, []);
 
   useEffect(() => {
     window.speechSynthesis.getVoices();
@@ -179,14 +235,23 @@ export function VoiceAssistant() {
 
         const data = await response.json();
 
+        const toolNames = formatToolNames(data.tool_results);
+        const actionType = data.action?.type as string | undefined;
+        const pendingDebugMessages: Omit<DebugChatMessage, 'id' | 'timestamp'>[] = [];
+
         if (data.transcribed_text) {
           showFeedback(`🗣️ Bạn: ${data.transcribed_text}`, 5000);
+          pendingDebugMessages.push({ role: 'user', text: data.transcribed_text });
         }
 
         // Handle specific actions returned by the backend (Cart/Navigation)
         if (data.action?.type === 'checkout_start' || data.action?.type === 'checkout') {
           showFeedback('🛒 Đang chuyển bạn đến trang thanh toán...');
           setTimeout(() => navigate({ to: '/checkout' }), 1000);
+        } else if (data.action?.type === 'checkout_complete') {
+          clearCart();
+          showFeedback('✅ Đặt hàng thành công! Bạn có thể theo dõi đơn trong trang đơn hàng của tôi.');
+          setTimeout(() => navigate({ to: '/orders' }), 1000);
         } else if (data.action?.type === 'search' && data.action.query) {
           navigate({ to: '/products', search: { search: data.action.query } });
         } else if (data.action?.type === 'add_to_cart' && data.action.payload?.product) {
@@ -252,6 +317,31 @@ export function VoiceAssistant() {
         if (data.response_text && !data.audio_base64) {
           showFeedback(`💬 ${data.response_text}`, 10000);
         }
+
+        if (data.response_text) {
+          pendingDebugMessages.push({
+            role: 'assistant',
+            text: data.response_text,
+            actionType,
+            toolNames,
+          });
+        }
+
+        if (actionType || toolNames.length > 0) {
+          pendingDebugMessages.push({
+            role: 'system',
+            text: [
+              actionType ? `Action: ${actionType}` : null,
+              toolNames.length > 0 ? `Tools: ${toolNames.join(', ')}` : null,
+            ]
+              .filter(Boolean)
+              .join(' | '),
+            actionType,
+            toolNames,
+          });
+        }
+
+        appendDebugMessages(pendingDebugMessages);
 
         if (data.transcribed_text || data.response_text) {
           const newHistory = [...conversationHistory];
@@ -338,6 +428,65 @@ export function VoiceAssistant() {
 
   return (
     <div className="fixed bottom-20 right-6 z-[60] flex flex-col items-end gap-4 pointer-events-none">
+      <div className="pointer-events-auto w-[360px] max-w-[calc(100vw-2rem)]">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => setDebugChatOpen((v) => !v)}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-gray-800"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Voice Debug Chat
+              {debugChatOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={clearDebugMessages}
+              disabled={debugMessages.length === 0}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {debugChatOpen && (
+            <div className="max-h-80 overflow-y-auto p-3 space-y-2 bg-white">
+              {debugMessages.length === 0 ? (
+                <div className="text-xs text-gray-500">No debug messages yet. Start speaking to populate logs.</div>
+              ) : (
+                debugMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      'rounded-xl px-3 py-2 text-xs leading-relaxed border',
+                      msg.role === 'user' && 'bg-blue-50 border-blue-200 text-blue-900',
+                      msg.role === 'assistant' && 'bg-emerald-50 border-emerald-200 text-emerald-900',
+                      msg.role === 'system' && 'bg-amber-50 border-amber-200 text-amber-900',
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-semibold uppercase tracking-wide">{msg.role}</span>
+                      <span className="text-[10px] opacity-70">{new Date(msg.timestamp).toLocaleTimeString('vi-VN')}</span>
+                    </div>
+                    <div>{msg.text}</div>
+                    {(msg.actionType || (msg.toolNames && msg.toolNames.length > 0)) && (
+                      <div className="mt-1 text-[10px] opacity-80">
+                        {msg.actionType ? `action=${msg.actionType}` : ''}
+                        {msg.actionType && msg.toolNames && msg.toolNames.length > 0 ? ' · ' : ''}
+                        {msg.toolNames && msg.toolNames.length > 0 ? `tools=${msg.toolNames.join(',')}` : ''}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {feedback && (
         <div
           className={cn(
