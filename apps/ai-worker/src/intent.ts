@@ -13,6 +13,33 @@ export interface SearchResult {
   index: number;
 }
 
+function parseRequestedCount(userMessage: string): number {
+  const m = userMessage.match(/\b(\d{1,2})\b/);
+  if (!m) return 3;
+  const n = Number(m[1]);
+  if (!Number.isFinite(n)) return 3;
+  return Math.max(1, Math.min(5, Math.trunc(n)));
+}
+
+function formatPrice(price: number): string {
+  if (!Number.isFinite(price) || price <= 0) return 'Liên hệ';
+  return `${price.toLocaleString('vi-VN')}₫`;
+}
+
+export function buildSearchResponseText(searchResults: SearchResult[], userMessage: string): string {
+  if (!searchResults.length) {
+    return 'Không tìm thấy sản phẩm phù hợp.';
+  }
+
+  const requestedCount = parseRequestedCount(userMessage);
+  const selected = searchResults.slice(0, requestedCount);
+  const lines = selected
+    .map((p, idx) => `${idx + 1}. ${p.name} | ${formatPrice(p.price)}`)
+    .join('\n');
+
+  return `Đã tìm thấy một số sản phẩm phù hợp.\n${lines}`;
+}
+
 /**
  * Processes tool results from the LLM to determine the final action and search results
  * for the frontend.
@@ -72,14 +99,30 @@ export function processIntent(toolResults: any[], userMessage: string): { action
             index: idx + 1,
           }));
         }
-      } else if (toolName === 'addToCart' && parsed?.success) {
-        action = { type: 'add_to_cart', payload: parsed };
-      } else if (toolName === 'removeFromCart' && parsed?.success) {
-        action = { type: 'remove_from_cart', payload: parsed };
-      } else if (toolName === 'viewCart' && parsed?.success) {
-        action = { type: 'view_cart', payload: parsed };
-      } else if (toolName === 'cancelOrder' && parsed?.success) {
-        action = { type: 'cancel_order', payload: parsed };
+      } else if (toolName === 'addToCart') {
+        if (parsed?.success) {
+          action = { type: 'add_to_cart', payload: parsed };
+        } else {
+          action = { type: 'add_to_cart_failed', payload: parsed };
+        }
+      } else if (toolName === 'removeFromCart') {
+        if (parsed?.success) {
+          action = { type: 'remove_from_cart', payload: parsed };
+        } else {
+          action = { type: 'remove_from_cart_failed', payload: parsed };
+        }
+      } else if (toolName === 'viewCart') {
+        if (parsed?.success) {
+          action = { type: 'view_cart', payload: parsed };
+        } else {
+          action = { type: 'view_cart_failed', payload: parsed };
+        }
+      } else if (toolName === 'cancelOrder') {
+        if (parsed?.success) {
+          action = { type: 'cancel_order', payload: parsed };
+        } else {
+          action = { type: 'cancel_order_failed', payload: parsed };
+        }
       } else if (toolName === 'compareProducts' && parsed?.products?.length) {
         action = { type: 'compare', payload: parsed };
       } else if (toolName === 'getProductDetails' && parsed?.product) {

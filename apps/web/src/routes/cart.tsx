@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { useCartStore } from '@/store/cart';
 import { useAuthStore } from '@/store/auth';
 import { CartItem } from '@/components/cart/CartItem';
@@ -27,6 +28,11 @@ export const Route = createFileRoute('/cart')({
 
 function CartPage() {
   const items = useCartStore((state) => state.items);
+  const refreshCart = useCartStore((state) => state.refreshCart);
+
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
 
   if (items.length === 0) {
     return (

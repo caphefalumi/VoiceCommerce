@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { processIntent } from "./intent";
+import { buildSearchResponseText, processIntent } from "./intent";
 
 describe("processIntent", () => {
   test("returns null action and empty searchResults for empty input", () => {
@@ -81,6 +81,16 @@ describe("processIntent", () => {
     expect(result.action?.payload.success).toBe(true);
   });
 
+  test("handles addToCart failure", () => {
+    const toolResults = [{
+      toolName: "addToCart",
+      result: JSON.stringify({ success: false, message: "Bạn cần đăng nhập" })
+    }];
+    const result = processIntent(toolResults, "add iphone");
+    expect(result.action?.type).toBe("add_to_cart_failed");
+    expect(result.action?.payload.success).toBe(false);
+  });
+
   test("handles removeFromCart success", () => {
     const toolResults = [{
       toolName: "removeFromCart",
@@ -88,6 +98,16 @@ describe("processIntent", () => {
     }];
     const result = processIntent(toolResults, "remove it");
     expect(result.action?.type).toBe("remove_from_cart");
+  });
+
+  test("handles removeFromCart failure", () => {
+    const toolResults = [{
+      toolName: "removeFromCart",
+      result: JSON.stringify({ success: false, message: "Cart empty" })
+    }];
+    const result = processIntent(toolResults, "remove it");
+    expect(result.action?.type).toBe("remove_from_cart_failed");
+    expect(result.action?.payload.success).toBe(false);
   });
 
   test("handles viewCart success", () => {
@@ -99,6 +119,16 @@ describe("processIntent", () => {
     expect(result.action?.type).toBe("view_cart");
   });
 
+  test("handles viewCart failure", () => {
+    const toolResults = [{
+      toolName: "viewCart",
+      result: JSON.stringify({ success: false, message: "Auth required" })
+    }];
+    const result = processIntent(toolResults, "show cart");
+    expect(result.action?.type).toBe("view_cart_failed");
+    expect(result.action?.payload.success).toBe(false);
+  });
+
   test("handles cancelOrder success", () => {
     const toolResults = [{
       toolName: "cancelOrder",
@@ -106,6 +136,16 @@ describe("processIntent", () => {
     }];
     const result = processIntent(toolResults, "cancel my order");
     expect(result.action?.type).toBe("cancel_order");
+  });
+
+  test("handles cancelOrder failure", () => {
+    const toolResults = [{
+      toolName: "cancelOrder",
+      result: JSON.stringify({ success: false, message: "Order not found" })
+    }];
+    const result = processIntent(toolResults, "cancel my order");
+    expect(result.action?.type).toBe("cancel_order_failed");
+    expect(result.action?.payload.success).toBe(false);
   });
 
   test("handles compareProducts success", () => {
@@ -146,5 +186,42 @@ describe("processIntent", () => {
     }];
     const result = processIntent(toolResults, "cart");
     expect(result.action?.type).toBe("view_cart");
+  });
+});
+
+describe("buildSearchResponseText", () => {
+  test("lists only requested product count from user query", () => {
+    const text = buildSearchResponseText(
+      [
+        { id: "1", name: "iPhone 16", price: 22990000, brand: "Apple", category: "Phone", index: 1 },
+        { id: "2", name: "Samsung S24", price: 19990000, brand: "Samsung", category: "Phone", index: 2 },
+        { id: "3", name: "iPhone 15", price: 18990000, brand: "Apple", category: "Phone", index: 3 },
+      ],
+      "Tìm 2 sản phẩm iPhone, Samsung",
+    );
+
+    expect(text).toContain("Đã tìm thấy 2 sản phẩm phù hợp.");
+    expect(text).toContain("1. iPhone 16");
+    expect(text).toContain("2. Samsung S24");
+    expect(text).not.toContain("3. iPhone 15");
+  });
+
+  test("falls back to default count when no number requested", () => {
+    const text = buildSearchResponseText(
+      [
+        { id: "1", name: "iPhone 16", price: 22990000, brand: "Apple", category: "Phone", index: 1 },
+      ],
+      "Tìm iPhone",
+    );
+
+    expect(text).toContain("1. iPhone 16");
+    expect(text).not.toContain("Hãy liệt kê trực tiếp");
+    expect(text).not.toContain("http://");
+    expect(text).not.toContain("https://");
+  });
+
+  test("returns not-found message when empty results", () => {
+    const text = buildSearchResponseText([], "Tìm 2 sản phẩm iPhone");
+    expect(text).toBe("Không tìm thấy sản phẩm phù hợp.");
   });
 });

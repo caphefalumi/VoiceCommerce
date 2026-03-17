@@ -131,9 +131,9 @@ export function VoiceAssistant() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const navigate = useNavigate();
-  const addToCart = useCartStore((s) => s.addToCart);
   const removeFromCart = useCartStore((s) => s.removeFromCart);
   const clearCart = useCartStore((s) => s.clearCart);
+  const refreshCart = useCartStore((s) => s.refreshCart);
   const cartItems = useCartStore((s) => s.items);
   const user = useAuthStore((s) => s.user);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -311,21 +311,25 @@ export function VoiceAssistant() {
           clearCart();
           showFeedback('✅ Đặt hàng thành công! Bạn có thể theo dõi đơn trong trang đơn hàng của tôi.');
           setTimeout(() => navigate({ to: '/orders' }), 1000);
-        } else if (data.action?.type === 'search' && data.action.query) {
-          navigate({ to: '/products', search: { search: data.action.query } });
-        } else if (data.action?.type === 'add_to_cart' && data.action.payload?.product) {
+        } else if (data.action?.type === 'add_to_cart' && data.action.payload?.product && user?.id) {
+          await refreshCart();
           const p = data.action.payload.product;
-          for (let i = 0; i < (data.action.payload.quantity || 1); i++) {
-            addToCart(p, true);
-          }
+          const qty = Number.isFinite(Number(data.action.payload.quantity))
+            ? Math.max(1, Math.trunc(Number(data.action.payload.quantity)))
+            : 1;
+          showFeedback(`🛒 Đã thêm ${qty > 1 ? `${qty} ` : ''}${p.name} vào giỏ hàng.`);
+        } else if (data.action?.type === 'add_to_cart_failed' || (data.action?.type === 'add_to_cart' && !user?.id)) {
+          const message = data.action?.payload?.message || data.response_text || 'Không thể thêm vào giỏ hàng.';
+          showFeedback(`⚠️ ${message}`);
         } else if (data.action?.type === 'remove_from_cart') {
           const removeId = data.action.payload?.productId;
-          if (removeId) {
-            removeFromCart(removeId, true);
-          } else {
+          if (removeId && user?.id) {
+            removeFromCart(removeId);
+          } else if (user?.id) {
             const itemToRemove = cartItems[cartItems.length - 1];
-            if (itemToRemove) removeFromCart(itemToRemove.id, true);
+            if (itemToRemove) removeFromCart(itemToRemove.id);
           }
+          await refreshCart();
         }
 
         // Store search results in sessionStorage for context

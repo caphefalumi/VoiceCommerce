@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { authClient } from '@/lib/auth-client';
-import { API_BASE } from '@/lib/api';
 import { useCartStore } from './cart';
 
 export interface AuthUser {
@@ -23,16 +22,7 @@ interface AuthState {
 }
 
 export const fetchCartOnAuth = async () => {
-  try {
-    const res = await fetch(`${API_BASE}/api/cart`, {
-      credentials: 'include',
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const items = Array.isArray(data) ? data : (data?.cart ?? []);
-      useCartStore.getState().setCart(items);
-    }
-  } catch {}
+  await useCartStore.getState().refreshCart();
 };
 
 export const useAuthStore = create<AuthState>()((set) => ({

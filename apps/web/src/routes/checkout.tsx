@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link, redirect } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCartStore } from '@/store/cart';
 import { useAuthStore } from '@/store/auth';
 import { authClient } from '@/lib/auth-client';
@@ -37,7 +37,7 @@ export const Route = createFileRoute('/checkout')({
 
 function CheckoutPage() {
   const navigate = useNavigate();
-  const { items, total, clearCart } = useCartStore();
+  const { items, total, clearCart, refreshCart } = useCartStore();
   const [showSuccess, setShowSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -47,6 +47,10 @@ function CheckoutPage() {
     city: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};

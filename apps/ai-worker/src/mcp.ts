@@ -45,6 +45,59 @@ type DeliveryInfo = {
   city: string;
 };
 
+type ProductSpec = {
+  label: string;
+  value: string;
+};
+
+function normalizeSpecs(rawSpecs: unknown): ProductSpec[] {
+  if (!Array.isArray(rawSpecs)) return [];
+  return rawSpecs
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const record = entry as Record<string, unknown>;
+      const labelRaw =
+        typeof record.label === 'string'
+          ? record.label.trim()
+          : typeof record.key === 'string'
+            ? record.key.trim()
+            : '';
+      const valueRaw = typeof record.value === 'string' ? record.value.trim() : '';
+
+      const label = labelRaw.replace(/:+\s*$/g, '').replace(/\s{2,}/g, ' ').trim();
+      const value = valueRaw.replace(/^:+\s*/g, '').replace(/\s{2,}/g, ' ').trim();
+      if (!label || !value) return null;
+
+      const normalizeText = (v: string) => v.toLowerCase().replace(/[:\s]+/g, ' ').trim();
+      if (normalizeText(label) === normalizeText(value)) return null;
+
+      return { label, value };
+    })
+    .filter((spec): spec is ProductSpec => spec !== null);
+}
+
+function isLowValueSpec(spec: ProductSpec): boolean {
+  const combined = `${spec.label} ${spec.value}`.toLowerCase();
+  return (
+    combined.includes('hãng không công bố') ||
+    combined.includes('không công bố') ||
+    combined.includes('danh bạ') ||
+    combined.includes('dung lượng còn lại') ||
+    combined.includes('not disclosed') ||
+    combined.includes('n/a')
+  );
+}
+
+function normalizeBrand(brand: string): string {
+  const b = (brand || '').trim();
+  const lower = b.toLowerCase();
+  if (!b) return '';
+  if (lower.includes('hãng không công bố') || lower.includes('không công bố') || lower === 'n/a') {
+    return '';
+  }
+  return b;
+}
+
 function resolveOrdinal(text: string): number | null {
   const t = text.toLowerCase().trim();
   const wordMap: Record<string, number> = {
@@ -338,10 +391,9 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
 
         results = results.slice(0, 5);
         
-        let message = `Không tìm thấy sản phẩm nào cho "${query}"`;
+        let message = `Không tìm thấy sản phẩm nào cho "${query}".`;
         if (results.length > 0) {
-          const overview = results.slice(0, 3).map((r: any) => `${r.name} giá ${r.price.toLocaleString('vi-VN')} VND`).join(', ');
-          message = `Tìm thấy ${results.length} sản phẩm. Một số sản phẩm tiêu biểu: ${overview}. Bạn muốn chọn sản phẩm nào?`;
+          message = `Đã tìm thấy một số sản phẩm phù hợp cho "${query}".`;
         }
 
         return {
@@ -400,8 +452,7 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
 
         let message = `Không tìm thấy sản phẩm ${query} nào trong tầm giá này.`;
         if (results.length > 0) {
-          const overview = results.slice(0, 3).map((r: any) => `${r.name} giá ${r.price.toLocaleString('vi-VN')} VND`).join(', ');
-          message = `Tìm thấy ${results.length} sản phẩm ${query} trong tầm giá. Tiêu biểu: ${overview}.`;
+          message = `Đã tìm thấy một số sản phẩm ${query} trong tầm giá yêu cầu.`;
         }
           
         return {
@@ -440,14 +491,15 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
           return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm.' }) }] };
         }
 
-        const specs = await fetchSpecs(product.id, env);
+        const rawSpecs = await fetchSpecs(product.id, env);
+        const specs = normalizeSpecs(rawSpecs).filter((spec) => !isLowValueSpec(spec));
 
         const responsePayload: any = {
           success: true,
           product: {
             id: product.id,
             name: product.name,
-            brand: product.brand,
+            brand: normalizeBrand(product.brand),
             price: product.price,
             category: product.category,
             priceFormatted: product.price.toLocaleString('vi-VN') + ' VND',
@@ -457,10 +509,9 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
 
         if (specs.length > 0) {
           responsePayload.product.specs = specs;
-          responsePayload.message = `${product.name} - ${product.price.toLocaleString('vi-VN')} VND. Thông số kỹ thuật: ${specs.slice(0, 3).map((s: any) => s.label + ': ' + s.value).join(', ')}... Bạn muốn thêm vào giỏ hàng hay cần thêm thông tin gì không?`;
-        } else {
-          responsePayload.message = `${product.name} - ${product.price.toLocaleString('vi-VN')} VND. Bạn muốn thêm vào giỏ hàng hay cần thêm thông tin gì không?`;
+          responsePayload.product.specCount = specs.length;
         }
+        responsePayload.message = 'Đã lấy thông tin chi tiết sản phẩm thành công.';
 
         return {
           content: [{ type: 'text', text: JSON.stringify(responsePayload) }]
@@ -622,28 +673,41 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
       const uid = userId || ctxUserId;
       log('info', 'tool.addToCart', { productName, productId, quantity, userId: uid });
       try {
-        const qty = typeof quantity === 'string' ? parseInt(quantity) || 1 : (quantity || 1);
+        const parsedQty = typeof quantity === 'string' ? parseInt(quantity, 10) : quantity;
+        const qty = Number.isFinite(parsedQty) ? Math.max(1, Math.trunc(parsedQty as number)) : 1;
+        if (!uid) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.' }) }],
+          };
+        }
+        if (!env.DB) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Hệ thống giỏ hàng tạm thời không khả dụng. Vui lòng thử lại sau.' }) }],
+          };
+        }
         const product = await resolveProduct(productId, productName, env);
 
         if (!product || !product.id) {
           return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm. Vui lòng nói tên sản phẩm rõ hơn.' }) }] };
         }
 
-        if (uid && env.DB) {
-          try {
-            const { results } = await env.DB.prepare('SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?')
-               .bind(uid, product.id).all();
+        try {
+          const { results } = await env.DB.prepare('SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?')
+            .bind(uid, product.id).all();
 
-            if (results.length > 0) {
-              const item = results[0] as any;
-              await env.DB.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?').bind(item.quantity + quantity, item.id).run();
-            } else {
-              await env.DB.prepare('INSERT INTO cart_items (id, user_id, product_id, quantity, created_at) VALUES (?, ?, ?, ?, ?)')
-                .bind(crypto.randomUUID(), uid, product.id, quantity, new Date().toISOString()).run();
-            }
-          } catch (dbErr) {
-             console.error('D1 cart insert error', dbErr);
+          if (results.length > 0) {
+            const item = results[0] as any;
+            const currentQty = Number(item.quantity || 0);
+            await env.DB.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?').bind(currentQty + qty, item.id).run();
+          } else {
+            await env.DB.prepare('INSERT INTO cart_items (id, user_id, product_id, quantity, created_at) VALUES (?, ?, ?, ?, ?)')
+              .bind(crypto.randomUUID(), uid, product.id, qty, new Date().toISOString()).run();
           }
+        } catch (dbErr) {
+          console.error('D1 cart insert error', dbErr);
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại.' }) }],
+          };
         }
 
         return {

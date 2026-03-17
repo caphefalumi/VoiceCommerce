@@ -229,6 +229,9 @@ QUAN TRỌNG:
     const ctxJson = JSON.stringify({ current_user_id: userIdValue });
     const systemPrompt = `Bạn là TGDD AI — trợ lý giọng nói thông minh của Thế Giới Di Động (TGDD), hệ thống bán lẻ điện tử lớn nhất Việt Nam.
 Bạn giao tiếp chủ yếu bằng tiếng Việt. Hãy trả lời ngắn gọn (1-3 câu). Luôn gọi công cụ (tool) cho các hành động mua sắm — không bao giờ tự tạo dữ liệu giả.
+Khi có danh sách kết quả tìm kiếm, không hardcode kiểu "Tìm thấy 5 sản phẩm". Hãy tự quyết định giới thiệu từ 1 đến 5 sản phẩm phù hợp nhất với ngữ cảnh người dùng.
+Với mọi kết quả từ searchProducts hoặc filterProductsByPrice: PHẢI liệt kê ngay danh sách sản phẩm trong cùng câu trả lời, KHÔNG hỏi lại người dùng. KHÔNG chèn URL hoặc link trong câu trả lời.
+Khi tool trả về product_details, hãy tự diễn đạt tự nhiên dựa trên product/specs, tránh liệt kê máy móc, tránh lặp thông tin, và bỏ qua các chi tiết kém hữu ích.
 
 Khi người dùng hỏi về đơn hàng của họ, hãy lấy current_user_id từ dữ liệu JSON này và truyền vào tham số userId: ${ctxJson}
 ${conversationHistory.length > 0 ? `\n\n## Cuộc trò chuyện gần đây:\n${conversationHistory.map(h => `${h.role === 'user' ? 'User' : 'AI'}: ${h.content}`).join('\n')}` : ''}${productContext}`;
@@ -236,7 +239,7 @@ ${conversationHistory.length > 0 ? `\n\n## Cuộc trò chuyện gần đây:\n${
     const messages = [{ role: 'user', content: userText }];
     
     const result = await generateText({
-      model: workersai('@cf/mistralai/mistral-small-3.1-24b-instruct') as any,
+      model: workersai('@cf/nvidia/nemotron-3-120b-a12b') as any,
       system: systemPrompt,
       messages: messages as any,
       tools: mcpTools as any,
@@ -249,7 +252,24 @@ ${conversationHistory.length > 0 ? `\n\n## Cuộc trò chuyện gần đây:\n${
       if (lastTool.output?.content?.[0]?.text) {
         try {
           const parsed = JSON.parse(lastTool.output.content[0].text);
-          responseText = parsed.message || parsed.answer || '';
+          const hasProductDetailsPayload = parsed?.action === 'product_details' && parsed?.product;
+          if (hasProductDetailsPayload) {
+            try {
+              const synthesis = await generateText({
+                model: workersai('@cf/nvidia/nemotron-3-120b-a12b') as any,
+                system: 'Bạn là tư vấn viên sản phẩm TGDD. Tóm tắt tự nhiên, ngắn gọn 2-3 câu bằng tiếng Việt thuần, không dùng từ/cụm từ ngoại ngữ hoặc ký tự lạ. Chỉ chọn các điểm thật sự hữu ích từ dữ liệu specs, tránh lặp, tránh liệt kê máy móc, bỏ qua trường kém giá trị.',
+                messages: [{
+                  role: 'user',
+                  content: `Dữ liệu sản phẩm: ${JSON.stringify(parsed.product)}. Hãy tư vấn ngắn gọn và kết bằng một câu hỏi tiếp theo phù hợp (so sánh hoặc thêm vào giỏ).`,
+                }] as any,
+              });
+              responseText = synthesis.text?.trim() || parsed.message || '';
+            } catch {
+              responseText = parsed.message || '';
+            }
+          } else {
+            responseText = parsed.message || parsed.answer || '';
+          }
         } catch {
           responseText = lastTool.output.content[0].text;
         }
@@ -294,10 +314,27 @@ ${conversationHistory.length > 0 ? `\n\n## Cuộc trò chuyện gần đây:\n${
     if (ctx?.waitUntil) ctx.waitUntil(logFetch);
     
     // Detect action for frontend (cart, search, checkout)
-    const { processIntent } = await import('./intent');
+    const { processIntent, buildSearchResponseText } = await import('./intent');
     const intentResult = processIntent(result.toolResults || [], userText);
-    const action = intentResult.action;
+    let action = intentResult.action;
     const searchResults = intentResult.searchResults;
+    const toolResults = result.toolResults || [];
+
+    if (action?.type === 'search' || action?.type === 'filter') {
+      responseText = buildSearchResponseText(searchResults, userText);
+    }
+
+    const looksLikeAddToCart = /(thêm|add).*(giỏ hàng|cart)|(giỏ hàng|cart).*(thêm|add)/i.test(userText);
+    if (looksLikeAddToCart && toolResults.length === 0 && !action) {
+      action = {
+        type: 'add_to_cart_failed',
+        payload: { success: false, message: 'Tôi chưa thể thêm vào giỏ hàng lúc này. Vui lòng thử lại.' },
+      };
+    }
+
+    if (action?.type === 'add_to_cart' && (!action.payload?.success || !action.payload?.product)) {
+      action.type = 'add_to_cart_failed';
+    }
 
     return c.json({
       transcribed_text: userText,
