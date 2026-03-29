@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base MobiPulse Light Theme (from Stitch Design System) -->
+    <style name="Theme.TGDD" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Primary colors -->
+        <item name="colorPrimary">@color/mobi_pulse_primary</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/mobi_pulse_primary</item>
+        <item name="colorOnPrimaryContainer">@android:color/black</item>
+
+        <!-- Secondary colors -->
+        <item name="colorSecondary">@color/mobi_pulse_secondary</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+        <item name="colorSecondaryContainer">@color/mobi_pulse_secondary</item>
+        <item name="colorOnSecondaryContainer">@android:color/white</item>
+
+        <!-- Tertiary colors -->
+        <item name="colorTertiary">@color/mobi_pulse_tertiary</item>
+        <item name="colorOnTertiary">@android:color/white</item>
+        <item name="colorTertiaryContainer">@color/mobi_pulse_tertiary</item>
+        <item name="colorOnTertiaryContainer">@android:color/white</item>
+
+        <!-- Error colors -->
+        <item name="colorError">@color/mobi_pulse_tertiary</item>
+        <item name="colorOnError">@android:color/white</item>
+        <item name="colorErrorContainer">@color/mobi_pulse_tertiary</item>
+        <item name="colorOnErrorContainer">@android:color/white</item>
+
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/mobi_pulse_background</item>
+        <item name="colorOnBackground">@color/mobi_pulse_on_background</item>
+
+        <!-- Surface colors -->
+        <item name="colorSurface">@color/mobi_pulse_surface</item>
+        <item name="colorOnSurface">@color/mobi_pulse_on_surface</item>
+        <item name="colorSurfaceVariant">@color/mobi_pulse_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/mobi_pulse_on_surface_variant</item>
+        <item name="colorSurfaceContainer">@color/mobi_pulse_surface</item>
+        <item name="colorSurfaceContainerLow">@color/mobi_pulse_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/mobi_pulse_surface</item>
+
+        <!-- Outline colors -->
+        <item name="colorOutline">@color/mobi_pulse_outline</item>
+        <item name="colorOutlineVariant">@color/mobi_pulse_outline_variant</item>
+
+        <!-- Inverse colors -->
+        <item name="colorSurfaceInverse">@color/mobi_pulse_on_surface</item>
+        <item name="colorOnSurfaceInverse">@color/mobi_pulse_on_surface_variant</item>
+        <item name="colorPrimaryInverse">@color/mobi_pulse_on_surface</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/mobi_pulse_surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">@color/mobi_pulse_surface</item>
+        <item name="android:windowLightNavigationBar">true</item>
+
+        <!-- Edge-to-edge -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+
+        <!-- Glassmorphism -->
+        <item name="android:navigationBarColor">@color/mobi_pulse_glass_background</item>
+    </style>
+
+    <!-- Material 3 Dark Theme -->
+    <style name="Theme.TGDD.Dark" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Primary colors -->
+        <item name="colorPrimary">@color/mobi_pulse_primary</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/mobi_pulse_primary</item>
+        <item name="colorOnPrimaryContainer">@android:color/black</item>
+
+        <!-- Secondary colors -->
+        <item name="colorSecondary">@color/mobi_pulse_secondary</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+        <item name="colorSecondaryContainer">@color/mobi_pulse_secondary</item>
+        <item name="colorOnSecondaryContainer">@android:color/white</item>
+
+        <!-- Tertiary colors -->
+        <item name="colorTertiary">@color/mobi_pulse_tertiary</item>
+        <item name="colorOnTertiary">@android:color/white</item>
+        <item name="colorTertiaryContainer">@color/mobi_pulse_tertiary</item>
+        <item name="colorOnTertiaryContainer">@android:color/white</item>
+
+        <!-- Error colors -->
+        <item name="colorError">@color/mobi_pulse_tertiary</item>
+        <item name="colorOnError">@android:color/white</item>
+        <item name="colorErrorContainer">@color/mobi_pulse_tertiary</item>
+        <item name="colorOnErrorContainer">@android:color/white</item>
+
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/mobi_pulse_background</item>
+        <item name="colorOnBackground">@color/mobi_pulse_on_background</item>
+
+        <!-- Surface colors -->
+        <item name="colorSurface">@color/mobi_pulse_surface</item>
+        <item name="colorOnSurface">@color/mobi_pulse_on_surface</item>
+        <item name="colorSurfaceVariant">@color/mobi_pulse_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/mobi_pulse_on_surface_variant</item>
+
+        <!-- Outline colors -->
+        <item name="colorOutline">@color/mobi_pulse_outline</item>
+        <item name="colorOutlineVariant">@color/mobi_pulse_outline_variant</item>
+
+        <!-- Inverse colors -->
+        <item name="colorSurfaceInverse">@color/mobi_pulse_on_surface</item>
+        <item name="colorOnSurfaceInverse">@color/mobi_pulse_on_surface_variant</item>
+        <item name="colorPrimaryInverse">@color/mobi_pulse_on_surface</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/mobi_pulse_surface</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">@color/mobi_pulse_surface</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        <!-- Edge-to-edge -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+
+        <!-- Glassmorphism -->
+        <item name="android:navigationBarColor">@color/mobi_pulse_glass_background_dark</item>
+    </style>
+
+    <!-- Splash screen theme -->
+    <style name="Theme.TGDD.Splash" parent="Theme.TGDD">
+        <item name="android:windowBackground">@color/mobi_pulse_primary</item>
+    </style>
+</resources>

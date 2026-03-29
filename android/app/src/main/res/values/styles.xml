@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ============================================================== -->
+    <!-- TYPOGRAPHY -->
+    <!-- ============================================================== -->
+    <style name="TextAppearance.TGDD.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge">
+        <item name="android:textSize">57sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:textSize">32sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textSize">28sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/mobi_pulse_on_surface</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/mobi_pulse_on_surface</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/mobi_pulse_on_surface</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/mobi_pulse_on_surface</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/mobi_pulse_on_surface</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.BodySmall" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/mobi_pulse_on_surface_variant</item>
+    </style>
+
+    <style name="TextAppearance.TGDD.LabelSmall" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/mobi_pulse_on_surface_variant</item>
+    </style>
+
+    <!-- ============================================================== -->
+    <!-- BUTTONS -->
+    <!-- ============================================================== -->
+    <style name="Widget.TGDD.Button.Primary" parent="Widget.Material3.Button">
+        <item name="android:backgroundTint">@color/mobi_pulse_primary</item>
+        <item name="android:textColor">@android:color/black</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingStart">24dp</item>
+        <item name="android:paddingEnd">24dp</item>
+    </style>
+
+    <style name="Widget.TGDD.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">@color/mobi_pulse_on_surface</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="strokeColor">@color/mobi_pulse_outline_variant</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+
+    <style name="Widget.TGDD.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/mobi_pulse_primary_dark</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- ============================================================== -->
+    <!-- TEXT FIELDS -->
+    <!-- Material3 uses shapeAppearance and boxCornerRadius* is correct  -->
+    <!-- attr names are camelCase not qualified                           -->
+    <!-- ============================================================== -->
+    <style name="Widget.TGDD.TextInputLayout.OutlinedBox" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="shapeAppearanceOverlay">@style/TGDD.ShapeOverlay.TextInput</item>
+        <item name="boxStrokeColor">@color/mobi_pulse_outline_variant</item>
+        <item name="hintTextColor">@color/mobi_pulse_on_surface_variant</item>
+        <item name="android:textColorHint">@color/mobi_pulse_on_surface_variant</item>
+    </style>
+
+    <style name="TGDD.ShapeOverlay.TextInput" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <!-- ============================================================== -->
+    <!-- CARDS -->
+    <!-- ============================================================== -->
+    <style name="Widget.TGDD.CardView.Filled" parent="Widget.Material3.CardView.Filled">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="cardBackgroundColor">@android:color/white</item>
+        <item name="strokeColor">@color/mobi_pulse_outline_variant</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="Widget.TGDD.CardView.Filled.Glass" parent="Widget.TGDD.CardView.Filled">
+        <item name="cardBackgroundColor">@color/mobi_pulse_glass_background</item>
+        <item name="strokeColor">#40FFFFFF</item>
+    </style>
+
+    <!-- ============================================================== -->
+    <!-- TOOLBAR -->
+    <!-- ============================================================== -->
+    <style name="Widget.TGDD.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
+    <!-- ============================================================== -->
+    <!-- BOTTOM NAV -->
+    <!-- itemActiveIndicatorColor and activeIndicatorColor are M3 1.7+    -->
+    <!-- Use only M3 1.11 compatible attrs (material:1.11.0)              -->
+    <!-- ============================================================== -->
+    <style name="Widget.TGDD.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:background">@android:color/white</item>
+        <item name="itemTextColor">@color/bottom_nav_icon_color</item>
+        <item name="itemIconTint">@color/bottom_nav_icon_color</item>
+        <item name="elevation">16dp</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
+
+    <!-- ============================================================== -->
+    <!-- CHIP -->
+    <!-- android:textColorStateList is not a valid XML attribute          -->
+    <!-- Use textColor instead (from Material chip attributes)            -->
+    <!-- ============================================================== -->
+    <style name="Widget.TGDD.Chip.Filter" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/mobi_pulse_surface_container_low</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipStrokeColor">@color/mobi_pulse_outline_variant</item>
+        <item name="chipCornerRadius">20dp</item>
+        <item name="android:textColor">@color/bottom_nav_icon_color</item>
+    </style>
+
+    <!-- ProductCard Glass variant (legacy compatibility) -->
+    <style name="Widget.TGDD.CardView.ProductCard.Glass" parent="Widget.Material3.CardView.Filled">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="cardBackgroundColor">@color/mobi_pulse_glass_background</item>
+        <item name="strokeColor">#40FFFFFF</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <!-- BottomNav ActiveIndicator (legacy compatibility) -->
+    <style name="Widget.TGDD.BottomNavigationView.ActiveIndicator" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@color/bottom_nav_icon_color</item>
+        <item name="itemTextColor">@color/bottom_nav_icon_color</item>
+    </style>
+
+    <!-- DIALOGS -->
+    <!-- ============================================================== -->
+    <style name="Widget.TGDD.Dialog" parent="ThemeOverlay.Material3.Dialog">
+        <item name="cornerRadius">20dp</item>
+    </style>
+
+</resources>

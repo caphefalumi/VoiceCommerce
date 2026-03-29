@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/productListFragment">
+
+    <!-- Global action: navigate to login from anywhere -->
+    <action
+        android:id="@+id/action_global_login"
+        app:destination="@id/loginFragment"
+        app:enterAnim="@anim/slide_in_up"
+        app:exitAnim="@anim/slide_out_down"
+        app:popEnterAnim="@anim/slide_in_up"
+        app:popExitAnim="@anim/slide_out_down" />
+
+    <!-- ======================================================== -->
+    <!-- BOTTOM NAV DESTINATIONS (5 tabs, Stitch design) -->
+    <!-- ======================================================== -->
+
+    <!-- 1. Home (Product List) -->
+    <fragment
+        android:id="@+id/productListFragment"
+        android:name="com.tgdd.app.ui.product.ProductListFragment"
+        android:label="@string/nav_home"
+        tools:layout="@layout/fragment_product_list">
+        <action
+            android:id="@+id/action_productList_to_detail"
+            app:destination="@id/productDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <argument
+            android:name="category"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <argument
+            android:name="brand"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <!-- 2. Category Browse -->
+    <fragment
+        android:id="@+id/categoryFragment"
+        android:name="com.tgdd.app.ui.category.CategoryFragment"
+        android:label="@string/nav_category"
+        tools:layout="@layout/fragment_category">
+        <action
+            android:id="@+id/action_category_to_detail"
+            app:destination="@id/productDetailFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_category_to_productList"
+            app:destination="@id/productListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <!-- 3. Cart -->
+    <fragment
+        android:id="@+id/cartFragment"
+        android:name="com.tgdd.app.ui.cart.CartFragment"
+        android:label="@string/nav_cart"
+        tools:layout="@layout/fragment_cart">
+        <action
+            android:id="@+id/action_cart_to_checkout"
+            app:destination="@id/checkoutFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <!-- 4. Account / Profile -->
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.tgdd.app.ui.profile.ProfileFragment"
+        android:label="@string/nav_account"
+        tools:layout="@layout/fragment_profile" />
+
+    <!-- 5. Help / Support -->
+    <fragment
+        android:id="@+id/helpFragment"
+        android:name="com.tgdd.app.ui.help.HelpFragment"
+        android:label="@string/nav_support"
+        tools:layout="@layout/fragment_help" />
+
+    <!-- ======================================================== -->
+    <!-- SECONDARY DESTINATIONS (not in bottom nav) -->
+    <!-- ======================================================== -->
+
+    <fragment
+        android:id="@+id/productDetailFragment"
+        android:name="com.tgdd.app.ui.detail.ProductDetailFragment"
+        android:label="@string/product_detail"
+        tools:layout="@layout/fragment_product_detail">
+        <argument
+            android:name="productId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/checkoutFragment"
+        android:name="com.tgdd.app.ui.checkout.CheckoutFragment"
+        android:label="@string/checkout"
+        tools:layout="@layout/fragment_checkout" />
+
+    <fragment
+        android:id="@+id/ordersFragment"
+        android:name="com.tgdd.app.ui.orders.OrdersFragment"
+        android:label="Đơn hàng"
+        tools:layout="@layout/fragment_orders" />
+
+    <!-- Auth flow (slide up from bottom) -->
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.tgdd.app.ui.auth.LoginFragment"
+        android:label="Đăng nhập"
+        tools:layout="@layout/fragment_login">
+        <action
+            android:id="@+id/action_login_to_register"
+            app:destination="@id/registerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_login_to_forgotPassword"
+            app:destination="@id/forgotPasswordFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.tgdd.app.ui.auth.RegisterFragment"
+        android:label="Đăng ký"
+        tools:layout="@layout/fragment_register" />
+
+    <fragment
+        android:id="@+id/forgotPasswordFragment"
+        android:name="com.tgdd.app.ui.auth.ForgotPasswordFragment"
+        android:label="Quên mật khẩu"
+        tools:layout="@layout/fragment_forgot_password" />
+
+</navigation>

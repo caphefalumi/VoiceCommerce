@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Font: Space Grotesk Bold
+    Usage: Headings, prices, brand elements
+    Download from: https://fonts.google.com/specimen/Space+Grotesk
+    Place space_grotesk_bold.ttf in this directory.
+-->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:fontProviderAuthority="com.google.android.gms.fonts"
+    app:fontProviderPackage="com.google.android.gms"
+    app:fontProviderQuery="Space Grotesk:700"
+    app:fontProviderCerts="@array/com_google_android_gms_fonts_certs">
+</font-family>

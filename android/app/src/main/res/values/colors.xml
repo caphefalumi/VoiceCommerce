@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher Colors (preserved from original) -->
+    <color name="ic_launcher_background">#FFD400</color>
+    <color name="ic_launcher_foreground">#000000</color>
+
+    <!-- MobiPulse Design System Colors (from Stitch) -->
+    <color name="mobi_pulse_primary">#FFD400</color>
+    <color name="mobi_pulse_primary_variant">#FFC107</color>
+    <color name="mobi_pulse_secondary">#535F71</color>
+    <color name="mobi_pulse_tertiary">#BC1219</color>
+    <color name="mobi_pulse_background">#F7F9FC</color>
+    <color name="mobi_pulse_surface">#FFFFFF</color>
+    <color name="mobi_pulse_surface_variant">#E0E3E6</color>
+    <color name="mobi_pulse_on_background">#191C1E</color>
+    <color name="mobi_pulse_on_surface">#191C1E</color>
+    <color name="mobi_pulse_on_surface_variant">#4D4632</color>
+    <color name="mobi_pulse_outline">#7F775F</color>
+    <color name="mobi_pulse_outline_variant">#D0C6AB</color>
+    
+    <!-- Extended Stitch color tokens -->
+    <color name="mobi_pulse_primary_dark">#715D00</color>
+    <color name="mobi_pulse_primary_container">#FFE177</color>
+    <color name="mobi_pulse_on_primary">#FFFFFF</color>
+    <color name="mobi_pulse_surface_container_low">#F2F4F7</color>
+    <color name="mobi_pulse_surface_container">#ECEEF1</color>
+    <color name="mobi_pulse_surface_container_high">#E6E8EB</color>
+    <color name="mobi_pulse_surface_container_highest">#E0E3E6</color>
+
+    <!-- E-commerce Enhancement Colors (Optional Alternative Palette) -->
+    <color name="ecommerce_primary">#059669</color>
+    <color name="ecommerce_secondary">#10B981</color>
+    <color name="ecommerce_cta">#F97316</color>
+    <color name="ecommerce_background">#ECFDF5</color>
+    <color name="ecommerce_text">#064E3B</color>
+    <color name="ecommerce_border">#A7F3D0</color>
+
+    <!-- Improved Text Contrast (WCAG AA Compliant) -->
+    <color name="text_primary_improved">#1E293B</color>
+    <color name="text_secondary_improved">#475569</color>
+    <color name="text_tertiary_improved">#64748B</color>
+
+    <!-- Glassmorphism Effects -->
+    <color name="mobi_pulse_glass_background">#80FFFFFF</color>
+    <color name="mobi_pulse_glass_background_dark">#80000000</color>
+
+    <!-- Material 3 Background & Surface Colors (keeping for compatibility) -->
+    <color name="md_theme_light_background">#FFFBFF</color>
+    <color name="md_theme_light_onBackground">#1D1B16</color>
+    <color name="md_theme_light_surface">#FFFBFF</color>
+    <color name="md_theme_light_onSurface">#1D1B16</color>
+    <color name="md_theme_light_surfaceVariant">#EDE5CF</color>
+    <color name="md_theme_light_onSurfaceVariant">#4A4639</color>
+    <color name="md_theme_light_outline">#7B7569</color>
+    <color name="md_theme_light_outlineVariant">#CCC5B5</color>
+    <color name="md_theme_light_inverseSurface">#32302D</color>
+    <color name="md_theme_light_inverseOnSurface">#F7F0E7</color>
+    <color name="md_theme_light_inversePrimary">#F9BE48</color>
+    <color name="md_theme_light_surfaceTint">#7C5700</color>
+    <color name="md_theme_light_scrim">#000000</color>
+
+    <!-- Material 3 Surface Tones (keeping for compatibility) -->
+    <color name="md_theme_light_surfaceContainerLowest">#FFFFFF</color>
+    <color name="md_theme_light_surfaceContainerLow">#FDF5E6</color>
+    <color name="md_theme_light_surfaceContainer">#F7EEE0</color>
+    <color name="md_theme_light_surfaceContainerHigh">#F2E9DB</color>
+    <color name="md_theme_light_surfaceContainerHighest">#ECE3D6</color>
+
+    <!-- Legacy color names (for backward compatibility with existing layouts) -->
+    <color name="colorPrimary">@color/mobi_pulse_primary</color>
+    <color name="colorPrimaryDark">@color/mobi_pulse_primary</color>
+    <color name="colorAccent">@color/mobi_pulse_primary</color>
+    <color name="error">@color/mobi_pulse_tertiary</color>
+    <color name="text_primary">@color/mobi_pulse_on_background</color>
+    <color name="text_secondary">@color/mobi_pulse_on_surface_variant</color>
+</resources>
