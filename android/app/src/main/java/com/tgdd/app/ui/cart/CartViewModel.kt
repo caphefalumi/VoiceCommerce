@@ -1,7 +1,6 @@
 package com.tgdd.app.ui.cart
 
 import androidx.lifecycle.*
-import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.data.repository.CartRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -49,16 +48,7 @@ class CartViewModel @Inject constructor(
     fun removeItem(itemId: Long) {
         viewModelScope.launch {
             try {
-                cartRepository.removeFromCart(
-                    CartItemEntity(
-                        id = itemId,
-                        productId = "",
-                        name = "",
-                        image = "",
-                        price = 0.0,
-                        quantity = 0
-                    )
-                )
+                cartRepository.removeFromCart(itemId)
             } catch (e: Exception) {
                 _error.value = e.message
             }

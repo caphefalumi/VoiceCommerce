@@ -20,12 +20,20 @@ class OrdersViewModel @Inject constructor(
     private val _isLoading = MutableLiveData(true)
     val isLoading: LiveData<Boolean> = _isLoading
 
+    private val _error = MutableLiveData<String?>()
+    val error: LiveData<String?> = _error
+
     init {
         loadOrders()
     }
 
     private fun loadOrders() {
-        val userId = userSession.getUserId() ?: return
+        val userId = userSession.getUserId()
+        if (userId.isNullOrBlank()) {
+            _isLoading.value = false
+            _orders.value = emptyList()
+            return
+        }
         viewModelScope.launch {
             _isLoading.value = true
             orderRepository.syncOrders(userId)

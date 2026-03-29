@@ -25,15 +25,14 @@ class MainActivity : AppCompatActivity() {
         NetworkObserver.init(this)
         setupNavigation()
         observeAuthErrors()
+        // Observe network once here — avoids duplicate observers added on every onResume
+        NetworkObserver.isConnected?.observe(this) { connected ->
+            if (!connected) showNetworkErrorSnackbar()
+        }
     }
     
     override fun onResume() {
         super.onResume()
-        NetworkObserver.isConnected?.observe(this) { connected ->
-            if (!connected) {
-                showNetworkErrorSnackbar()
-            }
-        }
     }
     
     private fun showNetworkErrorSnackbar() {

@@ -1,6 +1,7 @@
 package com.tgdd.app.ui.checkout
 
 import androidx.lifecycle.*
+import com.tgdd.app.data.local.UserSession
 import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.data.repository.CartRepository
 import com.tgdd.app.data.repository.OrderRepository
@@ -11,7 +12,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CheckoutViewModel @Inject constructor(
     private val cartRepository: CartRepository,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val userSession: UserSession
 ) : ViewModel() {
 
     val cartItems: LiveData<List<CartItemEntity>> = cartRepository.getAllCartItems().asLiveData()
@@ -90,6 +92,10 @@ class CheckoutViewModel @Inject constructor(
 
     fun placeOrder(items: List<CartItemEntity>, total: Double) {
         if (!validate()) return
+        if (items.isEmpty()) {
+            _error.value = "Giỏ hàng trống"
+            return
+        }
 
         viewModelScope.launch {
             _isLoading.value = true
@@ -98,8 +104,9 @@ class CheckoutViewModel @Inject constructor(
                 val orderId = orderRepository.createOrder(
                     customerName = name.value ?: "",
                     customerPhone = phone.value ?: "",
-                    address = address.value ?: "",
-                    paymentMethod = paymentMethod.value ?: "cod"
+                    address = "${address.value ?: ""}, ${city.value ?: ""}".trim().trimEnd(','),
+                    paymentMethod = paymentMethod.value ?: "cod",
+                    userId = userSession.getUserId() ?: ""
                 )
                 _orderId.value = orderId
                 _orderPlaced.value = true

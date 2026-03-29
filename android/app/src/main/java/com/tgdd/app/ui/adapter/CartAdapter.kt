@@ -5,7 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
+import coil.load
 import com.tgdd.app.R
 import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.databinding.ItemCartBinding
@@ -31,10 +31,10 @@ class CartAdapter(
                 productPrice.text = String.format("%,.0f₫", item.price)
                 quantityText.text = item.quantity.toString()
                 
-                Glide.with(productImage)
-                    .load(item.image)
-                    .placeholder(R.drawable.ic_placeholder)
-                    .into(productImage)
+                productImage.load(item.image) {
+                    placeholder(R.drawable.ic_placeholder)
+                    error(R.drawable.ic_placeholder)
+                }
 
                 increaseButton.setOnClickListener {
                     onQuantityChanged(item, item.quantity + 1)

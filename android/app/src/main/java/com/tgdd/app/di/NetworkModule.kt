@@ -52,6 +52,7 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
+        userSession: UserSession,
         @ApplicationContext context: Context
     ): OkHttpClient {
         return OkHttpClient.Builder()
@@ -59,10 +60,7 @@ object NetworkModule {
             .addInterceptor(AuthInterceptor(context))
             .addInterceptor(RetryInterceptor(maxRetries = 3))
             .addInterceptor { chain ->
-                // Inject Authorization header from UserSession for authenticated endpoints
-                val userSession = UserSession(context)
                 val token = userSession.getAuthToken()
-
                 val request = chain.request().newBuilder()
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Accept", "application/json")

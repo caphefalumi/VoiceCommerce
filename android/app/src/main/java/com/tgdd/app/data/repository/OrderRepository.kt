@@ -49,6 +49,7 @@ class OrderRepository @Inject constructor(
         userId: String = ""
     ): String {
         val cartItems = cartDao.getCartItems().first()
+        if (cartItems.isEmpty()) throw Exception("Giỏ hàng trống")
         val total = cartItems.sumOf { it.price * it.quantity }
         val orderId = UUID.randomUUID().toString()
 

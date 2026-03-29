@@ -21,9 +21,9 @@ class ReviewAdapter : ListAdapter<ReviewDto, ReviewAdapter.ViewHolder>(DIFF) {
 
     class ViewHolder(private val binding: ItemReviewBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(review: ReviewDto) {
-            binding.reviewUserName.text = review.userName
+            binding.reviewUserName.text = review.userName.ifBlank { "Ẩn danh" }
             binding.reviewRating.rating = review.rating
-            binding.reviewComment.text = review.comment
+            binding.reviewComment.text = review.comment.ifBlank { "" }
         }
     }
 

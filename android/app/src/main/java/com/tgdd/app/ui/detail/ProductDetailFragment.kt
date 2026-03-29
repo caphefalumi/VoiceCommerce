@@ -10,7 +10,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.bumptech.glide.Glide
+import coil.load
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.tgdd.app.R
@@ -83,12 +83,15 @@ class ProductDetailFragment : Fragment() {
             binding.productBrand.text = product.brand ?: product.category
             binding.productRatingBar.rating = product.rating
             binding.stockBadge.text = if (product.inStock) "Còn hàng" else "Hết hàng"
-            binding.stockBadge.setTextColor(if (product.inStock) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
+            binding.stockBadge.setTextColor(
+                if (product.inStock) android.graphics.Color.parseColor("#4CAF50")
+                else android.graphics.Color.parseColor("#F44336")
+            )
             binding.quantityText.text = "1"
-            Glide.with(this)
-                .load(product.image)
-                .placeholder(android.R.drawable.ic_menu_gallery)
-                .into(binding.productImage)
+            binding.productImage.load(product.image) {
+                placeholder(android.R.drawable.ic_menu_gallery)
+                error(android.R.drawable.ic_menu_gallery)
+            }
         }
 
         viewModel.productDto.observe(viewLifecycleOwner) { dto ->
@@ -102,12 +105,12 @@ class ProductDetailFragment : Fragment() {
                     val row = layoutInflater.inflate(android.R.layout.simple_list_item_2, binding.specsContainer, false)
                     row.findViewById<TextView>(android.R.id.text1)?.apply {
                         text = entry.key
-                        setTextColor(0xFF616161.toInt())
+                        setTextColor(android.graphics.Color.parseColor("#616161"))
                         textSize = 12f
                     }
                     row.findViewById<TextView>(android.R.id.text2)?.apply {
                         text = entry.value
-                        setTextColor(0xFF212121.toInt())
+                        setTextColor(android.graphics.Color.parseColor("#212121"))
                         textSize = 14f
                     }
                     binding.specsContainer.addView(row)

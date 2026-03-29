@@ -100,6 +100,8 @@ class ProductRepository @Inject constructor(
             if (response.isSuccessful) {
                 val products = response.body()?.products ?: emptyList()
                 val entities = products.map { it.toEntity() }
+                // Cache search results so offline search works
+                if (entities.isNotEmpty()) productDao.insertProducts(entities)
                 Result.success(entities)
             } else {
                 val cached = productDao.searchProducts(query).firstOrNull() ?: emptyList()
