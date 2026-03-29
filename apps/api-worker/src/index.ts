@@ -125,7 +125,16 @@ function getAuth(env: AuthEnv) {
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use('*', cors({
-  origin: ['https://tgdd-frontend.pages.dev', 'http://localhost:5173'],
+  origin: (origin) => {
+    if (!origin || 
+        origin === 'https://tgdd-frontend.pages.dev' || 
+        origin === 'http://localhost:5173' ||
+        origin.startsWith('file://') ||
+        origin.includes('android')) {
+      return origin || '*';
+    }
+    return '*';
+  },
   allowHeaders: ['Content-Type', 'Authorization'],
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,

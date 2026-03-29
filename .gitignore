@@ -6,6 +6,9 @@ node_modules
 # Testing
 /coverage
 
+stitch*
+.opencode
+.kiro
 # Production
 /dist
 /build
