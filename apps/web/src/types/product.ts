@@ -18,7 +18,6 @@ export interface Product {
   specs: Record<string, string>; // e.g. { "Screen": "6.1 inch", "RAM": "8GB" }
   rating: number;
   reviewCount: number;
-  isFlashSale?: boolean;
   isNew?: boolean;
   stock: number;
   description: string;

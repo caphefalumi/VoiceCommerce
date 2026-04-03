@@ -29,7 +29,7 @@ export function createAuth(env: Env) {
       enabled: true,
       minPasswordLength: 8,
       maxPasswordLength: 256,
-      requireEmailVerification: false,
+      requireEmailVerification: true,
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 60 * 30,
       password: {
@@ -67,6 +67,31 @@ export function createAuth(env: Env) {
           to: user.email,
           subject: 'Đặt lại mật khẩu TGDD',
           html: `<p>Xin chào ${user.name},</p><p>Nhấn vào <a href="${url}">đây</a> để đặt lại mật khẩu. Link hết hạn sau 30 phút.</p><p>Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.</p>`,
+        });
+      },
+    },
+
+    // ── Email Verification ──────────────────────────────────────────────────────
+    // @ts-ignore - emailVerification type not exported from better-auth package
+    emailVerification: {
+      sendOnSignUp: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendEmail(env.MAILERSEND_API_KEY, {
+          to: user.email,
+          subject: 'Xác minh email của bạn - TGDD',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #333;">Xác minh email - TGDD</h2>
+              <p>Xin chào <strong>${user.name ?? user.email}</strong>,</p>
+              <p>Cảm ơn bạn đã đăng ký! Vui lòng nhấn vào nút bên dưới để xác minh email của bạn:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${url}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Xác minh email</a>
+              </div>
+              <p style="color: #666; font-size: 14px;">Nếu bạn không đăng ký tài khoản này, vui lòng bỏ qua email này.</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+              <p style="color: #999; font-size: 12px;">TGDD - Thế Giới Di Động</p>
+            </div>
+          `,
         });
       },
     },

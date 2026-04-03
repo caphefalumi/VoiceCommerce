@@ -107,3 +107,23 @@ data class TicketDto(
     @SerializedName("created_at")
     val createdAt: String? = null
 )
+
+// Stripe checkout session response
+data class CheckoutSessionResponse(
+    @SerializedName("sessionId")
+    val sessionId: String? = null,
+    @SerializedName("url")
+    val url: String? = null,
+    @SerializedName("error")
+    val error: String? = null
+)
+
+// Stripe payment status response
+data class PaymentStatusResponse(
+    @SerializedName("status")
+    val status: String? = null, // "paid", "unpaid", "canceled"
+    @SerializedName("orderId")
+    val orderId: String? = null,
+    @SerializedName("error")
+    val error: String? = null
+)

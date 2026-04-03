@@ -50,7 +50,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
       <div>
         <div className="mb-2 flex items-center gap-2">
           {product.isNew && <Badge variant="secondary">Mới về</Badge>}
-          {product.isFlashSale && <Badge variant="destructive">Giá sốc</Badge>}
           {product.stock < 10 && <Badge variant="outline">Sắp hết hàng</Badge>}
         </div>
 

@@ -99,6 +99,12 @@ dependencies {
     // Lottie animations
     implementation("com.airbnb.android:lottie:6.1.0")
 
+    // Chrome Custom Tabs for OAuth
+    implementation("androidx.browser:browser:1.8.0")
+
+    // Stripe Android SDK
+    implementation("com.stripe:stripe-android:20.25.0")
+
     // SwipeRefreshLayout
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 

@@ -70,6 +70,8 @@ type Bindings = {
   MAILERSEND_API_KEY: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
+  STRIPE_SECRET_KEY: string;
+  STRIPE_WEBHOOK_SECRET: string;
 };
 
 type Variables = {
@@ -583,6 +585,167 @@ app.patch('/api/orders/:orderId/status', async (c) => {
       'UPDATE orders SET status = ?, updated_at = ? WHERE id = ?'
     ).bind(status, now, orderId).run();
     return c.json({ message: 'Đã cập nhật trạng thái đơn hàng' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── STRIPE CHECKOUT ───────────────────────────────────────────────────────────
+
+const STRIPE_API_VERSION = '2024-12-18.acacia';
+
+async function stripeRequest<T = any>(c: any, endpoint: string, options: RequestInit = {}): Promise<T> {
+  const stripeKey = c.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) {
+    throw new Error('STRIPE_SECRET_KEY not configured');
+  }
+  const res = await fetch(`https://api.stripe.com${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${stripeKey}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Stripe-Version': STRIPE_API_VERSION,
+      ...options.headers,
+    },
+  });
+  const data = await res.json() as T;
+  if (!res.ok) {
+    throw new Error((data as any).error?.message || `Stripe error: ${res.status}`);
+  }
+  return data;
+}
+
+// POST /api/create-checkout-session - Create Stripe Checkout session
+app.post('/api/create-checkout-session', async (c) => {
+  try {
+    const { items, user_id, user_email, user_name, success_url, cancel_url } = await c.req.json();
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return c.json({ error: 'Items are required' }, 400);
+    }
+
+    const total = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+    const amount = Math.round(total * 100);
+
+    if (amount <= 0) {
+      return c.json({ error: 'Invalid amount' }, 400);
+    }
+
+    const lineItems = items.map((item: any) => ({
+      'price_data[currency]': 'vnd',
+      'price_data[product_data][name]': item.name,
+      'price_data[unit_amount]': Math.round(item.price * 100).toString(),
+      'price_data[metadata][item_id]': item.id || '',
+      'quantity': item.quantity.toString(),
+    }));
+
+    const params = new URLSearchParams();
+    params.append('payment_method_types[]', 'card');
+    params.append('mode', 'payment');
+    params.append('success_url', success_url || 'https://tgdd-frontend.pages.dev/checkout-success?session_id={CHECKOUT_SESSION_ID}');
+    params.append('cancel_url', cancel_url || 'https://tgdd-frontend.pages.dev/checkout?canceled=true');
+    params.append('customer_email', user_email || '');
+    params.append('metadata[user_id]', user_id || '');
+    params.append('metadata[user_name]', user_name || '');
+
+    items.forEach((item: any, index: number) => {
+      params.append(`line_items[${index}][price_data][currency]`, 'vnd');
+      params.append(`line_items[${index}][price_data][product_data][name]`, item.name);
+      params.append(`line_items[${index}][price_data][unit_amount]`, Math.round(item.price * 100).toString());
+      params.append(`line_items[${index}][quantity]`, item.quantity.toString());
+    });
+
+    const session = await stripeRequest(c, '/v1/checkout/sessions', {
+      method: 'POST',
+      body: params.toString(),
+    });
+
+    return c.json({
+      sessionId: session.id,
+      url: session.url,
+    });
+  } catch (error: any) {
+    console.error('Stripe checkout session error:', error);
+    return c.json({ error: error.message || 'Failed to create checkout session' }, 500);
+  }
+});
+
+// POST /api/webhook - Handle Stripe webhook events
+app.post('/api/webhook', async (c) => {
+  const signature = c.req.header('stripe-signature');
+  if (!signature) {
+    return c.json({ error: 'Missing stripe-signature header' }, 400);
+  }
+
+  const body = await c.req.text();
+  const webhookSecret = c.env.STRIPE_WEBHOOK_SECRET;
+
+  let event: any;
+  try {
+    const timestamp = signature.split(',').find((s: string) => s.startsWith('t='))?.split('=')[1];
+    const sig = signature.split(',').find((s: string) => s.startsWith('v1='))?.split('=')[1];
+
+    if (!timestamp || !sig || !webhookSecret) {
+      return c.json({ error: 'Invalid signature format or missing webhook secret' }, 400);
+    }
+
+    const payload = `${timestamp}.${body}`;
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(webhookSecret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+    const expectedSig = Array.from(new Uint8Array(signatureBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    if (expectedSig !== sig) {
+      console.error('Webhook signature mismatch');
+      return c.json({ error: 'Invalid signature' }, 400);
+    }
+
+    event = JSON.parse(body);
+  } catch (err: any) {
+    console.error('Webhook verification error:', err);
+    return c.json({ error: 'Webhook verification failed' }, 400);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as any;
+    const userId = session.metadata?.user_id;
+    const paymentIntentId = session.payment_intent;
+    const customerEmail = session.customer_email;
+
+    console.log(`[stripe] Checkout completed: session=${session.id}, user=${userId}, payment=${paymentIntentId}`);
+
+    if (userId) {
+      await c.env.DB.prepare(
+        `UPDATE orders SET payment_intent_id = ?, payment_status = 'paid', status = 'confirmed', updated_at = ? WHERE user_id = ? AND status = 'preparing' ORDER BY created_at DESC LIMIT 1`
+      ).bind(paymentIntentId, new Date().toISOString(), userId).run();
+    }
+  }
+
+  if (event.type === 'payment_intent.payment_failed') {
+    const paymentIntent = event.data.object as any;
+    console.log(`[stripe] Payment failed: ${paymentIntent.id}`);
+  }
+
+  return c.json({ received: true });
+});
+
+// GET /api/payment-status/:sessionId - Check payment status
+app.get('/api/payment-status/:sessionId', async (c) => {
+  const sessionId = c.req.param('sessionId');
+  try {
+    const session = await stripeRequest<{ payment_status: string }>(c, `/v1/checkout/sessions/${sessionId}`);
+    return c.json({
+      status: session.payment_status,
+      paymentStatus: session.payment_status,
+    });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }

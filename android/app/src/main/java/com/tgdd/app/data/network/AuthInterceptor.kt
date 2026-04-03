@@ -11,10 +11,12 @@ class AuthInterceptor(private val context: Context) : Interceptor {
         val response = chain.proceed(request)
         
         if (response.code == 401) {
+            // Close the response body FIRST to free resources
+            response.close()
+            // Then clear session and notify
             val userSession = UserSession(context)
             userSession.clearSession()
             AuthEvents.postAuthError("Session expired. Please login again.")
-            response.close()
         }
         
         return response

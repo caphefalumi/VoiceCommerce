@@ -1,8 +1,13 @@
 package com.tgdd.app.data.network
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class RetryInterceptor(
     private val maxRetries: Int = 3,
@@ -13,7 +18,7 @@ class RetryInterceptor(
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         var response: Response? = null
-        var exception: IOException? = null
+        var lastException: IOException? = null
         
         var retryCount = 0
         var delayMs = initialDelayMs
@@ -31,7 +36,8 @@ class RetryInterceptor(
                 if (response.code in 500..599 && retryCount < maxRetries) {
                     retryCount++
                     response.close()
-                    Thread.sleep(delayMs)
+                    // Use dispatcher's delay instead of Thread.sleep
+                    runBlocking { delay(delayMs) }
                     delayMs = (delayMs * 2).coerceAtMost(maxDelayMs)
                     continue
                 }
@@ -39,17 +45,19 @@ class RetryInterceptor(
                 return response
                 
             } catch (e: IOException) {
-                exception = e
+                lastException = e
                 if (retryCount < maxRetries) {
                     retryCount++
-                    Thread.sleep(delayMs)
+                    runBlocking { delay(delayMs) }
                     delayMs = (delayMs * 2).coerceAtMost(maxDelayMs)
                 } else {
                     throw e
                 }
+            } catch (e: Exception) {
+                throw e
             }
         }
         
-        throw exception ?: IOException("Unknown error after $maxRetries retries")
+        throw lastException ?: IOException("Unknown error after $maxRetries retries")
     }
 }

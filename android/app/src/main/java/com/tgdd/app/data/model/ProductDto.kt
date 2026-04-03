@@ -27,8 +27,6 @@ data class ProductDto(
     val stock: Int = 1,
     @SerializedName("discountPercentage")
     val discountPercentage: Int = 0,
-    @SerializedName("isFlashSale")
-    val isFlashSale: Boolean = false,
     @SerializedName("isNew")
     val isNew: Boolean = false,
     @SerializedName("specs")

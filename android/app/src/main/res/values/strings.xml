@@ -56,10 +56,14 @@
     <string name="phone_number">Phone Number</string>
     <string name="payment_method">Payment Method</string>
     <string name="cash_on_delivery_cod">Cash on Delivery (COD)</string>
-    <string name="bank_transfer">Bank Transfer</string>
-    <string name="vnpay">VNPay</string>
+    <string name="stripe_payment">Stripe</string>
     <string name="place_order">Place Order</string>
     <string name="order_placed">Order Placed</string>
+    <string name="payment_success_title">Payment Successful</string>
+    <string name="payment_success_message">Your payment was processed successfully. Your order is confirmed!</string>
+    <string name="payment_canceled">Payment was canceled.</string>
+    <string name="payment_pending">Payment is being processed. Please check your orders later.</string>
+    <string name="payment_check_failed">Unable to verify payment status. Please check your orders.</string>
 
     <!-- Form Validation -->
     <string name="error_name_required">Name is required</string>
@@ -83,6 +87,12 @@
     <string name="guest_desc">Guest</string>
     <string name="orders_desc">Orders</string>
     <string name="navigate_desc">Navigate</string>
+
+    <!-- ============================================ -->
+    <!-- GOOGLE OAUTH -->
+    <!-- ============================================ -->
+    <string name="sign_in_with_google">Đăng nhập với Google</string>
+    <string name="oauth_error_title">Đăng nhập Google thất bại</string>
 
     <!-- ============================================ -->
     <!-- LOGIN DIALOG -->
@@ -136,7 +146,6 @@
     <!-- ============================================ -->
     <string name="search_hint">Tìm kiếm sản phẩm…</string>
     <string name="voice_search">Tìm kiếm bằng giọng nói</string>
-    <string name="flash_sale">Flash sale</string>
     <string name="see_all">Xem tất cả</string>
     <string name="all_categories">Tất cả</string>
 
@@ -297,6 +306,11 @@
     <string name="shipped_orders_coming_soon">Shipped orders coming soon</string>
     <string name="delivered_orders_coming_soon">Delivered orders coming soon</string>
     <string name="logout_confirmation_message">Are you sure you want to logout?</string>
+    <string name="account_settings_title">Cài đặt tài khoản</string>
+    <string name="account_full_name">Họ và tên</string>
+    <string name="save_changes">Lưu thay đổi</string>
+    <string name="profile_updated_success">Thông tin đã được cập nhật thành công.</string>
+    <string name="email_cannot_change">Email không thể thay đổi</string>
     <string name="about_title">About TGDĐ</string>
     <string name="about_message">Version 1.0.0\n\nTGDĐ - E-Commerce App with Voice Commerce\n\n© 2024 All rights reserved.</string>
     
@@ -316,9 +330,17 @@
     <!-- Login prompt -->
     <string name="login_prompt_title">Chào mừng bạn!</string>
     <string name="login_prompt_message">Đăng nhập để xem đơn hàng, quản lý tài khoản và mua sắm dễ dàng hơn.</string>
+
+    <!-- Email Verification -->
+    <string name="verify_email_title">Xác minh email</string>
+    <string name="verifying_email">Đang xác minh email của bạn...</string>
+    <string name="email_verified_success">Email của bạn đã được xác minh thành công!</string>
+    <string name="email_verification_failed">Liên kết xác minh không hợp lệ hoặc đã hết hạn.</string>
+    <string name="go_to_login">Tiến hành đăng nhập</string>
+    <string name="back_to_login">Quay lại đăng nhập</string>
+
     <!-- Accessibility Content Descriptions -->
     <string name="cart_button_description">Xem giỏ hàng</string>
-    <string name="product_image">Hình ảnh sản phẩm</string>
     <string name="favorite_button">Thêm vào yêu thích</string>
     <string name="decrease_quantity">Giảm số lượng</string>
     <string name="increase_quantity">Tăng số lượng</string>
@@ -334,5 +356,16 @@
     <!-- Empty States -->
     <string name="empty_cart_description">Hãy thêm sản phẩm yêu thích\nvào giỏ hàng của bạn</string>
     <string name="explore_products">Khám phá sản phẩm</string>
+
+    <!-- ============================================ -->
+    <!-- RESET PASSWORD -->
+    <!-- ============================================ -->
+    <string name="reset_password_title">Đặt lại mật khẩu</string>
+    <string name="new_password">Mật khẩu mới</string>
+    <string name="confirm_new_password">Xác nhận mật khẩu mới</string>
+    <string name="password_mismatch">Mật khẩu xác nhận không khớp</string>
+    <string name="password_too_short">Mật khẩu phải có ít nhất 6 ký tự</string>
+    <string name="reset_success_message">Mật khẩu đã được đặt lại thành công. Đang chuyển hướng...</string>
+    <string name="reset_password_button">Đặt lại mật khẩu</string>
 
 </resources>

@@ -1,4 +1,79 @@
 <!-- gitnexus:start -->
+<!-- GENERATED: init-deep | Tue Mar 31 2026 -->
+
+# TGDD — E-Commerce Platform with Voice Commerce
+
+**Monorepo:** Bun workspace | **Stack:** React 19 + Vite, Hono 4, Cloudflare Workers/Pages, Drizzle ORM, Better Auth
+
+## STRUCTURE
+
+```
+tgdd/
+├── apps/
+│   ├── web/           # React 19 frontend (Cloudflare Pages) — 63 source files
+│   ├── api-worker/    # Hono REST API (Cloudflare Worker) — auth, cart, orders, Stripe
+│   └── ai-worker/     # Voice AI Worker (STT/TTS/LLM orchestration)
+├── android/           # Kotlin Android app (Gradle)
+├── infra/             # Terraform + Ansible (Cloudflare, Vectorize)
+├── .agents/skills/    # Agent skill definitions (Better Auth patterns)
+└── stitch_project/    # Web scraping artifacts (NOT production code)
+```
+
+## TOOLS
+
+| Task | Tool |
+|------|------|
+| Frontend | `apps/web/src/` |
+| Backend API | `apps/api-worker/src/` |
+| AI Agent | `apps/ai-worker/src/` |
+| Android | `android/app/src/` |
+| Infra | `infra/terraform/`, `infra/ansible/` |
+
+## COMMANDS
+
+```bash
+bun run dev:web       # Frontend http://localhost:5173
+bun run dev:api       # API Worker http://localhost:8787
+bun run dev:ai        # AI Worker
+bun run build:web     # Build frontend
+bun run deploy:all    # Deploy all apps
+bun run lint          # oxlint apps/*/src
+bun run format        # oxfmt . (auto-commits changes in CI)
+```
+
+## CONVENTIONS (THIS PROJECT)
+
+- **Linter:** oxlint (NOT ESLint) — `oxlintrc.json` in `apps/web/`
+- **Formatter:** oxfmt (NOT Prettier) — `.oxfmtrc.jsonc` in `apps/web/`
+- **Quotes:** Single quotes, semicolons required, 2-space indent, 100 char line width
+- **TypeScript:** Strict mode, ES2022, path alias `@/*` → `./src/*`
+- **Testing:** Vitest (web), bun:test (workers), JUnit+MockK (Android)
+- **Naming:** PascalCase components, lowercase/snake_case utils
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+- NO anti-pattern comments in codebase — clean code, enforced via oxlint rules
+- **CI auto-commits** formatting changes (`ci.yml` lines 70-76)
+- **Lint errors masked** with `continue-on-error: true` in CI
+- 1173-line monolith in `api-worker/src/index.ts` — routes not split
+
+## GOTCHAS
+
+- `spring-backend/` referenced in `apps/web/package.json` but doesn't exist
+- `packages/` in workspace config but directory doesn't exist
+- Hardcoded API URL in `apps/web/vite.config.ts` proxy config
+- MongoDB in `docker-compose.yml` but D1/SQLite in production
+- AI worker's `ARCHITECTURE.md` references obsolete Spring Boot backend
+
+## CI/CD PIPELINE
+
+- **5 GitHub workflows:** `ci.yml`, `test.yml`, `release.yml`, `security-scan.yml`, `infra-terraform.yml`
+- Artifacts retained **7 days only** — too short for debugging
+- Release triggered by `workflow_run` from CI (indirect trigger)
+
+---
+
+<!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **tgdd** (413 symbols, 786 relationships, 8 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.

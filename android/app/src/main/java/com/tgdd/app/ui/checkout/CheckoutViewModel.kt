@@ -49,6 +49,9 @@ class CheckoutViewModel @Inject constructor(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
+    private val _checkoutUrl = MutableLiveData<String?>()
+    val checkoutUrl: LiveData<String?> = _checkoutUrl
+
     fun validate(): Boolean {
         var isValid = true
 
@@ -69,7 +72,7 @@ class CheckoutViewModel @Inject constructor(
         if (phone.value.isNullOrBlank()) {
             _phoneError.value = "Phone is required"
             isValid = false
-        } else if (!isValidPhone(phone.value!!)) {
+        } else if (!isValidPhone(phone.value ?: "")) {
             _phoneError.value = "Invalid phone number"
             isValid = false
         } else {
@@ -91,6 +94,10 @@ class CheckoutViewModel @Inject constructor(
     }
 
     fun placeOrder(items: List<CartItemEntity>, total: Double) {
+        if (paymentMethod.value == "stripe") {
+            startStripeCheckout(items)
+            return
+        }
         if (!validate()) return
         if (items.isEmpty()) {
             _error.value = "Giỏ hàng trống"
@@ -104,15 +111,44 @@ class CheckoutViewModel @Inject constructor(
                 val orderId = orderRepository.createOrder(
                     customerName = name.value ?: "",
                     customerPhone = phone.value ?: "",
-                    address = "${address.value ?: ""}, ${city.value ?: ""}".trim().trimEnd(','),
+                    address = address.value ?: "",
                     paymentMethod = paymentMethod.value ?: "cod",
-                    userId = userSession.getUserId() ?: ""
+                    userId = userSession.getUserId() ?: "",
+                    userEmail = userSession.getUserEmail() ?: ""
                 )
                 _orderId.value = orderId
                 _orderPlaced.value = true
                 _isLoading.value = false
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to place order"
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private fun startStripeCheckout(items: List<CartItemEntity>) {
+        if (!validate()) return
+        if (items.isEmpty()) {
+            _error.value = "Giỏ hàng trống"
+            return
+        }
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            try {
+                val fullAddress = "${address.value ?: ""}, ${city.value ?: ""}"
+                val url = orderRepository.createStripeCheckoutSession(
+                    customerName = name.value ?: "",
+                    customerPhone = phone.value ?: "",
+                    address = fullAddress,
+                    userId = userSession.getUserId() ?: "",
+                    userEmail = userSession.getUserEmail() ?: ""
+                )
+                _checkoutUrl.value = url
+                _isLoading.value = false
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to start checkout"
                 _isLoading.value = false
             }
         }

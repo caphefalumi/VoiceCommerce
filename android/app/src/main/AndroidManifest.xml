@@ -20,6 +20,50 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Deep link: tgdd://reset-password?token=xxx -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="tgdd"
+                    android:host="reset-password" />
+            </intent-filter>
+            <!-- Deep link: tgdd://verify-email?token=xxx -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="tgdd"
+                    android:host="verify-email" />
+            </intent-filter>
+            <!-- Deep link: tgdd://checkout?session_id=xxx -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="tgdd"
+                    android:host="checkout" />
+            </intent-filter>
+        </activity>
+
+        <!-- Handles the OAuth callback redirect from the browser -->
+        <activity
+            android:name=".ui.auth.OAuthCallbackActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.TGDD">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Matches https://api-worker.dangduytoan13l.workers.dev/api/auth/callback/google -->
+                <data
+                    android:scheme="tgdd"
+                    android:host="oauth" />
+            </intent-filter>
         </activity>
     </application>
 

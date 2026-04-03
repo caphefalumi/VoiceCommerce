@@ -46,19 +46,25 @@ class OrderRepository @Inject constructor(
         customerPhone: String,
         address: String,
         paymentMethod: String,
-        userId: String = ""
+        userId: String = "",
+        userEmail: String = ""
     ): String {
         val cartItems = cartDao.getCartItems().first()
         if (cartItems.isEmpty()) throw Exception("Giỏ hàng trống")
         val total = cartItems.sumOf { it.price * it.quantity }
         val orderId = UUID.randomUUID().toString()
 
+        // Parse address + city (address is already "street, city" from CheckoutViewModel)
+        val parts = address.split(",").map { it.trim() }
+        val street = parts.dropLast(1).joinToString(", ").ifBlank { address }
+        val city = parts.lastOrNull()?.takeIf { parts.size > 1 } ?: ""
+
         val order = OrderEntity(
             id = orderId,
             userId = userId,
             items = gson.toJson(cartItems),
             total = total,
-            status = "pending",
+            status = "preparing",
             address = address,
             customerName = customerName,
             customerPhone = customerPhone,
@@ -73,7 +79,7 @@ class OrderRepository @Inject constructor(
                 val orderData = mapOf(
                     "user_id" to userId,
                     "user_name" to customerName,
-                    "user_email" to "",
+                    "user_email" to userEmail,
                     "items" to cartItems.map { mapOf(
                         "productId" to it.productId,
                         "name" to it.name,
@@ -84,7 +90,8 @@ class OrderRepository @Inject constructor(
                     "shipping_address" to mapOf(
                         "name" to customerName,
                         "phone" to customerPhone,
-                        "address" to address
+                        "address" to street,
+                        "city" to city
                     )
                 )
                 val response = orderApi.createOrder(orderData)
@@ -139,6 +146,66 @@ class OrderRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Sync orders failed: ${e.message}", e)
         }
+    }
+
+    suspend fun createStripeCheckoutSession(
+        customerName: String,
+        customerPhone: String,
+        address: String,
+        userId: String = "",
+        userEmail: String = ""
+    ): String {
+        val cartItems = cartDao.getCartItems().first()
+        if (cartItems.isEmpty()) throw Exception("Giỏ hàng trống")
+        val total = cartItems.sumOf { it.price * it.quantity }
+
+        val parts = address.split(",").map { it.trim() }
+        val street = parts.dropLast(1).joinToString(", ").ifBlank { address }
+        val city = parts.lastOrNull()?.takeIf { parts.size > 1 } ?: ""
+
+        val sessionResponse = orderApi.createCheckoutSession(
+            mapOf(
+                "user_id" to userId,
+                "user_name" to customerName,
+                "user_email" to userEmail,
+                "user_phone" to customerPhone,
+                "items" to cartItems.map { mapOf(
+                    "productId" to it.productId,
+                    "name" to it.name,
+                    "price" to it.price,
+                    "quantity" to it.quantity
+                ) },
+                "total_price" to total,
+                "shipping_address" to mapOf(
+                    "name" to customerName,
+                    "phone" to customerPhone,
+                    "address" to street,
+                    "city" to city
+                )
+            )
+        )
+        
+        if (!sessionResponse.isSuccessful) {
+            throw Exception(sessionResponse.body()?.error ?: "Failed to create checkout session")
+        }
+        
+        val checkoutUrl = sessionResponse.body()?.url
+        if (checkoutUrl.isNullOrBlank()) {
+            throw Exception("No checkout URL returned")
+        }
+        
+        return checkoutUrl
+    }
+
+    suspend fun getPaymentStatus(sessionId: String): String {
+        if (!NetworkObserver.isCurrentlyConnected()) {
+            throw Exception("No network connection")
+        }
+        val response = orderApi.getPaymentStatus(sessionId)
+        if (!response.isSuccessful) {
+            throw Exception(response.body()?.error ?: "Failed to check payment status")
+        }
+        return response.body()?.status ?: "unknown"
     }
 
     companion object {

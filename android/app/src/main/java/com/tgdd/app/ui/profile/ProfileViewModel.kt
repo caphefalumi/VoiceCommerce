@@ -35,6 +35,9 @@ class ProfileViewModel @Inject constructor(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
+    private val _updateSuccess = MutableLiveData<Boolean>()
+    val updateSuccess: LiveData<Boolean> = _updateSuccess
+
     init {
         loadUserSession()
     }
@@ -125,6 +128,28 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun clearError() { _error.value = null }
+
+    fun updateName(name: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            _updateSuccess.value = false
+            userRepository.updateUser(name).fold(
+                onSuccess = { user ->
+                    _userName.value = user.name ?: user.email ?: "User"
+                    _updateSuccess.value = true
+                },
+                onFailure = { e ->
+                    _error.value = e.message ?: "Cập nhật thất bại"
+                }
+            )
+            _isLoading.value = false
+        }
+    }
+
+    fun clearUpdateSuccess() {
+        _updateSuccess.value = false
+    }
 
     fun refreshSession() {
         val loggedIn = userSession.isLoggedIn()

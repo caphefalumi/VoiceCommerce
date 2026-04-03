@@ -64,10 +64,10 @@ class RegisterFragment : Fragment() {
             }
         }
 
-        viewModel.loginSuccess.observe(viewLifecycleOwner) { success ->
-            if (success) {
+        viewModel.loginSuccess.observe(viewLifecycleOwner) { event ->
+            event.getContentIfNotHandled()?.let {
                 viewModel.resetLoginSuccess()
-                // pop back to wherever we came from (profile, detail, etc.)
+                // pop back to login screen and clear backstack
                 findNavController().popBackStack(R.id.loginFragment, true)
             }
         }

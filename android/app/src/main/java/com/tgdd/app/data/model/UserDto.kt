@@ -34,3 +34,12 @@ data class AuthUserDto(
     @SerializedName("role")
     val role: String? = "user"
 )
+
+data class SocialSignInResponse(
+    @SerializedName("url")
+    val url: String? = null,
+    @SerializedName("redirect")
+    val redirect: Boolean? = null,
+    @SerializedName("error")
+    val error: String? = null
+)

@@ -170,6 +170,38 @@
         android:id="@+id/forgotPasswordFragment"
         android:name="com.tgdd.app.ui.auth.ForgotPasswordFragment"
         android:label="Quên mật khẩu"
-        tools:layout="@layout/fragment_forgot_password" />
+        tools:layout="@layout/fragment_forgot_password">
+        <action
+            android:id="@+id/action_forgotPassword_to_resetPassword"
+            app:destination="@id/resetPasswordFragment"
+            app:popUpTo="@id/loginFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/resetPasswordFragment"
+        android:name="com.tgdd.app.ui.auth.ResetPasswordFragment"
+        android:label="@string/reset_password_title">
+        <argument
+            android:name="token"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/accountSettingsFragment"
+        android:name="com.tgdd.app.ui.profile.AccountSettingsFragment"
+        android:label="@string/account_settings_title" />
+
+    <fragment
+        android:id="@+id/verifyEmailFragment"
+        android:name="com.tgdd.app.ui.auth.VerifyEmailFragment"
+        android:label="@string/verify_email_title">
+        <argument
+            android:name="token"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
 
 </navigation>

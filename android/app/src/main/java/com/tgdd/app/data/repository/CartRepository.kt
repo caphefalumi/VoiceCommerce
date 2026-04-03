@@ -8,6 +8,7 @@ import com.tgdd.app.data.model.CartItemDto
 import com.tgdd.app.data.network.NetworkObserver
 import com.tgdd.app.data.remote.CartApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -42,6 +43,8 @@ class CartRepository @Inject constructor(
         } else {
             cartDao.insertCartItem(cartItem)
         }
+        // Sync to server
+        syncAddToCart(product.id, 1)
     }
 
     suspend fun addToCart(item: CartItemEntity) {
@@ -52,6 +55,8 @@ class CartRepository @Inject constructor(
         } else {
             cartDao.insertCartItem(item)
         }
+        // Sync to server
+        syncAddToCart(item.productId, item.quantity)
     }
 
     suspend fun updateCartItem(item: CartItemEntity) {
@@ -67,19 +72,49 @@ class CartRepository @Inject constructor(
     }
 
     suspend fun removeFromCart(itemId: Long) {
+        // Get the productId before deleting so we can sync with server
+        val item = cartDao.getCartItems().firstOrNull()?.find { it.id == itemId }
         cartDao.removeCartItemById(itemId)
+        item?.let { syncRemoveFromCart(it.productId) }
     }
 
     suspend fun removeFromCart(item: CartItemEntity) {
         cartDao.deleteCartItem(item)
+        syncRemoveFromCart(item.productId)
     }
 
     suspend fun removeByProductId(productId: String) {
         cartDao.removeCartItemByProductId(productId)
+        syncRemoveFromCart(productId)
     }
 
     suspend fun clearCart() {
         cartDao.clearCart()
+    }
+
+    private suspend fun syncAddToCart(productId: String, quantity: Int) {
+        if (!NetworkObserver.isCurrentlyConnected()) return
+        try {
+            val dto = mapOf("product_id" to productId, "quantity" to quantity)
+            val response = cartApi.addToCart(dto)
+            if (!response.isSuccessful) {
+                Log.e(TAG, "Add to cart sync failed: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Add to cart sync failed: ${e.message}", e)
+        }
+    }
+
+    private suspend fun syncRemoveFromCart(productId: String) {
+        if (!NetworkObserver.isCurrentlyConnected()) return
+        try {
+            val response = cartApi.removeFromCart(productId)
+            if (!response.isSuccessful) {
+                Log.e(TAG, "Remove from cart sync failed: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Remove from cart sync failed: ${e.message}", e)
+        }
     }
 
     suspend fun syncCart() {
@@ -101,27 +136,6 @@ class CartRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Cart sync failed: ${e.message}", e)
-        }
-    }
-
-    suspend fun syncAddToCart(item: CartItemEntity) {
-        if (!NetworkObserver.isCurrentlyConnected()) {
-            Log.w(TAG, "Cannot sync add to cart: no network connection")
-            return
-        }
-        try {
-            val dto = mapOf(
-                "product_id" to item.productId,
-                "quantity" to item.quantity
-            )
-            val response = cartApi.addToCart(dto)
-            if (response.isSuccessful) {
-                Log.d(TAG, "Add to cart synced: ${response.body()?.message ?: "ok"}")
-            } else {
-                Log.e(TAG, "Add to cart sync failed: ${response.code()}")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Add to cart sync failed: ${e.message}", e)
         }
     }
 

@@ -6,7 +6,7 @@ import { authClient } from '@/lib/auth-client';
 import { API_BASE } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, CreditCard, Truck } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,11 +35,14 @@ export const Route = createFileRoute('/checkout')({
   component: CheckoutPage,
 });
 
+type PaymentMethod = 'cod' | 'stripe';
+
 function CheckoutPage() {
   const navigate = useNavigate();
   const { items, total, clearCart, refreshCart } = useCartStore();
   const [showSuccess, setShowSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -87,6 +90,46 @@ function CheckoutPage() {
         images: item.images,
       }));
 
+      // If Stripe is selected, create checkout session and redirect
+      if (paymentMethod === 'stripe') {
+        const successUrl = `${window.location.origin}/checkout-success`;
+        const cancelUrl = `${window.location.origin}/checkout`;
+        
+        const res = await fetch(`${API_BASE}/api/create-checkout-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            items: orderItems,
+            user_id: currentUser.id,
+            user_email: currentUser.email,
+            user_name: formData.name,
+            shipping_address: {
+              name: formData.name,
+              phone: formData.phone,
+              address: formData.address,
+              city: formData.city,
+            },
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.url) {
+            window.location.href = data.url;
+            return;
+          }
+        } else {
+          const data = await res.json();
+          setErrors({ submit: data.error || 'Tạo phiên thanh toán thất bại. Vui lòng thử lại.' });
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // COD flow (existing)
       const res = await fetch(`${API_BASE}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,7 +239,7 @@ function CheckoutPage() {
                   {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
                 </div>
 
-                <div className="space-y-2">
+                  <div className="space-y-2">
                   <label htmlFor="address" className="text-sm font-medium text-gray-700">
                     Địa chỉ cụ thể <span className="text-red-500">*</span>
                   </label>
@@ -208,6 +251,54 @@ function CheckoutPage() {
                     className={errors.address ? 'border-red-500' : ''}
                   />
                   {errors.address && <p className="text-xs text-red-500">{errors.address}</p>}
+                </div>
+
+                <div className="space-y-3 pt-4">
+                  <label className="text-sm font-medium text-gray-700">Phương thức thanh toán</label>
+                  <div className="grid grid-cols-1 gap-3">
+                    <label
+                      className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+                        paymentMethod === 'cod' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={paymentMethod === 'cod'}
+                        onChange={() => setPaymentMethod('cod')}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <Truck className="w-5 h-5 text-gray-600" />
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">Thanh toán khi nhận hàng (COD)</p>
+                        <p className="text-xs text-gray-500">Trả tiền mặt khi nhận được hàng</p>
+                      </div>
+                    </label>
+                    <label
+                      className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+                        paymentMethod === 'stripe' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="stripe"
+                        checked={paymentMethod === 'stripe'}
+                        onChange={() => setPaymentMethod('stripe')}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <CreditCard className="w-5 h-5 text-gray-600" />
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">Thanh toán qua Stripe</p>
+                        <p className="text-xs text-gray-500">Thanh toán an toàn bằng thẻ tín dụng/ghi nợ</p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
               </form>
             </div>
@@ -262,7 +353,12 @@ function CheckoutPage() {
                 disabled={isLoading}
               >
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
-                {isLoading ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN'}
+                {isLoading 
+                  ? 'ĐANG XỬ LÝ...' 
+                  : paymentMethod === 'stripe' 
+                    ? 'THANH TOÁN QUA STRIPE' 
+                    : 'XÁC NHẬN'
+                }
               </Button>
               {errors.submit && (
                 <p className="text-sm text-red-500 mt-2 text-center">{errors.submit}</p>

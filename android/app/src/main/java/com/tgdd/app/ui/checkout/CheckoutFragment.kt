@@ -1,9 +1,13 @@
 package com.tgdd.app.ui.checkout
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
@@ -22,7 +26,7 @@ class CheckoutFragment : Fragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater,
-        container: ViewGroup?,
+        container: View?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentCheckoutBinding.inflate(inflater, container, false)
@@ -33,7 +37,7 @@ class CheckoutFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupClickListeners()
-        setupRadioGroup()
+        setupPaymentOptions()
         observeViewModel()
     }
 
@@ -57,12 +61,47 @@ class CheckoutFragment : Fragment() {
         }
     }
 
-    private fun setupRadioGroup() {
-        binding.paymentMethodGroup.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
-                R.id.codRadioButton -> viewModel.paymentMethod.value = "cod"
-                R.id.bankTransferRadioButton -> viewModel.paymentMethod.value = "bank"
-                R.id.vnpayRadioButton -> viewModel.paymentMethod.value = "vnpay"
+    private fun setupPaymentOptions() {
+        binding.codOption.setOnClickListener {
+            viewModel.paymentMethod.value = "cod"
+            binding.codRadioButton.isChecked = true
+            updatePaymentOptionUI("cod")
+        }
+        binding.stripeOption.setOnClickListener {
+            viewModel.paymentMethod.value = "stripe"
+            binding.stripeRadioButton.isChecked = true
+            updatePaymentOptionUI("stripe")
+        }
+        binding.codRadioButton.isChecked = true
+        updatePaymentOptionUI("cod")
+    }
+
+    private fun updatePaymentOptionUI(selected: String) {
+        val primaryColor = ContextCompat.getColor(requireContext(), R.color.mobi_pulse_primary)
+        val variantColor = ContextCompat.getColor(requireContext(), R.color.mobi_pulse_outline_variant)
+        val containerColor = ContextCompat.getColor(requireContext(), R.color.mobi_pulse_primary_container)
+        val cardBgColor = 0xFFF2F4F7.toInt()
+
+        binding.codOption.apply {
+            if (selected == "cod") {
+                strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)
+                strokeWidth = (3 * resources.displayMetrics.density).toInt()
+                setCardBackgroundColor(containerColor)
+            } else {
+                strokeColor = android.content.res.ColorStateList.valueOf(variantColor)
+                strokeWidth = (2 * resources.displayMetrics.density).toInt()
+                setCardBackgroundColor(cardBgColor)
+            }
+        }
+        binding.stripeOption.apply {
+            if (selected == "stripe") {
+                strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)
+                strokeWidth = (3 * resources.displayMetrics.density).toInt()
+                setCardBackgroundColor(containerColor)
+            } else {
+                strokeColor = android.content.res.ColorStateList.valueOf(variantColor)
+                strokeWidth = (2 * resources.displayMetrics.density).toInt()
+                setCardBackgroundColor(cardBgColor)
             }
         }
     }
@@ -99,11 +138,30 @@ class CheckoutFragment : Fragment() {
             }
         }
 
+        viewModel.checkoutUrl.observe(viewLifecycleOwner) { url ->
+            url?.let {
+                launchStripeCheckout(it)
+                viewModel.resetCheckoutUrl()
+            }
+        }
+
         viewModel.error.observe(viewLifecycleOwner) { error ->
             error?.let {
                 Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
                 viewModel.clearError()
             }
+        }
+    }
+
+    private fun launchStripeCheckout(url: String) {
+        try {
+            val customTabsIntent = CustomTabsIntent.Builder()
+                .setShowTitle(true)
+                .build()
+            customTabsIntent.launchUrl(requireContext(), Uri.parse(url))
+        } catch (e: Exception) {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            startActivity(intent)
         }
     }
 

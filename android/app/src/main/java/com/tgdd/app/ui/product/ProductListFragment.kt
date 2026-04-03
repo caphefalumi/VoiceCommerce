@@ -81,7 +81,6 @@ class ProductListFragment : Fragment() {
             findNavController().navigate(R.id.action_productList_to_cart)
         }
     }
-
     private fun setupSearchView() {
         binding.searchEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
