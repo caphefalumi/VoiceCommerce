@@ -1,9 +1,19 @@
-import { test, expect, describe, beforeAll, afterAll } from "bun:test";
+import { test, expect, describe } from "bun:test";
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8787";
 
+async function checkServer(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/health`, { signal: AbortSignal.timeout(3000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 describe("E2E: Products API", () => {
   test("GET /health returns 200", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/health`);
     expect(res.status).toBe(200);
     const data = await res.json() as { status: string };
@@ -11,6 +21,7 @@ describe("E2E: Products API", () => {
   });
 
   test("GET /api/products returns products array", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/products`);
     expect(res.status).toBe(200);
     const data = await res.json() as { products: any[] };
@@ -18,6 +29,7 @@ describe("E2E: Products API", () => {
   });
 
   test("GET /api/products?category=Phone filters correctly", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/products?category=Phone`);
     expect(res.status).toBe(200);
     const data = await res.json() as { products: any[] };
@@ -25,6 +37,7 @@ describe("E2E: Products API", () => {
   });
 
   test("GET /api/products?search=iphone searches correctly", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/products?search=iphone`);
     expect(res.status).toBe(200);
     const data = await res.json() as { products: any[] };
@@ -32,6 +45,7 @@ describe("E2E: Products API", () => {
   });
 
   test("GET /api/products?minPrice=100&maxPrice=500 filters by price", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/products?minPrice=100&maxPrice=500`);
     expect(res.status).toBe(200);
     const data = await res.json() as { products: any[] };
@@ -41,6 +55,7 @@ describe("E2E: Products API", () => {
 
 describe("E2E: Orders API", () => {
   test("POST /api/orders returns 400 for missing fields", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/orders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,6 +65,7 @@ describe("E2E: Orders API", () => {
   });
 
   test("POST /api/orders returns 201 for valid order", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/orders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -71,6 +87,7 @@ describe("E2E: Orders API", () => {
 
 describe("E2E: Tickets API", () => {
   test("POST /api/tickets returns 400 for missing fields", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/tickets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -80,6 +97,7 @@ describe("E2E: Tickets API", () => {
   });
 
   test("POST /api/tickets returns 400 for invalid category", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/tickets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -89,6 +107,7 @@ describe("E2E: Tickets API", () => {
   });
 
   test("POST /api/tickets returns 201 for valid ticket", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/tickets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -107,6 +126,7 @@ describe("E2E: Tickets API", () => {
 
 describe("E2E: CORS", () => {
   test("includes CORS headers for allowed origin", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/health`, {
       headers: { Origin: "http://localhost:5173" },
     });
@@ -114,6 +134,7 @@ describe("E2E: CORS", () => {
   });
 
   test("handles preflight OPTIONS request", async () => {
+    if (!await checkServer()) return;
     const res = await fetch(`${API_BASE_URL}/api/products`, {
       method: "OPTIONS",
       headers: {

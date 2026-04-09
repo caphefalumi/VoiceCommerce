@@ -31,13 +31,17 @@ export function buildSearchResponseText(searchResults: SearchResult[], userMessa
     return 'Không tìm thấy sản phẩm phù hợp.';
   }
 
+  const hasSpecificCount = /\b(\d{1,2})\b/.test(userMessage);
   const requestedCount = parseRequestedCount(userMessage);
   const selected = searchResults.slice(0, requestedCount);
   const lines = selected
     .map((p, idx) => `${idx + 1}. ${p.name} | ${formatPrice(p.price)}`)
     .join('\n');
 
-  return `Đã tìm thấy một số sản phẩm phù hợp.\n${lines}`;
+  const header = hasSpecificCount
+    ? `Đã tìm thấy ${selected.length} sản phẩm phù hợp.`
+    : `Đã tìm thấy một số sản phẩm phù hợp.`;
+  return `${header}\n${lines}`;
 }
 
 /**

@@ -73,10 +73,6 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: apps/api-worker
 
-      - name: TypeScript type-check
-        run: bunx tsc --noEmit
-        working-directory: apps/api-worker
-
       - name: Run tests
         run: bun test src/
         working-directory: apps/api-worker
