@@ -15,6 +15,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentCheckoutBinding
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.Locale
 
 @AndroidEntryPoint
 class CheckoutFragment : Fragment() {
@@ -26,7 +27,7 @@ class CheckoutFragment : Fragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater,
-        container: View?,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentCheckoutBinding.inflate(inflater, container, false)
@@ -84,22 +85,22 @@ class CheckoutFragment : Fragment() {
 
         binding.codOption.apply {
             if (selected == "cod") {
-                strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)
+                strokeColor = primaryColor
                 strokeWidth = (3 * resources.displayMetrics.density).toInt()
                 setCardBackgroundColor(containerColor)
             } else {
-                strokeColor = android.content.res.ColorStateList.valueOf(variantColor)
+                strokeColor = variantColor
                 strokeWidth = (2 * resources.displayMetrics.density).toInt()
                 setCardBackgroundColor(cardBgColor)
             }
         }
         binding.stripeOption.apply {
             if (selected == "stripe") {
-                strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)
+                strokeColor = primaryColor
                 strokeWidth = (3 * resources.displayMetrics.density).toInt()
                 setCardBackgroundColor(containerColor)
             } else {
-                strokeColor = android.content.res.ColorStateList.valueOf(variantColor)
+                strokeColor = variantColor
                 strokeWidth = (2 * resources.displayMetrics.density).toInt()
                 setCardBackgroundColor(cardBgColor)
             }
@@ -108,7 +109,7 @@ class CheckoutFragment : Fragment() {
 
     private fun observeViewModel() {
         viewModel.cartTotal.observe(viewLifecycleOwner) { total ->
-            binding.totalText.text = getString(R.string.total_format, String.format("%.0f", total ?: 0.0))
+            binding.totalText.text = getString(R.string.total_format, String.format(Locale.US, "%.0f", total ?: 0.0))
         }
 
         viewModel.nameError.observe(viewLifecycleOwner) { error ->
@@ -141,7 +142,7 @@ class CheckoutFragment : Fragment() {
         viewModel.checkoutUrl.observe(viewLifecycleOwner) { url ->
             url?.let {
                 launchStripeCheckout(it)
-                viewModel.resetCheckoutUrl()
+                viewModel.resetOrderPlaced()
             }
         }
 

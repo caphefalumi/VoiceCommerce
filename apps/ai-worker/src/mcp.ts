@@ -1145,5 +1145,398 @@ export function createCommerceMcpServer(env: Env, lastSearchResults: LastSearchR
     }
   );
 
+  // ── WISHLIST TOOLS ────────────────────────────────────────────────────────────
+
+  server.registerTool(
+    'addToWishlist',
+    {
+      description: 'Thêm sản phẩm vào danh sách yêu thích.',
+      inputSchema: z.object({
+        productName: z.string().optional().describe('Tên sản phẩm'),
+        productId: z.string().optional().describe('ID sản phẩm'),
+        userId: z.string().optional().describe('ID người dùng'),
+      })
+    },
+    async ({ productName, productId, userId }) => {
+      const uid = userId || ctxUserId;
+      try {
+        if (!uid || !env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Bạn cần đăng nhập để thêm vào danh sách yêu thích.' }) }] };
+        }
+
+        const product = await resolveProduct(productId, productName, env, lastSearchResults);
+        if (!product) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm.' }) }] };
+        }
+
+        // Check if already in wishlist
+        const { results: existing } = await env.DB.prepare(
+          'SELECT id FROM wishlist WHERE user_id = ? AND product_id = ?'
+        ).bind(uid, product.id).all();
+
+        if (existing.length > 0) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: true, message: `${product.name} đã có trong danh sách yêu thích.` }) }] };
+        }
+
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+          'INSERT INTO wishlist (id, user_id, product_id, created_at) VALUES (?, ?, ?, ?)'
+        ).bind(id, uid, product.id, now).run();
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              product,
+              action: 'add_to_wishlist',
+              message: `Đã thêm ${product.name} vào danh sách yêu thích!`,
+            })
+          }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể thêm vào danh sách yêu thích.' }) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    'viewWishlist',
+    {
+      description: 'Xem danh sách yêu thích của người dùng.',
+      inputSchema: z.object({
+        userId: z.string().describe('ID người dùng'),
+      })
+    },
+    async ({ userId }) => {
+      const uid = userId || ctxUserId;
+      try {
+        if (!uid || !env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, items: [], message: 'Bạn cần đăng nhập.' }) }] };
+        }
+
+        const { results } = await env.DB.prepare(
+          `SELECT w.id, w.product_id, p.name, p.price, p.brand
+           FROM wishlist w
+           LEFT JOIN products p ON w.product_id = p.id
+           WHERE w.user_id = ?
+           ORDER BY w.created_at DESC`
+        ).bind(uid).all();
+
+        const items = (results || []).map((row: any) => ({
+          id: row.id,
+          productId: row.product_id,
+          name: row.name,
+          brand: row.brand || '',
+          price: Number(row.price || 0),
+        }));
+
+        if (items.length === 0) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: true, items: [], action: 'view_wishlist', message: 'Danh sách yêu thích của bạn đang trống.' }) }] };
+        }
+
+        const summary = items.map((item, i) => `${i + 1}. ${item.name} - ${item.price.toLocaleString('vi-VN')} VND`).join(', ');
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              items,
+              count: items.length,
+              action: 'view_wishlist',
+              message: `Danh sách yêu thích có ${items.length} sản phẩm: ${summary}`,
+            })
+          }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false, items: [], message: 'Không thể xem danh sách yêu thích.' }) }] };
+      }
+    }
+  );
+
+  // ── REVIEW TOOLS ──────────────────────────────────────────────────────────────
+
+  server.registerTool(
+    'submitReview',
+    {
+      description: 'Gửi đánh giá cho một sản phẩm.',
+      inputSchema: z.object({
+        productName: z.string().optional().describe('Tên sản phẩm'),
+        productId: z.string().optional().describe('ID sản phẩm'),
+        rating: z.number().int().min(1).max(5).describe('Đánh giá từ 1-5 sao'),
+        comment: z.string().optional().describe('Nhận xét'),
+        userId: z.string().optional().describe('ID người dùng'),
+      })
+    },
+    async ({ productName, productId, rating, comment, userId }) => {
+      const uid = userId || ctxUserId;
+      try {
+        if (!uid || !env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Bạn cần đăng nhập để đánh giá.' }) }] };
+        }
+
+        const product = await resolveProduct(productId, productName, env, lastSearchResults);
+        if (!product) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm.' }) }] };
+        }
+
+        // Check if already reviewed
+        const { results: existing } = await env.DB.prepare(
+          'SELECT id FROM reviews WHERE product_id = ? AND user_id = ?'
+        ).bind(product.id, uid).all();
+
+        if (existing.length > 0) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Bạn đã đánh giá sản phẩm này rồi.' }) }] };
+        }
+
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        
+        await env.DB.prepare(
+          `INSERT INTO reviews (id, product_id, user_id, rating, comment, images, verified_purchase, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(id, product.id, uid, rating, comment || '', '[]', 0, now, now).run();
+
+        // Update product rating
+        const { results: stats } = await env.DB.prepare(
+          'SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM reviews WHERE product_id = ?'
+        ).bind(product.id).all();
+        
+        if (stats.length > 0) {
+          const { avg_rating, review_count } = stats[0] as any;
+          await env.DB.prepare(
+            'UPDATE products SET rating = ?, review_count = ? WHERE id = ?'
+          ).bind(avg_rating, review_count, product.id).run();
+        }
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              reviewId: id,
+              product: product.name,
+              rating,
+              action: 'submit_review',
+              message: `Đã gửi đánh giá ${rating} sao cho ${product.name}. Cảm ơn bạn!`,
+            })
+          }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể gửi đánh giá.' }) }] };
+      }
+    }
+  );
+
+  // ── ADDRESS TOOLS ─────────────────────────────────────────────────────────────
+
+  server.registerTool(
+    'saveAddress',
+    {
+      description: 'Lưu địa chỉ giao hàng mới.',
+      inputSchema: z.object({
+        name: z.string().describe('Tên người nhận'),
+        phone: z.string().describe('Số điện thoại'),
+        street: z.string().describe('Địa chỉ đường phố'),
+        city: z.string().describe('Thành phố'),
+        ward: z.string().optional().describe('Phường/Xã'),
+        district: z.string().optional().describe('Quận/Huyện'),
+        label: z.string().optional().describe('Nhãn: Home, Work, Other'),
+        setAsDefault: z.boolean().optional().describe('Đặt làm địa chỉ mặc định'),
+        userId: z.string().optional().describe('ID người dùng'),
+      })
+    },
+    async ({ name, phone, street, city, ward, district, label, setAsDefault, userId }) => {
+      const uid = userId || ctxUserId;
+      try {
+        if (!uid || !env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Bạn cần đăng nhập để lưu địa chỉ.' }) }] };
+        }
+
+        // Validate Vietnamese phone number
+        const phoneRegex = /^0\d{9}$/;
+        if (!phoneRegex.test(phone)) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Số điện thoại không hợp lệ (phải có 10 số và bắt đầu bằng 0).' }) }] };
+        }
+
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const isDefault = setAsDefault ? 1 : 0;
+        
+        // If setting as default, unset other defaults
+        if (isDefault) {
+          await env.DB.prepare(
+            'UPDATE addresses SET is_default = 0 WHERE user_id = ?'
+          ).bind(uid).run();
+        }
+        
+        await env.DB.prepare(
+          `INSERT INTO addresses (id, user_id, label, name, phone, street, ward, district, city, is_default, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(id, uid, label || 'Other', name, phone, street, ward || '', district || '', city, isDefault, now, now).run();
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              addressId: id,
+              action: 'save_address',
+              message: `Đã lưu địa chỉ ${label || 'mới'}: ${street}, ${city}`,
+            })
+          }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false, message: 'Không thể lưu địa chỉ.' }) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    'getAddresses',
+    {
+      description: 'Lấy danh sách địa chỉ đã lưu của người dùng.',
+      inputSchema: z.object({
+        userId: z.string().describe('ID người dùng'),
+      })
+    },
+    async ({ userId }) => {
+      const uid = userId || ctxUserId;
+      try {
+        if (!uid || !env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: false, addresses: [], message: 'Bạn cần đăng nhập.' }) }] };
+        }
+
+        const { results } = await env.DB.prepare(
+          `SELECT id, label, name, phone, street, ward, district, city, is_default
+           FROM addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC`
+        ).bind(uid).all();
+
+        const addresses = (results || []).map((row: any) => ({
+          id: row.id,
+          label: row.label,
+          name: row.name,
+          phone: row.phone,
+          street: row.street,
+          ward: row.ward,
+          district: row.district,
+          city: row.city,
+          isDefault: row.is_default === 1,
+        }));
+
+        if (addresses.length === 0) {
+          return { content: [{ type: 'text', text: JSON.stringify({ success: true, addresses: [], action: 'get_addresses', message: 'Bạn chưa có địa chỉ nào được lưu.' }) }] };
+        }
+
+        const summary = addresses.map((addr, i) => `${i + 1}. ${addr.label}: ${addr.street}, ${addr.city}${addr.isDefault ? ' (Mặc định)' : ''}`).join('; ');
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              addresses,
+              count: addresses.length,
+              action: 'get_addresses',
+              message: `Bạn có ${addresses.length} địa chỉ đã lưu: ${summary}`,
+            })
+          }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false, addresses: [], message: 'Không thể lấy danh sách địa chỉ.' }) }] };
+      }
+    }
+  );
+
+  // ── PROMO CODE TOOLS ──────────────────────────────────────────────────────────
+
+  server.registerTool(
+    'validatePromoCode',
+    {
+      description: 'Kiểm tra và áp dụng mã khuyến mãi.',
+      inputSchema: z.object({
+        code: z.string().describe('Mã khuyến mãi'),
+        orderTotal: z.number().describe('Tổng giá trị đơn hàng'),
+        userId: z.string().optional().describe('ID người dùng'),
+      })
+    },
+    async ({ code, orderTotal, userId }) => {
+      const uid = userId || ctxUserId;
+      try {
+        if (!env.DB) {
+          return { content: [{ type: 'text', text: JSON.stringify({ valid: false, message: 'Không thể kiểm tra mã khuyến mãi lúc này.' }) }] };
+        }
+
+        // Get promo code
+        const { results } = await env.DB.prepare(
+          'SELECT * FROM promo_codes WHERE code = ? AND is_active = 1'
+        ).bind(code.toUpperCase()).all();
+        
+        if (results.length === 0) {
+          return { content: [{ type: 'text', text: JSON.stringify({ valid: false, action: 'validate_promo', message: 'Mã khuyến mãi không hợp lệ.' }) }] };
+        }
+        
+        const promo = results[0] as any;
+        
+        // Check expiration
+        if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
+          return { content: [{ type: 'text', text: JSON.stringify({ valid: false, action: 'validate_promo', message: 'Mã khuyến mãi đã hết hạn.' }) }] };
+        }
+        
+        // Check usage limit
+        if (promo.usage_limit && promo.usage_count >= promo.usage_limit) {
+          return { content: [{ type: 'text', text: JSON.stringify({ valid: false, action: 'validate_promo', message: 'Mã khuyến mãi đã hết lượt sử dụng.' }) }] };
+        }
+        
+        // Check minimum order value
+        if (promo.min_order_value && orderTotal < promo.min_order_value) {
+          return { content: [{ type: 'text', text: JSON.stringify({ valid: false, action: 'validate_promo', message: `Đơn hàng tối thiểu ${promo.min_order_value.toLocaleString('vi-VN')} VND.` }) }] };
+        }
+        
+        // Check if user already used this code
+        if (uid) {
+          const { results: usageCheck } = await env.DB.prepare(
+            'SELECT id FROM promo_code_usage WHERE promo_code_id = ? AND user_id = ?'
+          ).bind(promo.id, uid).all();
+          
+          if (usageCheck.length > 0) {
+            return { content: [{ type: 'text', text: JSON.stringify({ valid: false, action: 'validate_promo', message: 'Bạn đã sử dụng mã này rồi.' }) }] };
+          }
+        }
+        
+        // Calculate discount
+        let discount = 0;
+        if (promo.discount_type === 'percentage') {
+          discount = orderTotal * (promo.discount_value / 100);
+          if (promo.max_discount && discount > promo.max_discount) {
+            discount = promo.max_discount;
+          }
+        } else {
+          discount = promo.discount_value;
+        }
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              valid: true,
+              promoCode: {
+                id: promo.id,
+                code: promo.code,
+                discountType: promo.discount_type,
+                discountValue: promo.discount_value,
+                discountAmount: discount,
+              },
+              action: 'validate_promo',
+              message: `Mã ${code} hợp lệ! Giảm ${discount.toLocaleString('vi-VN')} VND. Tổng sau giảm: ${(orderTotal - discount).toLocaleString('vi-VN')} VND.`,
+            })
+          }]
+        };
+      } catch (e) {
+        return { content: [{ type: 'text', text: JSON.stringify({ valid: false, message: 'Lỗi kiểm tra mã khuyến mãi.' }) }] };
+      }
+    }
+  );
+
   return server;
 }

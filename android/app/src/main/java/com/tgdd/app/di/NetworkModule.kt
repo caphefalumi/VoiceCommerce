@@ -27,7 +27,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // Use BuildConfig.BASE_URL - value comes from build.gradle.kts
+    // Use "https://api-worker.dangduytoan13l.workers.dev/api/" - value comes from build.gradle.kts
 
     @Provides
     @Singleton
@@ -82,7 +82,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BuildConfig.BASE_URL)
+            .baseUrl("https://api-worker.dangduytoan13l.workers.dev/api/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
@@ -118,3 +118,21 @@ object NetworkModule {
         return retrofit.create(TicketApi::class.java)
     }
 }
+
+    @Provides
+    @Singleton
+    fun provideWishlistApi(retrofit: Retrofit): com.tgdd.app.data.remote.WishlistApi {
+        return retrofit.create(com.tgdd.app.data.remote.WishlistApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReviewApi(retrofit: Retrofit): com.tgdd.app.data.remote.ReviewApi {
+        return retrofit.create(com.tgdd.app.data.remote.ReviewApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun providePromoCodeApi(retrofit: Retrofit): com.tgdd.app.data.remote.PromoCodeApi {
+        return retrofit.create(com.tgdd.app.data.remote.PromoCodeApi::class.java)
+    }

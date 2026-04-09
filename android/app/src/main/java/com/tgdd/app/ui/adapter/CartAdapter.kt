@@ -9,6 +9,7 @@ import coil.load
 import com.tgdd.app.R
 import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.databinding.ItemCartBinding
+import java.util.Locale
 
 class CartAdapter(
     private val onQuantityChanged: (CartItemEntity, Int) -> Unit,
@@ -28,7 +29,7 @@ class CartAdapter(
         fun bind(item: CartItemEntity) {
             binding.apply {
                 productName.text = item.name
-                productPrice.text = String.format("%,.0f₫", item.price)
+                productPrice.text = String.format(Locale("vi", "VN"), "%,.0f₫", item.price)
                 quantityText.text = item.quantity.toString()
                 
                 productImage.load(item.image) {

@@ -155,7 +155,7 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 // GET /api/products - List all products with filtering
 app.get('/api/products', async (c) => {
   try {
-    const { category, search, minPrice, maxPrice } = c.req.query();
+    const { category, search, minPrice, maxPrice, brand, minRating, inStock, sort } = c.req.query();
     
     let query = 'SELECT id, name, price, original_price, category, brand, rating, review_count, stock, description, images, specs, reviews, url, created_at FROM products WHERE 1=1';
     const params: any[] = [];
@@ -180,6 +180,36 @@ app.get('/api/products', async (c) => {
       query += ' AND price <= ?';
       params.push(parseFloat(maxPrice));
     }
+    
+    // New filters for Android app
+    if (brand && brand.trim() !== '') {
+      const brands = brand.split(',').map(b => b.trim());
+      const brandPlaceholders = brands.map(() => '?').join(',');
+      query += ` AND brand IN (${brandPlaceholders})`;
+      params.push(...brands);
+    }
+    
+    if (minRating && minRating.trim() !== '') {
+      query += ' AND rating >= ?';
+      params.push(parseFloat(minRating));
+    }
+    
+    if (inStock === 'true') {
+      query += ' AND stock > 0';
+    }
+    
+    // Sorting
+    const sortMap: Record<string, string> = {
+      'price_asc': 'price ASC',
+      'price_desc': 'price DESC',
+      'rating_desc': 'rating DESC',
+      'newest': 'created_at DESC',
+      'name_asc': 'name ASC',
+      'relevance': 'rating DESC, review_count DESC',
+    };
+    
+    const orderBy = sortMap[sort || 'relevance'] || 'rating DESC, review_count DESC';
+    query += ` ORDER BY ${orderBy}`;
     
     const { results } = await c.env.DB.prepare(query).bind(...params).all();
     
@@ -1111,6 +1141,789 @@ app.post('/admin/fix-unicode', requireAdmin, async (c) => {
     }
 
     return c.json({ message: `Fixed ${fixed} products`, fixed });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── ADDRESSES ─────────────────────────────────────────────────────────────────
+
+// GET /api/addresses/:userId - List user addresses
+app.get('/api/addresses/:userId', async (c) => {
+  const userId = c.req.param('userId');
+  try {
+    const { results } = await c.env.DB.prepare(
+      `SELECT id, user_id, label, name, phone, street, ward, district, city, is_default, created_at, updated_at
+       FROM addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC`
+    ).bind(userId).all();
+    
+    const addresses = (results || []).map((row: any) => ({
+      ...row,
+      is_default: row.is_default === 1,
+    }));
+    
+    return c.json({ addresses });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/addresses - Create address
+app.post('/api/addresses', requireAuth, async (c) => {
+  const user = c.get('user');
+  try {
+    const { label, name, phone, street, ward, district, city, is_default } = await c.req.json();
+    
+    if (!name || !phone || !street || !city) {
+      return c.json({ error: 'name, phone, street, and city are required' }, 400);
+    }
+
+    // Validate Vietnamese phone number (10 digits, starts with 0)
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return c.json({ error: 'Số điện thoại không hợp lệ (phải có 10 số và bắt đầu bằng 0)' }, 400);
+    }
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const isDefault = is_default ? 1 : 0;
+    
+    // If setting as default, unset other defaults
+    if (isDefault) {
+      await c.env.DB.prepare(
+        'UPDATE addresses SET is_default = 0 WHERE user_id = ?'
+      ).bind(user.id).run();
+    }
+    
+    await c.env.DB.prepare(
+      `INSERT INTO addresses (id, user_id, label, name, phone, street, ward, district, city, is_default, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(id, user.id, label || 'Other', name, phone, street, ward || '', district || '', city, isDefault, now, now).run();
+
+    return c.json({ id, message: 'Đã thêm địa chỉ' }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// PUT /api/addresses/:addressId - Update address
+app.put('/api/addresses/:addressId', requireAuth, async (c) => {
+  const user = c.get('user');
+  const addressId = c.req.param('addressId');
+  
+  try {
+    const { label, name, phone, street, ward, district, city } = await c.req.json();
+    
+    // Check if address exists and belongs to user
+    const { results: addressCheck } = await c.env.DB.prepare(
+      'SELECT id, user_id FROM addresses WHERE id = ?'
+    ).bind(addressId).all();
+    
+    if (addressCheck.length === 0) {
+      return c.json({ error: 'Không tìm thấy địa chỉ' }, 404);
+    }
+    
+    const address = addressCheck[0] as any;
+    if (address.user_id !== user.id) {
+      return c.json({ error: 'Bạn không có quyền chỉnh sửa địa chỉ này' }, 403);
+    }
+
+    // Validate phone if provided
+    if (phone) {
+      const phoneRegex = /^0\d{9}$/;
+      if (!phoneRegex.test(phone)) {
+        return c.json({ error: 'Số điện thoại không hợp lệ (phải có 10 số và bắt đầu bằng 0)' }, 400);
+      }
+    }
+
+    const now = new Date().toISOString();
+    
+    await c.env.DB.prepare(
+      `UPDATE addresses SET label = COALESCE(?, label), name = COALESCE(?, name),
+       phone = COALESCE(?, phone), street = COALESCE(?, street), ward = COALESCE(?, ward),
+       district = COALESCE(?, district), city = COALESCE(?, city), updated_at = ? WHERE id = ?`
+    ).bind(label, name, phone, street, ward, district, city, now, addressId).run();
+
+    return c.json({ message: 'Đã cập nhật địa chỉ' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// DELETE /api/addresses/:addressId - Delete address
+app.delete('/api/addresses/:addressId', requireAuth, async (c) => {
+  const user = c.get('user');
+  const addressId = c.req.param('addressId');
+  
+  try {
+    // Check if address exists and belongs to user
+    const { results: addressCheck } = await c.env.DB.prepare(
+      'SELECT id, user_id FROM addresses WHERE id = ?'
+    ).bind(addressId).all();
+    
+    if (addressCheck.length === 0) {
+      return c.json({ error: 'Không tìm thấy địa chỉ' }, 404);
+    }
+    
+    const address = addressCheck[0] as any;
+    if (address.user_id !== user.id) {
+      return c.json({ error: 'Bạn không có quyền xóa địa chỉ này' }, 403);
+    }
+
+    await c.env.DB.prepare('DELETE FROM addresses WHERE id = ?').bind(addressId).run();
+
+    return c.json({ message: 'Đã xóa địa chỉ' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// PATCH /api/addresses/:addressId/default - Set as default address
+app.patch('/api/addresses/:addressId/default', requireAuth, async (c) => {
+  const user = c.get('user');
+  const addressId = c.req.param('addressId');
+  
+  try {
+    // Check if address exists and belongs to user
+    const { results: addressCheck } = await c.env.DB.prepare(
+      'SELECT id, user_id FROM addresses WHERE id = ?'
+    ).bind(addressId).all();
+    
+    if (addressCheck.length === 0) {
+      return c.json({ error: 'Không tìm thấy địa chỉ' }, 404);
+    }
+    
+    const address = addressCheck[0] as any;
+    if (address.user_id !== user.id) {
+      return c.json({ error: 'Bạn không có quyền thay đổi địa chỉ này' }, 403);
+    }
+
+    // Unset all defaults for this user
+    await c.env.DB.prepare(
+      'UPDATE addresses SET is_default = 0 WHERE user_id = ?'
+    ).bind(user.id).run();
+
+    // Set this address as default
+    await c.env.DB.prepare(
+      'UPDATE addresses SET is_default = 1 WHERE id = ?'
+    ).bind(addressId).run();
+
+    return c.json({ message: 'Đã đặt làm địa chỉ mặc định' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── PROMO CODES ───────────────────────────────────────────────────────────────
+
+// POST /api/promo-codes/validate - Validate promo code
+app.post('/api/promo-codes/validate', async (c) => {
+  try {
+    const { code, user_id, order_total } = await c.req.json();
+    
+    if (!code) {
+      return c.json({ error: 'Mã khuyến mãi là bắt buộc' }, 400);
+    }
+
+    // Get promo code
+    const { results } = await c.env.DB.prepare(
+      'SELECT * FROM promo_codes WHERE code = ? AND is_active = 1'
+    ).bind(code.toUpperCase()).all();
+    
+    if (results.length === 0) {
+      return c.json({ valid: false, error: 'Mã khuyến mãi không hợp lệ' }, 404);
+    }
+    
+    const promo = results[0] as any;
+    
+    // Check expiration
+    if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
+      return c.json({ valid: false, error: 'Mã khuyến mãi đã hết hạn' }, 400);
+    }
+    
+    // Check usage limit
+    if (promo.usage_limit && promo.usage_count >= promo.usage_limit) {
+      return c.json({ valid: false, error: 'Mã khuyến mãi đã hết lượt sử dụng' }, 400);
+    }
+    
+    // Check minimum order value
+    if (order_total && promo.min_order_value && order_total < promo.min_order_value) {
+      return c.json({ 
+        valid: false, 
+        error: `Đơn hàng tối thiểu ${promo.min_order_value.toLocaleString('vi-VN')} VND` 
+      }, 400);
+    }
+    
+    // Check if user already used this code
+    if (user_id) {
+      const { results: usageCheck } = await c.env.DB.prepare(
+        'SELECT id FROM promo_code_usage WHERE promo_code_id = ? AND user_id = ?'
+      ).bind(promo.id, user_id).all();
+      
+      if (usageCheck.length > 0) {
+        return c.json({ valid: false, error: 'Bạn đã sử dụng mã này rồi' }, 400);
+      }
+    }
+    
+    // Calculate discount
+    let discount = 0;
+    if (promo.discount_type === 'percentage') {
+      discount = (order_total || 0) * (promo.discount_value / 100);
+      if (promo.max_discount && discount > promo.max_discount) {
+        discount = promo.max_discount;
+      }
+    } else {
+      discount = promo.discount_value;
+    }
+    
+    return c.json({
+      valid: true,
+      promo_code: {
+        id: promo.id,
+        code: promo.code,
+        discount_type: promo.discount_type,
+        discount_value: promo.discount_value,
+        discount_amount: discount,
+        min_order_value: promo.min_order_value,
+        max_discount: promo.max_discount,
+      }
+    });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/promo-codes/apply - Apply promo code to order
+app.post('/api/promo-codes/apply', requireAuth, async (c) => {
+  const user = c.get('user');
+  try {
+    const { code, order_id } = await c.req.json();
+    
+    if (!code || !order_id) {
+      return c.json({ error: 'code and order_id are required' }, 400);
+    }
+
+    // Get promo code
+    const { results } = await c.env.DB.prepare(
+      'SELECT * FROM promo_codes WHERE code = ? AND is_active = 1'
+    ).bind(code.toUpperCase()).all();
+    
+    if (results.length === 0) {
+      return c.json({ error: 'Mã khuyến mãi không hợp lệ' }, 404);
+    }
+    
+    const promo = results[0] as any;
+    
+    // Record usage
+    const usageId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    
+    await c.env.DB.prepare(
+      'INSERT INTO promo_code_usage (id, promo_code_id, user_id, order_id, used_at) VALUES (?, ?, ?, ?, ?)'
+    ).bind(usageId, promo.id, user.id, order_id, now).run();
+    
+    // Increment usage count
+    await c.env.DB.prepare(
+      'UPDATE promo_codes SET usage_count = usage_count + 1 WHERE id = ?'
+    ).bind(promo.id).run();
+
+    return c.json({ message: 'Đã áp dụng mã khuyến mãi' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// GET /api/promo-codes - List available promo codes (admin)
+app.get('/api/promo-codes', requireAdmin, async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      'SELECT * FROM promo_codes ORDER BY created_at DESC'
+    ).all();
+    
+    const promoCodes = (results || []).map((row: any) => ({
+      ...row,
+      is_active: row.is_active === 1,
+    }));
+    
+    return c.json({ promo_codes: promoCodes });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/promo-codes - Create promo code (admin)
+app.post('/api/promo-codes', requireAdmin, async (c) => {
+  try {
+    const { code, discount_type, discount_value, min_order_value, max_discount, usage_limit, expires_at } = await c.req.json();
+    
+    if (!code || !discount_type || !discount_value) {
+      return c.json({ error: 'code, discount_type, and discount_value are required' }, 400);
+    }
+    
+    if (!['percentage', 'fixed'].includes(discount_type)) {
+      return c.json({ error: 'discount_type must be percentage or fixed' }, 400);
+    }
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    
+    await c.env.DB.prepare(
+      `INSERT INTO promo_codes (id, code, discount_type, discount_value, min_order_value, max_discount, usage_limit, expires_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(id, code.toUpperCase(), discount_type, discount_value, min_order_value || 0, max_discount || null, usage_limit || null, expires_at || null, now, now).run();
+
+    return c.json({ id, message: 'Đã tạo mã khuyến mãi' }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── SEARCH HISTORY ────────────────────────────────────────────────────────────
+
+// GET /api/search-history/:userId - Get user's search history
+app.get('/api/search-history/:userId', async (c) => {
+  const userId = c.req.param('userId');
+  const limit = parseInt(c.req.query('limit') || '20');
+  
+  try {
+    const { results } = await c.env.DB.prepare(
+      'SELECT id, user_id, query, results_count, created_at FROM search_history WHERE user_id = ? ORDER BY created_at DESC LIMIT ?'
+    ).bind(userId, limit).all();
+    
+    return c.json({ search_history: results || [] });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/search-history - Save search
+app.post('/api/search-history', async (c) => {
+  try {
+    const { user_id, query, results_count } = await c.req.json();
+    
+    if (!user_id || !query) {
+      return c.json({ error: 'user_id and query are required' }, 400);
+    }
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    
+    await c.env.DB.prepare(
+      'INSERT INTO search_history (id, user_id, query, results_count, created_at) VALUES (?, ?, ?, ?, ?)'
+    ).bind(id, user_id, query, results_count || 0, now).run();
+
+    return c.json({ id, message: 'Đã lưu lịch sử tìm kiếm' }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// DELETE /api/search-history/:searchId - Delete search
+app.delete('/api/search-history/:searchId', async (c) => {
+  const searchId = c.req.param('searchId');
+  const userId = c.req.query('user_id');
+  
+  if (!userId) {
+    return c.json({ error: 'user_id query parameter is required' }, 400);
+  }
+  
+  try {
+    const { results } = await c.env.DB.prepare(
+      'DELETE FROM search_history WHERE id = ? AND user_id = ? RETURNING id'
+    ).bind(searchId, userId).all();
+    
+    if (results.length === 0) {
+      return c.json({ error: 'Không tìm thấy lịch sử tìm kiếm' }, 404);
+    }
+    
+    return c.json({ message: 'Đã xóa lịch sử tìm kiếm' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// DELETE /api/search-history/:userId/all - Clear all search history
+app.delete('/api/search-history/:userId/all', async (c) => {
+  const userId = c.req.param('userId');
+  
+  try {
+    await c.env.DB.prepare(
+      'DELETE FROM search_history WHERE user_id = ?'
+    ).bind(userId).run();
+    
+    return c.json({ message: 'Đã xóa toàn bộ lịch sử tìm kiếm' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// GET /api/search/suggestions - Get search suggestions
+app.get('/api/search/suggestions', async (c) => {
+  const query = c.req.query('q') || '';
+  const limit = parseInt(c.req.query('limit') || '10');
+  
+  if (!query || query.length < 2) {
+    return c.json({ suggestions: [] });
+  }
+  
+  try {
+    // Get product name suggestions
+    const { results } = await c.env.DB.prepare(
+      `SELECT DISTINCT name FROM products WHERE name LIKE ? LIMIT ?`
+    ).bind(`%${query}%`, limit).all();
+    
+    const suggestions = (results || []).map((row: any) => row.name);
+    
+    return c.json({ suggestions });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── REVIEWS ───────────────────────────────────────────────────────────────────
+
+// GET /api/products/:productId/reviews - Get product reviews
+app.get('/api/products/:productId/reviews', async (c) => {
+  const productId = c.req.param('productId');
+  try {
+    const { results } = await c.env.DB.prepare(
+      `SELECT r.id, r.product_id, r.user_id, r.rating, r.comment, r.images,
+              r.verified_purchase, r.helpful_count, r.created_at, r.updated_at,
+              u.name as user_name, u.email as user_email
+       FROM reviews r
+       LEFT JOIN "user" u ON r.user_id = u.id
+       WHERE r.product_id = ?
+       ORDER BY r.created_at DESC`
+    ).bind(productId).all();
+    
+    const reviews = (results || []).map((row: any) => ({
+      ...row,
+      images: row.images ? JSON.parse(row.images) : [],
+      verified_purchase: row.verified_purchase === 1,
+    }));
+    
+    return c.json({ reviews });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/products/:productId/reviews - Submit review
+app.post('/api/products/:productId/reviews', requireAuth, async (c) => {
+  const user = c.get('user');
+  const productId = c.req.param('productId');
+  
+  try {
+    const { rating, comment, images } = await c.req.json();
+    
+    if (!rating || rating < 1 || rating > 5) {
+      return c.json({ error: 'Rating must be between 1 and 5' }, 400);
+    }
+
+    // Check if product exists
+    const { results: productCheck } = await c.env.DB.prepare(
+      'SELECT id FROM products WHERE id = ?'
+    ).bind(productId).all();
+    
+    if (productCheck.length === 0) {
+      return c.json({ error: 'Sản phẩm không tồn tại' }, 404);
+    }
+
+    // Check if user already reviewed this product
+    const { results: existingReview } = await c.env.DB.prepare(
+      'SELECT id FROM reviews WHERE product_id = ? AND user_id = ?'
+    ).bind(productId, user.id).all();
+    
+    if (existingReview.length > 0) {
+      return c.json({ error: 'Bạn đã đánh giá sản phẩm này rồi' }, 400);
+    }
+
+    // Check if user purchased this product (verified purchase)
+    const { results: orderCheck } = await c.env.DB.prepare(
+      `SELECT id FROM orders WHERE user_id = ? AND items LIKE ? AND status = 'delivered'`
+    ).bind(user.id, `%${productId}%`).all();
+    
+    const verifiedPurchase = orderCheck.length > 0 ? 1 : 0;
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const imagesJson = images ? JSON.stringify(images) : '[]';
+    
+    await c.env.DB.prepare(
+      `INSERT INTO reviews (id, product_id, user_id, rating, comment, images, verified_purchase, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(id, productId, user.id, rating, comment || '', imagesJson, verifiedPurchase, now, now).run();
+
+    // Update product rating and review count
+    const { results: stats } = await c.env.DB.prepare(
+      'SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM reviews WHERE product_id = ?'
+    ).bind(productId).all();
+    
+    if (stats.length > 0) {
+      const { avg_rating, review_count } = stats[0] as any;
+      await c.env.DB.prepare(
+        'UPDATE products SET rating = ?, review_count = ? WHERE id = ?'
+      ).bind(avg_rating, review_count, productId).run();
+    }
+
+    return c.json({ id, message: 'Đã gửi đánh giá thành công' }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// PUT /api/reviews/:reviewId - Edit review
+app.put('/api/reviews/:reviewId', requireAuth, async (c) => {
+  const user = c.get('user');
+  const reviewId = c.req.param('reviewId');
+  
+  try {
+    const { rating, comment, images } = await c.req.json();
+    
+    if (rating && (rating < 1 || rating > 5)) {
+      return c.json({ error: 'Rating must be between 1 and 5' }, 400);
+    }
+
+    // Check if review exists and belongs to user
+    const { results: reviewCheck } = await c.env.DB.prepare(
+      'SELECT id, product_id, user_id FROM reviews WHERE id = ?'
+    ).bind(reviewId).all();
+    
+    if (reviewCheck.length === 0) {
+      return c.json({ error: 'Không tìm thấy đánh giá' }, 404);
+    }
+    
+    const review = reviewCheck[0] as any;
+    if (review.user_id !== user.id) {
+      return c.json({ error: 'Bạn không có quyền chỉnh sửa đánh giá này' }, 403);
+    }
+
+    const now = new Date().toISOString();
+    const imagesJson = images ? JSON.stringify(images) : undefined;
+    
+    await c.env.DB.prepare(
+      `UPDATE reviews SET rating = COALESCE(?, rating), comment = COALESCE(?, comment),
+       images = COALESCE(?, images), updated_at = ? WHERE id = ?`
+    ).bind(rating, comment, imagesJson, now, reviewId).run();
+
+    // Update product rating
+    const { results: stats } = await c.env.DB.prepare(
+      'SELECT AVG(rating) as avg_rating FROM reviews WHERE product_id = ?'
+    ).bind(review.product_id).all();
+    
+    if (stats.length > 0) {
+      const { avg_rating } = stats[0] as any;
+      await c.env.DB.prepare(
+        'UPDATE products SET rating = ? WHERE id = ?'
+      ).bind(avg_rating, review.product_id).run();
+    }
+
+    return c.json({ message: 'Đã cập nhật đánh giá' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// DELETE /api/reviews/:reviewId - Delete review
+app.delete('/api/reviews/:reviewId', requireAuth, async (c) => {
+  const user = c.get('user');
+  const reviewId = c.req.param('reviewId');
+  
+  try {
+    // Check if review exists and belongs to user
+    const { results: reviewCheck } = await c.env.DB.prepare(
+      'SELECT id, product_id, user_id FROM reviews WHERE id = ?'
+    ).bind(reviewId).all();
+    
+    if (reviewCheck.length === 0) {
+      return c.json({ error: 'Không tìm thấy đánh giá' }, 404);
+    }
+    
+    const review = reviewCheck[0] as any;
+    if (review.user_id !== user.id) {
+      return c.json({ error: 'Bạn không có quyền xóa đánh giá này' }, 403);
+    }
+
+    await c.env.DB.prepare('DELETE FROM reviews WHERE id = ?').bind(reviewId).run();
+
+    // Update product rating and review count
+    const { results: stats } = await c.env.DB.prepare(
+      'SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM reviews WHERE product_id = ?'
+    ).bind(review.product_id).all();
+    
+    if (stats.length > 0) {
+      const { avg_rating, review_count } = stats[0] as any;
+      await c.env.DB.prepare(
+        'UPDATE products SET rating = ?, review_count = ? WHERE id = ?'
+      ).bind(avg_rating || 0, review_count, review.product_id).run();
+    }
+
+    return c.json({ message: 'Đã xóa đánh giá' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/reviews/:reviewId/helpful - Mark review as helpful
+app.post('/api/reviews/:reviewId/helpful', requireAuth, async (c) => {
+  const user = c.get('user');
+  const reviewId = c.req.param('reviewId');
+  
+  try {
+    // Check if already marked as helpful
+    const { results: existing } = await c.env.DB.prepare(
+      'SELECT id FROM review_helpful WHERE review_id = ? AND user_id = ?'
+    ).bind(reviewId, user.id).all();
+    
+    if (existing.length > 0) {
+      return c.json({ message: 'Bạn đã đánh dấu hữu ích rồi' }, 200);
+    }
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    
+    await c.env.DB.prepare(
+      'INSERT INTO review_helpful (id, review_id, user_id, created_at) VALUES (?, ?, ?, ?)'
+    ).bind(id, reviewId, user.id, now).run();
+
+    // Update helpful count
+    await c.env.DB.prepare(
+      'UPDATE reviews SET helpful_count = helpful_count + 1 WHERE id = ?'
+    ).bind(reviewId).run();
+
+    return c.json({ message: 'Đã đánh dấu hữu ích' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ── WISHLIST ──────────────────────────────────────────────────────────────────
+
+// GET /api/wishlist/:userId - Get user's wishlist
+app.get('/api/wishlist/:userId', async (c) => {
+  const userId = c.req.param('userId');
+  try {
+    const { results } = await c.env.DB.prepare(
+      `SELECT w.id, w.user_id, w.product_id, w.created_at,
+              p.name, p.price, p.original_price, p.images, p.brand, p.rating, p.stock
+       FROM wishlist w
+       LEFT JOIN products p ON w.product_id = p.id
+       WHERE w.user_id = ?
+       ORDER BY w.created_at DESC`
+    ).bind(userId).all();
+    
+    const wishlist = (results || []).map((row: any) => ({
+      ...row,
+      images: row.images ? JSON.parse(row.images) : [],
+      product_exists: row.name !== null,
+    })).filter((item: any) => item.product_exists);
+    
+    return c.json({ wishlist });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/wishlist - Add item to wishlist
+app.post('/api/wishlist', async (c) => {
+  try {
+    const { user_id, product_id } = await c.req.json();
+    if (!user_id || !product_id) {
+      return c.json({ error: 'user_id and product_id are required' }, 400);
+    }
+
+    // Check if product exists
+    const { results: productCheck } = await c.env.DB.prepare(
+      'SELECT id FROM products WHERE id = ?'
+    ).bind(product_id).all();
+    
+    if (productCheck.length === 0) {
+      return c.json({ error: 'Sản phẩm không tồn tại' }, 404);
+    }
+
+    // Check if already in wishlist
+    const { results: existing } = await c.env.DB.prepare(
+      'SELECT id FROM wishlist WHERE user_id = ? AND product_id = ?'
+    ).bind(user_id, product_id).all();
+
+    if (existing.length > 0) {
+      return c.json({ message: 'Sản phẩm đã có trong danh sách yêu thích' }, 200);
+    }
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await c.env.DB.prepare(
+      'INSERT INTO wishlist (id, user_id, product_id, created_at) VALUES (?, ?, ?, ?)'
+    ).bind(id, user_id, product_id, now).run();
+
+    return c.json({ id, message: 'Đã thêm vào danh sách yêu thích' }, 201);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// DELETE /api/wishlist/:productId - Remove item from wishlist
+app.delete('/api/wishlist/:productId', async (c) => {
+  const productId = c.req.param('productId');
+  const userId = c.req.query('user_id');
+  
+  if (!userId) {
+    return c.json({ error: 'user_id query parameter is required' }, 400);
+  }
+  
+  try {
+    const { results } = await c.env.DB.prepare(
+      'DELETE FROM wishlist WHERE user_id = ? AND product_id = ? RETURNING id'
+    ).bind(userId, productId).all();
+    
+    if (results.length === 0) {
+      return c.json({ error: 'Không tìm thấy sản phẩm trong danh sách yêu thích' }, 404);
+    }
+    
+    return c.json({ message: 'Đã xóa khỏi danh sách yêu thích' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/wishlist/:productId/cart - Move wishlist item to cart
+app.post('/api/wishlist/:productId/cart', requireAuth, async (c) => {
+  const user = c.get('user');
+  const productId = c.req.param('productId');
+  
+  try {
+    // Check if in wishlist
+    const { results: wishlistCheck } = await c.env.DB.prepare(
+      'SELECT id FROM wishlist WHERE user_id = ? AND product_id = ?'
+    ).bind(user.id, productId).all();
+    
+    if (wishlistCheck.length === 0) {
+      return c.json({ error: 'Sản phẩm không có trong danh sách yêu thích' }, 404);
+    }
+
+    // Add to cart
+    const { results: cartCheck } = await c.env.DB.prepare(
+      'SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?'
+    ).bind(user.id, productId).all();
+
+    if (cartCheck.length > 0) {
+      const existingItem = cartCheck[0] as { id: string; quantity: number };
+      await c.env.DB.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?')
+        .bind(existingItem.quantity + 1, existingItem.id).run();
+    } else {
+      const cartId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      await c.env.DB.prepare(
+        'INSERT INTO cart_items (id, user_id, product_id, quantity, created_at) VALUES (?, ?, ?, ?, ?)'
+      ).bind(cartId, user.id, productId, 1, now).run();
+    }
+
+    // Remove from wishlist
+    await c.env.DB.prepare(
+      'DELETE FROM wishlist WHERE user_id = ? AND product_id = ?'
+    ).bind(user.id, productId).run();
+
+    return c.json({ message: 'Đã chuyển vào giỏ hàng' });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
   }

@@ -26,12 +26,6 @@ jobs:
   frontend-test:
     name: Frontend — Tests
     runs-on: ubuntu-latest
-    if: >
-      contains(github.event.head_commit.modified, 'apps/web/src/') ||
-      contains(github.event.head_commit.modified, 'apps/web/tests/') ||
-      contains(github.event.head_commit.added, 'apps/web/src/') ||
-      contains(github.event.head_commit.added, 'apps/web/tests/') ||
-      github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -50,10 +44,6 @@ jobs:
   ai-worker-test:
     name: AI Worker — Tests
     runs-on: ubuntu-latest
-    if: >
-      contains(github.event.head_commit.modified, 'apps/ai-worker/') ||
-      contains(github.event.head_commit.added, 'apps/ai-worker/') ||
-      github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -72,10 +62,6 @@ jobs:
   api-worker-test:
     name: API Worker — Tests
     runs-on: ubuntu-latest
-    if: >
-      contains(github.event.head_commit.modified, 'apps/api-worker/') ||
-      contains(github.event.head_commit.added, 'apps/api-worker/') ||
-      github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
 

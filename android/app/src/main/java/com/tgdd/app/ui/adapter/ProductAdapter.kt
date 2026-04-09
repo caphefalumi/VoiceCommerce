@@ -1,5 +1,6 @@
 package com.tgdd.app.ui.adapter
 
+import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -47,13 +48,14 @@ class ProductAdapter(
             b.productRating.rating = product.rating
             
             // Show rating value
-            b.ratingValue.text = String.format("%.1f", product.rating)
+            b.ratingValue.text = String.format(Locale.US, "%.1f", product.rating)
             b.reviewCount.text = if (product.reviewCount > 0) "(${product.reviewCount})" else ""
 
             // Original price strikethrough
             if (product.originalPrice != null && product.originalPrice > product.price) {
                 b.originalPrice.visibility = View.VISIBLE
                 b.originalPrice.text = "${vnd.format(product.originalPrice)} ₫"
+                b.originalPrice.paintFlags = b.originalPrice.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
                 val pct = ((product.originalPrice - product.price) / product.originalPrice * 100).toInt()
                 b.discountBadge.visibility = View.VISIBLE
                 b.discountBadge.text = "-$pct%"

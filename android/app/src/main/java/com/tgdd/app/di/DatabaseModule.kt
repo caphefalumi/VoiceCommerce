@@ -46,3 +46,33 @@ object DatabaseModule {
         return database.orderDao()
     }
 }
+
+    @Provides
+    @Singleton
+    fun provideWishlistDao(database: AppDatabase): com.tgdd.app.data.local.dao.WishlistDao {
+        return database.wishlistDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideReviewDao(database: AppDatabase): com.tgdd.app.data.local.dao.ReviewDao {
+        return database.reviewDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAddressDao(database: AppDatabase): com.tgdd.app.data.local.dao.AddressDao {
+        return database.addressDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providePromoCodeDao(database: AppDatabase): com.tgdd.app.data.local.dao.PromoCodeDao {
+        return database.promoCodeDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSearchHistoryDao(database: AppDatabase): com.tgdd.app.data.local.dao.SearchHistoryDao {
+        return database.searchHistoryDao()
+    }

@@ -174,9 +174,9 @@
     <string name="step_address">Địa chỉ</string>
     <string name="step_payment">Thanh toán</string>
     <string name="step_confirm">Xác nhận</string>
-    <string name="authentic">100% Chính hãng</string>
+    <string name="authentic">100%% Chính hãng</string>
     <string name="return_policy">Đổi trả dễ dàng</string>
-    <string name="secure_payment">Bảo mật 100%</string>
+    <string name="secure_payment">Bảo mật 100%%</string>
 
     <!-- ============================================ -->
     <!-- PROFILE SCREEN -->

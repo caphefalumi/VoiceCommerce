@@ -73,7 +73,8 @@ class CartRepository @Inject constructor(
 
     suspend fun removeFromCart(itemId: Long) {
         // Get the productId before deleting so we can sync with server
-        val item = cartDao.getCartItems().firstOrNull()?.find { it.id == itemId }
+        val items = getCartItems().first()
+        val item = items.find { it.id == itemId }
         cartDao.removeCartItemById(itemId)
         item?.let { syncRemoveFromCart(it.productId) }
     }

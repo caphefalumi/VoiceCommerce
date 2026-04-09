@@ -15,6 +15,7 @@ import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentCartBinding
 import com.tgdd.app.ui.adapter.CartAdapter
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.Locale
 
 @AndroidEntryPoint
 class CartFragment : Fragment() {
@@ -99,7 +100,7 @@ class CartFragment : Fragment() {
         }
 
         viewModel.cartTotal.observe(viewLifecycleOwner) { total ->
-            val formattedTotal = String.format("%,.0f₫", total ?: 0.0)
+            val formattedTotal = String.format(Locale("vi", "VN"), "%,.0f₫", total ?: 0.0)
             binding.totalPriceText.text = formattedTotal
             binding.subtotalText.text = formattedTotal
         }

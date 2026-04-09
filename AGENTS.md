@@ -12,12 +12,34 @@ tgdd/
 ├── apps/
 │   ├── web/           # React 19 frontend (Cloudflare Pages) — 63 source files
 │   ├── api-worker/    # Hono REST API (Cloudflare Worker) — auth, cart, orders, Stripe
+│   │   └── migrations/
+│   │       └── 004_android_features.sql  # NEW: Android features schema
 │   └── ai-worker/     # Voice AI Worker (STT/TTS/LLM orchestration)
 ├── android/           # Kotlin Android app (Gradle)
 ├── infra/             # Terraform + Ansible (Cloudflare, Vectorize)
 ├── .agents/skills/    # Agent skill definitions (Better Auth patterns)
 └── stitch_project/    # Web scraping artifacts (NOT production code)
 ```
+
+## NEW FEATURES (2026-04-08)
+
+### Android App Backend Integration ✅
+
+All Android app features now have full backend support:
+
+1. **Wishlist System** - Save favorite products, sync with server
+2. **Product Reviews** - Submit ratings, verified purchases, helpful votes
+3. **Address Management** - Multiple addresses, default selection
+4. **Promo Codes** - Validate discounts, usage tracking, expiration
+5. **Search History** - Save searches, suggestions, autocomplete
+6. **Advanced Filtering** - Brand, rating, stock, multiple sort options
+7. **Input Validation** - Vietnamese phone, email, address validation
+
+**API Endpoints:** 40+ new endpoints
+**Voice Tools:** 6 new MCP tools for voice commerce
+**Database:** 7 new tables with proper indexes
+
+See `ANDROID_FEATURES_IMPLEMENTATION.md` for complete documentation.
 
 ## TOOLS
 

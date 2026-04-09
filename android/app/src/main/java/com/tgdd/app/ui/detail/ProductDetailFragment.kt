@@ -78,7 +78,7 @@ class ProductDetailFragment : Fragment() {
             binding.productNameText.text = product.name
             binding.productPriceText.text = "${vnd.format(product.price)} VNĐ"
             binding.productDescriptionText.text = product.description
-            binding.productRatingText.text = String.format("%.1f", product.rating)
+            binding.productRatingText.text = String.format(Locale.US, "%.1f", product.rating)
             binding.productReviewsText.text = getString(R.string.reviews_format, product.reviewCount)
             binding.productBrand.text = product.brand ?: product.category
             binding.productRatingBar.rating = product.rating

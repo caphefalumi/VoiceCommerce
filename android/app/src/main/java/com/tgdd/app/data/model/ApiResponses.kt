@@ -127,3 +127,187 @@ data class PaymentStatusResponse(
     @SerializedName("error")
     val error: String? = null
 )
+
+// Review responses
+data class ReviewsResponse(
+    @SerializedName("reviews")
+    val reviews: List<ReviewDto>? = null,
+    @SerializedName("average_rating")
+    val averageRating: Double? = null,
+    @SerializedName("total_count")
+    val totalCount: Int? = null
+)
+
+data class ReviewResponse(
+    @SerializedName("review")
+    val review: ReviewDto? = null,
+    @SerializedName("message")
+    val message: String? = null,
+    @SerializedName("error")
+    val error: String? = null
+)
+
+// Wishlist responses
+data class WishlistResponse(
+    @SerializedName("wishlist")
+    val wishlist: List<ProductDto>? = null,
+    @SerializedName("total_items")
+    val totalItems: Int? = null
+)
+
+// Promo code responses
+data class PromoCodesResponse(
+    @SerializedName("promo_codes")
+    val promoCodes: List<PromoCodeDto>? = null
+)
+
+data class PromoCodeDto(
+    @SerializedName("code")
+    val code: String,
+    @SerializedName("discount_type")
+    val discountType: String,
+    @SerializedName("discount_value")
+    val discountValue: Double,
+    @SerializedName("min_order_value")
+    val minOrderValue: Double = 0.0,
+    @SerializedName("max_discount")
+    val maxDiscount: Double? = null,
+    @SerializedName("expires_at")
+    val expiresAt: Long,
+    @SerializedName("description")
+    val description: String = ""
+)
+
+data class PromoCodeValidationResponse(
+    @SerializedName("valid")
+    val valid: Boolean,
+    @SerializedName("discount_amount")
+    val discountAmount: Double? = null,
+    @SerializedName("message")
+    val message: String? = null,
+    @SerializedName("error")
+    val error: String? = null
+)
+
+data class PromoCodeApplicationResponse(
+    @SerializedName("success")
+    val success: Boolean,
+    @SerializedName("discount_amount")
+    val discountAmount: Double? = null,
+    @SerializedName("final_total")
+    val finalTotal: Double? = null,
+    @SerializedName("message")
+    val message: String? = null,
+    @SerializedName("error")
+    val error: String? = null
+)
+
+// Address response
+data class AddressListResponse(
+    @SerializedName("addresses")
+    val addresses: List<AddressDto>? = null
+)
+
+data class AddressDto(
+    @SerializedName("id")
+    val id: Long? = null,
+    @SerializedName("user_id")
+    val userId: String?,
+    @SerializedName("name")
+    val name: String,
+    @SerializedName("phone")
+    val phone: String,
+    @SerializedName("street")
+    val street: String,
+    @SerializedName("city")
+    val city: String,
+    @SerializedName("district")
+    val district: String = "",
+    @SerializedName("ward")
+    val ward: String = "",
+    @SerializedName("is_default")
+    val isDefault: Boolean = false,
+    @SerializedName("label")
+    val label: String = "Home"
+)
+
+object ApiResponses {
+    // Wrapper for all response types
+    data class ProductListResponse(val products: List<ProductDto>? = null)
+    data class ProductResponse(val product: ProductDto? = null)
+    data class UserResponse(val user: UserDto? = null)
+    data class OrderListResponse(val orders: List<OrderDto>? = null)
+    data class OrderResponse(val order: OrderDto? = null)
+    data class OrderCreateResponse(
+        val id: String? = null,
+        val status: String? = null,
+        val totalPrice: Double? = null,
+        val confirmationText: String? = null,
+        val message: String? = null,
+        val error: String? = null
+    )
+    data class CartResponse(
+        val cart: List<CartItemDto>? = null,
+        val totalItems: Int? = null,
+        val totalPrice: Double? = null
+    )
+    data class AddToCartResponse(
+        val id: String? = null,
+        val message: String? = null,
+        val success: Boolean = false
+    )
+    data class MessageResponse(
+        val message: String? = null,
+        val success: Boolean? = null,
+        val error: String? = null
+    )
+    data class TicketCreateResponse(
+        val id: String? = null,
+        val shortId: String? = null,
+        val status: String? = null,
+        val categoryLabel: String? = null,
+        val confirmationText: String? = null,
+        val message: String? = null,
+        val error: String? = null
+    )
+    data class TicketListResponse(val tickets: List<TicketDto>? = null)
+    data class CheckoutSessionResponse(
+        val sessionId: String? = null,
+        val url: String? = null,
+        val error: String? = null
+    )
+    data class PaymentStatusResponse(
+        val status: String? = null,
+        val orderId: String? = null,
+        val error: String? = null
+    )
+    data class ReviewsResponse(
+        val reviews: List<ReviewDto>? = null,
+        val averageRating: Double? = null,
+        val totalCount: Int? = null
+    )
+    data class ReviewResponse(
+        val review: ReviewDto? = null,
+        val message: String? = null,
+        val error: String? = null
+    )
+    data class WishlistResponse(
+        val wishlist: List<ProductDto>? = null,
+        val totalItems: Int? = null
+    )
+    data class PromoCodesResponse(val promoCodes: List<PromoCodeDto>? = null)
+    data class PromoCodeValidationResponse(
+        val valid: Boolean,
+        val discountAmount: Double? = null,
+        val message: String? = null,
+        val error: String? = null
+    )
+    data class PromoCodeApplicationResponse(
+        val success: Boolean,
+        val discountAmount: Double? = null,
+        val finalTotal: Double? = null,
+        val message: String? = null,
+        val error: String? = null
+    )
+    data class AddressListResponse(val addresses: List<AddressDto>? = null)
+}

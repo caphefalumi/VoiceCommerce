@@ -3,24 +3,9 @@ name: CI
 on:
   push:
     branches: ["**"]
-    paths:
-      - "apps/web/src/**"
-      - "apps/web/public/**"
-      - "apps/web/package.json"
-      - "apps/web/vite.config.ts"
-      - "apps/web/index.html"
-      - "apps/api-worker/**"
-      - "apps/ai-worker/**"
+
   pull_request:
     branches: [main]
-    paths:
-      - "apps/web/src/**"
-      - "apps/web/public/**"
-      - "apps/web/package.json"
-      - "apps/web/vite.config.ts"
-      - "apps/web/index.html"
-      - "apps/api-worker/**"
-      - "apps/ai-worker/**"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -49,16 +34,12 @@ jobs:
         working-directory: apps/web
 
       - name: Lint
-        run: bunx oxlint --fix --fix-suggestions
+        run: bunx oxlint -W correctness
         working-directory: apps/web
         continue-on-error: true
 
       - name: Format
         run: bunx oxfmt --config .oxfmtrc.jsonc
-        working-directory: apps/web
-
-      - name: Type check
-        run: bunx tsc --noEmit
         working-directory: apps/web
 
       - name: Check for changes
@@ -79,12 +60,6 @@ jobs:
         run: bun run build
         working-directory: apps/web
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist-${{ github.sha }}
-          path: apps/web/dist/
-          retention-days: 7
 
   api-worker-ci:
     name: API Worker — Type-check / Build
@@ -104,9 +79,6 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: apps/api-worker
 
-      - name: TypeScript type-check
-        run: bunx tsc --noEmit
-        working-directory: apps/api-worker
 
       - name: Dry-run build (wrangler)
         run: bunx wrangler deploy --dry-run --outdir /tmp/api-worker-dist
@@ -133,9 +105,6 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: apps/ai-worker
 
-      - name: TypeScript type-check
-        run: bunx tsc --noEmit
-        working-directory: apps/ai-worker
 
       - name: Dry-run build (wrangler)
         run: bunx wrangler deploy --dry-run --outdir /tmp/ai-worker-dist

@@ -59,3 +59,47 @@ object RepositoryModule {
         return OrderRepository(orderDao, cartDao, orderApi, context)
     }
 }
+
+    @Provides
+    @Singleton
+    fun provideWishlistRepository(
+        wishlistDao: com.tgdd.app.data.local.dao.WishlistDao,
+        wishlistApi: com.tgdd.app.data.remote.WishlistApi
+    ): com.tgdd.app.data.repository.WishlistRepository {
+        return com.tgdd.app.data.repository.WishlistRepository(wishlistDao, wishlistApi)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReviewRepository(
+        reviewDao: com.tgdd.app.data.local.dao.ReviewDao,
+        reviewApi: com.tgdd.app.data.remote.ReviewApi
+    ): com.tgdd.app.data.repository.ReviewRepository {
+        return com.tgdd.app.data.repository.ReviewRepository(reviewDao, reviewApi)
+    }
+
+    @Provides
+    @Singleton
+    fun providePromoCodeRepository(
+        promoCodeDao: com.tgdd.app.data.local.dao.PromoCodeDao,
+        promoCodeApi: com.tgdd.app.data.remote.PromoCodeApi
+    ): com.tgdd.app.data.repository.PromoCodeRepository {
+        return com.tgdd.app.data.repository.PromoCodeRepository(promoCodeDao, promoCodeApi)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAddressRepository(
+        addressDao: com.tgdd.app.data.local.dao.AddressDao
+    ): com.tgdd.app.data.repository.AddressRepository {
+        return com.tgdd.app.data.repository.AddressRepository(addressDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSearchHistoryRepository(
+        searchHistoryDao: com.tgdd.app.data.local.dao.SearchHistoryDao
+    ): com.tgdd.app.data.repository.SearchHistoryRepository {
+        return com.tgdd.app.data.repository.SearchHistoryRepository(searchHistoryDao)
+    }
+}

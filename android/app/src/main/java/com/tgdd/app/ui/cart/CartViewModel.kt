@@ -1,6 +1,7 @@
 package com.tgdd.app.ui.cart
 
 import androidx.lifecycle.*
+import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.data.repository.CartRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch

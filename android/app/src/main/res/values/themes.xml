@@ -53,13 +53,6 @@
         <item name="android:windowLightStatusBar">true</item>
 
         <!-- Navigation bar -->
-        <item name="android:navigationBarColor">@color/mobi_pulse_surface</item>
-        <item name="android:windowLightNavigationBar">true</item>
-
-        <!-- Edge-to-edge -->
-        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
-
-        <!-- Glassmorphism -->
         <item name="android:navigationBarColor">@color/mobi_pulse_glass_background</item>
     </style>
 
@@ -113,13 +106,6 @@
         <item name="android:windowLightStatusBar">false</item>
 
         <!-- Navigation bar -->
-        <item name="android:navigationBarColor">@color/mobi_pulse_surface</item>
-        <item name="android:windowLightNavigationBar">false</item>
-
-        <!-- Edge-to-edge -->
-        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
-
-        <!-- Glassmorphism -->
         <item name="android:navigationBarColor">@color/mobi_pulse_glass_background_dark</item>
     </style>
 
