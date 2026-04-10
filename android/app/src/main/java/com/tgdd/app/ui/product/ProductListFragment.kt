@@ -116,7 +116,7 @@ class ProductListFragment : Fragment() {
                 return@setOnClickListener
             }
             
-            viewModel.setFilter(min, max)
+            viewModel.setPriceRange(min, max)
             binding.clearFilterButton.visibility = if (min != null || max != null) View.VISIBLE else View.GONE
             binding.filterPanel.hide()
             

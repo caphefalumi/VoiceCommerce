@@ -167,7 +167,7 @@ fun ReviewDto.toEntity(): ReviewEntity {
         userName = this.userName ?: "Anonymous",
         rating = this.rating,
         comment = this.comment ?: "",
-        images = gson.toJson(this.images ?: emptyList()),
+        images = gson.toJson(this.images),
         helpfulCount = this.helpfulCount,
         createdAt = this.createdAt ?: System.currentTimeMillis(),
         isVerifiedPurchase = this.isVerifiedPurchase

@@ -58,7 +58,6 @@ object RepositoryModule {
     ): OrderRepository {
         return OrderRepository(orderDao, cartDao, orderApi, context)
     }
-}
 
     @Provides
     @Singleton

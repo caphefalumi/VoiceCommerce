@@ -1,3 +1,5 @@
+@file:JvmName("NetworkModuleProvider")
+
 package com.tgdd.app.di
 
 import android.content.Context
@@ -117,7 +119,6 @@ object NetworkModule {
     fun provideTicketApi(retrofit: Retrofit): TicketApi {
         return retrofit.create(TicketApi::class.java)
     }
-}
 
     @Provides
     @Singleton
@@ -136,3 +137,4 @@ object NetworkModule {
     fun providePromoCodeApi(retrofit: Retrofit): com.tgdd.app.data.remote.PromoCodeApi {
         return retrofit.create(com.tgdd.app.data.remote.PromoCodeApi::class.java)
     }
+}

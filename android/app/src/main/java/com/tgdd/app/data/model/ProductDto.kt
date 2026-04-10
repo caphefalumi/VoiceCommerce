@@ -31,8 +31,6 @@ data class ProductDto(
     val isNew: Boolean = false,
     @SerializedName("specs")
     val specs: Map<String, String>? = null,
-    @SerializedName("reviews")
-    val reviews: List<ReviewDto>? = null,
     @SerializedName("url")
     val url: String? = null,
     @SerializedName("createdAt")
@@ -45,16 +43,3 @@ data class ProductDto(
         return images?.firstOrNull() ?: ""
     }
 }
-
-data class ReviewDto(
-    @SerializedName("id")
-    val id: String,
-    @SerializedName("userName")
-    val userName: String,
-    @SerializedName("rating")
-    val rating: Float,
-    @SerializedName("comment")
-    val comment: String,
-    @SerializedName("date")
-    val date: String
-)

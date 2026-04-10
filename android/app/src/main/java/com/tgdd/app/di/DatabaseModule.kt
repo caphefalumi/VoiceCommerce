@@ -1,3 +1,5 @@
+@file:JvmName("DatabaseModuleProvider")
+
 package com.tgdd.app.di
 
 import android.content.Context
@@ -45,7 +47,6 @@ object DatabaseModule {
     fun provideOrderDao(database: AppDatabase): OrderDao {
         return database.orderDao()
     }
-}
 
     @Provides
     @Singleton
@@ -76,3 +77,4 @@ object DatabaseModule {
     fun provideSearchHistoryDao(database: AppDatabase): com.tgdd.app.data.local.dao.SearchHistoryDao {
         return database.searchHistoryDao()
     }
+}

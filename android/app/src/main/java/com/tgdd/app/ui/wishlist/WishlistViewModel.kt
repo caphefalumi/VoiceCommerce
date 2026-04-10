@@ -58,7 +58,7 @@ class WishlistViewModel @Inject constructor(
                     image = item.image,
                     category = "",
                     description = "",
-                    rating = item.rating,
+                    rating = item.rating.toFloat(),
                     reviewCount = 0,
                     brand = null,
                     inStock = true

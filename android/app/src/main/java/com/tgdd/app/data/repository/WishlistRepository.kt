@@ -26,7 +26,7 @@ class WishlistRepository @Inject constructor(
             image = product.image,
             price = product.price,
             originalPrice = product.originalPrice,
-            rating = product.rating
+            rating = product.rating.toDouble()
         )
         wishlistDao.insertWishlistItem(wishlistItem)
         syncAddToWishlist(product.id)
@@ -92,7 +92,7 @@ class WishlistRepository @Inject constructor(
                             image = product.getFirstImage(),
                             price = product.price,
                             originalPrice = product.originalPrice,
-                            rating = product.rating
+                            rating = product.rating.toDouble()
                         )
                     }
                     wishlistDao.clearWishlist()

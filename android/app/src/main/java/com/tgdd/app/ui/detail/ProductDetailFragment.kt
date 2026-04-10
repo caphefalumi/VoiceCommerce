@@ -101,7 +101,7 @@ class ProductDetailFragment : Fragment() {
             if (!specs.isNullOrEmpty()) {
                 binding.specsContainer.removeAllViews()
                 binding.specsContainer.visibility = View.VISIBLE
-                specs.entries.forEachIndexed { index, entry ->
+                specs.entries.forEach { entry ->
                     val row = layoutInflater.inflate(android.R.layout.simple_list_item_2, binding.specsContainer, false)
                     row.findViewById<TextView>(android.R.id.text1)?.apply {
                         text = entry.key
@@ -115,12 +115,6 @@ class ProductDetailFragment : Fragment() {
                     }
                     binding.specsContainer.addView(row)
                 }
-            }
-            // Render reviews
-            val reviews = dto.reviews
-            if (!reviews.isNullOrEmpty()) {
-                binding.reviewsRecyclerView.visibility = View.VISIBLE
-                reviewAdapter.submitList(reviews)
             }
         }
 
