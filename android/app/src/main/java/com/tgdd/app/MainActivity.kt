@@ -28,7 +28,10 @@ class MainActivity : AppCompatActivity() {
     
     private val networkObserver = androidx.lifecycle.Observer<Boolean> { connected ->
         if (!connected) showNetworkErrorSnackbar()
+        else currentNetworkSnackbar?.dismiss()
     }
+
+    private var currentNetworkSnackbar: Snackbar? = null
     
     private val authObserver = androidx.lifecycle.Observer<String?> { error ->
         error?.let {
@@ -85,6 +88,10 @@ class MainActivity : AppCompatActivity() {
                 if (!sessionId.isNullOrBlank()) {
                     verifyAndShowPaymentResult(sessionId)
                 }
+            } else if (uri.scheme == "tgdd" && uri.host == "oauth") {
+                startActivity(android.content.Intent(this, com.tgdd.app.ui.auth.OAuthCallbackActivity::class.java).apply {
+                    data = uri
+                })
             }
         }
     }
@@ -143,13 +150,17 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showNetworkErrorSnackbar() {
-        Snackbar.make(
+        if (currentNetworkSnackbar?.isShown == true) return
+
+        currentNetworkSnackbar = Snackbar.make(
             binding.root,
             getString(R.string.error_network),
             Snackbar.LENGTH_INDEFINITE
         ).setAction(getString(R.string.retry)) {
             // Retry last action
-        }.show()
+        }
+
+        currentNetworkSnackbar?.show()
     }
     
     private fun observeAuthErrors() {

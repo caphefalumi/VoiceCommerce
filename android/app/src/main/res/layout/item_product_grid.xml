@@ -70,7 +70,7 @@
                     android:fontFamily="@font/inter"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="4dp"
-                    android:text="MỚI"
+                    android:text="@string/product_badge_new"
                     android:textColor="@color/mobi_pulse_primary_dark"
                     android:textSize="10sp"
                     android:textStyle="bold"

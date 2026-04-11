@@ -11,7 +11,7 @@ import { authClient } from '@/lib/auth-client';
 export const Route = createFileRoute('/cart')({
   beforeLoad: async () => {
     const session = await authClient.getSession();
-    if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/cart' } });
+    if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/cart', error: '' } });
     const currentUser = useAuthStore.getState().user;
     if (!currentUser) {
       const u = session.data.user;

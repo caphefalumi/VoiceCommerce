@@ -45,7 +45,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="#FFF5F5F5"
-                    android:scaleType="centerCrop" />
+                    android:scaleType="centerCrop"
+                    android:contentDescription="@string/cd_product_image" />
 
                 <!-- Favorite Button -->
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -279,7 +280,7 @@
                         android:layout_marginTop="24dp"
                         android:layout_marginBottom="10dp"
                         android:fontFamily="@font/space_grotesk_bold"
-                        android:text="Thông số kỹ thuật"
+                        android:text="@string/specifications"
                         android:textColor="@color/mobi_pulse_on_surface"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -300,7 +301,7 @@
                         android:layout_marginTop="24dp"
                         android:layout_marginBottom="10dp"
                         android:fontFamily="@font/space_grotesk_bold"
-                        android:text="Đánh giá khách hàng"
+                        android:text="@string/customer_reviews"
                         android:textColor="@color/mobi_pulse_on_surface"
                         android:textSize="16sp"
                         android:textStyle="bold" />

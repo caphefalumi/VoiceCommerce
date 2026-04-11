@@ -19,6 +19,17 @@ interface CartState {
 import { useAuthStore } from './auth';
 import { API_BASE } from '@/lib/api';
 
+const getAuthToken = () => localStorage.getItem('tgdd_auth_token');
+
+const getAuthHeaders = (extra?: HeadersInit): Headers => {
+  const headers = new Headers(extra);
+  const token = getAuthToken();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return headers;
+};
+
 const normalizeCartItems = (items: unknown[]): CartItem[] => {
   return items
     .map((raw) => {
@@ -52,12 +63,13 @@ const syncCartAPI = async (method: string, productId: string, quantity?: number)
     if (method === 'DELETE') {
       await fetch(`${API_BASE}/api/cart/${productId}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
         credentials: 'include',
       });
     } else if (method === 'POST') {
       await fetch(`${API_BASE}/api/cart`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         credentials: 'include',
         body: JSON.stringify({ product_id: productId, quantity }),
       });
@@ -119,6 +131,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
     }
     try {
       const res = await fetch(`${API_BASE}/api/cart`, {
+        headers: getAuthHeaders(),
         credentials: 'include',
       });
       if (!res.ok) return;

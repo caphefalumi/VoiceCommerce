@@ -1,6 +1,28 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { createAuth, type Env as AuthEnv } from './lib/auth';
+import {
+  buildClearSessionCookie,
+  buildGoogleOAuthUrl,
+  buildSessionCookie,
+  consumeEmailVerifyToken,
+  consumeOAuthState,
+  consumeResetToken,
+  createCredentialUser,
+  createEmailVerifyToken,
+  createOAuthState,
+  createSession,
+  exchangeGoogleCode,
+  findCredentialAccountByEmail,
+  findUserByEmail,
+  getSessionFromRequest,
+  hashPassword,
+  readBearerToken,
+  storeResetToken,
+  type SimpleAuthEnv,
+  verifyPassword,
+  upsertGoogleUser,
+} from './lib/simple-auth';
+import { verifyFirebaseToken, getFirebaseProjectId, signInWithEmailPassword, signUpWithEmailPassword, sendPasswordResetEmail } from './lib/firebase';
 import { requireAuth, requireAdmin } from './middleware/auth';
 import type { AuthUser } from './middleware/auth';
 
@@ -65,13 +87,13 @@ function parseReviews(reviewsJson: string): Array<{
 
 type Bindings = {
   DB: D1Database;
-  BETTER_AUTH_SECRET: string;
   BETTER_AUTH_URL: string;
   MAILERSEND_API_KEY: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
+  FIREBASE_PROJECT_ID: string;
 };
 
 type Variables = {
@@ -113,17 +135,6 @@ type VoiceSessionSummary = {
   message_count: number;
 };
 
-// Cache auth instance per env object (reused within same CF Worker isolate)
-const authCache = new WeakMap<AuthEnv, ReturnType<typeof createAuth>>();
-function getAuth(env: AuthEnv) {
-  let auth = authCache.get(env);
-  if (!auth) {
-    auth = createAuth(env);
-    authCache.set(env, auth);
-  }
-  return auth;
-}
-
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use('*', cors({
@@ -142,13 +153,420 @@ app.use('*', cors({
   credentials: true,
 }));
 
-app.all('/api/auth/*', (c) => {
-  const auth = getAuth(c.env);
-  return auth.handler(c.req.raw);
+const APP_BASE_URL = 'https://api-worker.dangduytoan13l.workers.dev';
+
+function getBaseUrl(c: { env: Bindings }) {
+  return c.env.BETTER_AUTH_URL || APP_BASE_URL;
+}
+
+async function ensureUserExistsByEmail(c: { env: Bindings }, email: string, fallbackName?: string) {
+  const existing = await findUserByEmail(c.env, email);
+  if (existing) return existing;
+
+  const userId = crypto.randomUUID();
+  const accountId = crypto.randomUUID();
+  const now = Date.now();
+
+  await c.env.DB.prepare(
+    `INSERT INTO "user" (id, name, email, email_verified, role, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(userId, fallbackName || email.split('@')[0], email.toLowerCase().trim(), 1, 'user', now, now).run();
+
+  await c.env.DB.prepare(
+    `INSERT INTO account (id, account_id, provider_id, user_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).bind(accountId, email.toLowerCase().trim(), 'firebase', userId, now, now).run();
+
+  return {
+    id: userId,
+    email: email.toLowerCase().trim(),
+    name: fallbackName || email.split('@')[0],
+    role: 'user',
+    emailVerified: true,
+  };
+}
+
+app.get('/api/auth/get-session', async (c) => {
+  const session = await getSessionFromRequest(c.env, c.req.raw);
+  if (!session) {
+    return c.json({ user: null, token: null }, 401);
+  }
+  return c.json({ user: session.user, token: session.token });
+});
+
+app.post('/api/auth/sign-in/email', async (c) => {
+  let body: { email?: string; password?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const email = body.email?.toLowerCase().trim();
+  const password = body.password ?? '';
+  if (!email || !password) {
+    return c.json({ error: 'email and password are required' }, 400);
+  }
+
+  const account = await findCredentialAccountByEmail(c.env, email);
+  if (!account || typeof account.password !== 'string') {
+    return c.json({ error: 'Invalid credentials' }, 401);
+  }
+
+  const ok = await verifyPassword(account.password, password);
+  if (!ok) {
+    return c.json({ error: 'Invalid credentials' }, 401);
+  }
+
+  const user = await findUserByEmail(c.env, email);
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
+  const token = await createSession(c.env, user.id);
+  c.header('Set-Cookie', buildSessionCookie(token));
+  return c.json({ user, token });
+});
+
+app.post('/api/auth/sign-up/email', async (c) => {
+  let body: { name?: string; email?: string; password?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const name = body.name?.trim();
+  const email = body.email?.toLowerCase().trim();
+  const password = body.password ?? '';
+  if (!name || !email || !password) {
+    return c.json({ error: 'name, email and password are required' }, 400);
+  }
+  if (password.length < 6) {
+    return c.json({ error: 'Password must be at least 6 characters' }, 400);
+  }
+
+  const existing = await findUserByEmail(c.env, email);
+  if (existing) {
+    return c.json({ error: 'Email already registered' }, 409);
+  }
+
+  const user = await createCredentialUser(c.env, name, email, password);
+  const token = await createSession(c.env, user.id);
+  c.header('Set-Cookie', buildSessionCookie(token));
+  return c.json({ user, token });
+});
+
+app.post('/api/auth/sign-out', async (c) => {
+  const token = readBearerToken(c.req.raw);
+  if (token) {
+    await c.env.DB.prepare('DELETE FROM session WHERE token = ?').bind(token).run();
+  }
+  c.header('Set-Cookie', buildClearSessionCookie());
+  return c.json({ success: true });
+});
+
+app.patch('/api/auth/user', requireAuth, async (c) => {
+  const user = c.get('user');
+  let body: { name?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+  const name = body.name?.trim();
+  if (!name) {
+    return c.json({ error: 'name is required' }, 400);
+  }
+
+  await c.env.DB.prepare('UPDATE "user" SET name = ?, updated_at = ? WHERE id = ?')
+    .bind(name, Date.now(), user.id)
+    .run();
+
+  const updated = await findUserByEmail(c.env, user.email);
+  if (!updated) {
+    return c.json({ error: 'User not found after update' }, 500);
+  }
+  return c.json({ user: updated });
+});
+
+app.post('/api/auth/forget-password', async (c) => {
+  let body: { email?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const email = body.email?.toLowerCase().trim();
+  if (!email) {
+    return c.json({ error: 'email is required' }, 400);
+  }
+
+  const user = await findUserByEmail(c.env, email);
+  if (user) {
+    const token = await storeResetToken(c.env, email);
+    const resetUrl = `${getBaseUrl(c)}/reset-password?token=${encodeURIComponent(token)}`;
+    console.log(`[auth] password reset URL for ${email}: ${resetUrl}`);
+  }
+
+  return c.json({ success: true, message: 'If the email exists, a reset link has been generated.' });
+});
+
+app.post('/api/auth/reset-password', async (c) => {
+  let body: { token?: string; newPassword?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const token = body.token?.trim();
+  const newPassword = body.newPassword ?? '';
+  if (!token || !newPassword) {
+    return c.json({ error: 'token and newPassword are required' }, 400);
+  }
+  if (newPassword.length < 6) {
+    return c.json({ error: 'Password must be at least 6 characters' }, 400);
+  }
+
+  const email = await consumeResetToken(c.env, token);
+  if (!email) {
+    return c.json({ error: 'Invalid or expired reset token' }, 400);
+  }
+
+  const newHash = await hashPassword(newPassword);
+  await c.env.DB.prepare(
+    `UPDATE account
+     SET password = ?, updated_at = ?
+     WHERE provider_id = 'credential' AND account_id = ?`,
+  ).bind(newHash, Date.now(), email).run();
+
+  return c.json({ success: true });
+});
+
+app.get('/api/auth/verify-email', async (c) => {
+  const token = c.req.query('token');
+  if (!token) {
+    return c.json({ error: 'token is required' }, 400);
+  }
+  const email = await consumeEmailVerifyToken(c.env, token);
+  if (!email) {
+    return c.json({ error: 'Invalid or expired verification token' }, 400);
+  }
+
+  await c.env.DB.prepare('UPDATE "user" SET email_verified = 1, updated_at = ? WHERE email = ?')
+    .bind(Date.now(), email)
+    .run();
+
+  return c.json({ success: true });
+});
+
+app.post('/api/auth/request-verify-email', requireAuth, async (c) => {
+  const user = c.get('user');
+  const token = await createEmailVerifyToken(c.env, user.email);
+  const verifyUrl = `${getBaseUrl(c)}/verify-email?token=${encodeURIComponent(token)}`;
+  console.log(`[auth] verify email URL for ${user.email}: ${verifyUrl}`);
+  return c.json({ success: true });
 });
 
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }));
+
+// ── MOBILE OAUTH HELPERS ────────────────────────────────────────────────────
+
+// GET /api/mobile/google-url?callbackURL=tgdd://oauth
+app.get('/api/mobile/google-url', async (c) => {
+  try {
+    const callbackURL = c.req.query('callbackURL') || 'tgdd://oauth';
+    const state = await createOAuthState(c.env, callbackURL);
+    const redirectUri = `${getBaseUrl(c)}/api/mobile/google-bridge`;
+    const url = buildGoogleOAuthUrl({
+      clientId: c.env.GOOGLE_CLIENT_ID,
+      redirectUri,
+      state,
+    });
+    return c.json({ url });
+  } catch (e: any) {
+    console.error('[mobile/google-url]', e);
+    return c.json({ error: e?.message ?? 'Failed to generate OAuth URL' }, 500);
+  }
+});
+
+// GET /api/mobile/google-bridge?code=...&state=...
+// Redirects from Google back to either Android deep link or web callback page.
+app.get('/api/mobile/google-bridge', async (c) => {
+  const code = c.req.query('code');
+  const state = c.req.query('state');
+  if (!code || !state) {
+    return c.json({ error: 'Missing code or state parameter' }, 400);
+  }
+
+  const callbackURL = await consumeOAuthState(c.env, state);
+  if (!callbackURL) {
+    return c.json({ error: 'Invalid or expired OAuth state' }, 400);
+  }
+
+  const redirectUrl = new URL(callbackURL);
+  redirectUrl.searchParams.set('code', code);
+  redirectUrl.searchParams.set('state', state);
+  return c.redirect(redirectUrl.toString(), 302);
+});
+
+// GET /api/mobile/google-callback?code=...&state=...
+app.get('/api/mobile/google-callback', async (c) => {
+  const code = c.req.query('code');
+  const state = c.req.query('state');
+  if (!code || !state) {
+    return c.json({ error: 'Missing code or state parameter' }, 400);
+  }
+
+  try {
+    const redirectUri = `${getBaseUrl(c)}/api/mobile/google-bridge`;
+    const profile = await exchangeGoogleCode({
+      code,
+      clientId: c.env.GOOGLE_CLIENT_ID,
+      clientSecret: c.env.GOOGLE_CLIENT_SECRET,
+      redirectUri,
+    });
+
+    const user = await upsertGoogleUser(c.env, profile);
+    const token = await createSession(c.env, user.id);
+
+    return c.json({ token, user });
+  } catch (e: any) {
+    console.error('[mobile/google-callback]', e);
+    return c.json({ error: e?.message ?? 'OAuth callback failed' }, 500);
+  }
+});
+
+// POST /api/auth/firebase
+// Body: { idToken: string }
+app.post('/api/auth/firebase', async (c) => {
+  let body: { idToken?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  if (!body.idToken) {
+    return c.json({ error: 'idToken is required' }, 400);
+  }
+
+  try {
+    const projectId = getFirebaseProjectId(c.env);
+    const firebaseUser = await verifyFirebaseToken(body.idToken, projectId);
+    if (!firebaseUser.email) {
+      return c.json({ error: 'Firebase user has no email' }, 400);
+    }
+
+    const user = await ensureUserExistsByEmail(c, firebaseUser.email, firebaseUser.displayName || undefined);
+    const token = await createSession(c.env, user.id);
+    return c.json({ token, user });
+  } catch (e: any) {
+    console.error('[auth/firebase]', e);
+    return c.json({ error: e?.message ?? 'Firebase authentication failed' }, 500);
+  }
+});
+
+// POST /api/auth/firebase/email
+app.post('/api/auth/firebase/email', async (c) => {
+  let body: { email?: string; password?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  if (!body.email || !body.password) {
+    return c.json({ error: 'email and password are required' }, 400);
+  }
+
+  try {
+    const projectId = getFirebaseProjectId(c.env);
+    const firebaseUser = await signInWithEmailPassword(body.email, body.password, projectId);
+    const user = await ensureUserExistsByEmail(c, body.email, firebaseUser.displayName || undefined);
+    const token = await createSession(c.env, user.id);
+    return c.json({ token, user, needsVerification: !firebaseUser.emailVerified });
+  } catch (e: any) {
+    console.error('[auth/firebase/email]', e);
+    return c.json({ error: e?.message ?? 'Firebase email sign-in failed' }, 500);
+  }
+});
+
+// POST /api/auth/firebase/email/signup
+app.post('/api/auth/firebase/email/signup', async (c) => {
+  let body: { name?: string; email?: string; password?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  if (!body.name || !body.email || !body.password) {
+    return c.json({ error: 'name, email and password are required' }, 400);
+  }
+
+  try {
+    const projectId = getFirebaseProjectId(c.env);
+    await signUpWithEmailPassword(body.email, body.password, body.name, projectId);
+    const user = await ensureUserExistsByEmail(c, body.email, body.name);
+    const token = await createSession(c.env, user.id);
+    return c.json({ token, user });
+  } catch (e: any) {
+    console.error('[auth/firebase/email/signup]', e);
+    return c.json({ error: e?.message ?? 'Firebase email sign-up failed' }, 500);
+  }
+});
+
+// POST /api/auth/firebase/reset-password
+app.post('/api/auth/firebase/reset-password', async (c) => {
+  let body: { email?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  if (!body.email) {
+    return c.json({ error: 'email is required' }, 400);
+  }
+
+  try {
+    const projectId = getFirebaseProjectId(c.env);
+    await sendPasswordResetEmail(body.email, projectId);
+    return c.json({ message: 'Password reset email sent' });
+  } catch (e: any) {
+    console.error('[auth/firebase/reset-password]', e);
+    return c.json({ error: e?.message ?? 'Firebase password reset failed' }, 500);
+  }
+});
+
+// POST /api/auth/firebase/create-account
+app.post('/api/auth/firebase/create-account', async (c) => {
+  let body: { name?: string; email?: string; password?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  if (!body.name || !body.email || !body.password) {
+    return c.json({ error: 'name, email and password are required' }, 400);
+  }
+
+  try {
+    const projectId = getFirebaseProjectId(c.env);
+    await signUpWithEmailPassword(body.email, body.password, body.name, projectId);
+    const user = await ensureUserExistsByEmail(c, body.email, body.name);
+    const token = await createSession(c.env, user.id);
+    return c.json({ token, user });
+  } catch (e: any) {
+    console.error('[auth/firebase/create-account]', e);
+    return c.json({ error: e?.message ?? 'Firebase account creation failed' }, 500);
+  }
+});
 
 // ── PRODUCTS ───────────────────────────────────────────────────────────────────
 

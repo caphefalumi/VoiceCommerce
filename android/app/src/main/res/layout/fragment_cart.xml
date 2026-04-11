@@ -130,6 +130,7 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:src="@drawable/ic_bolt"
+                    android:contentDescription="@string/cd_voucher_icon"
                     app:tint="@color/mobi_pulse_tertiary" />
 
                 <TextView
@@ -147,6 +148,7 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@drawable/ic_chevron_right"
+                    android:contentDescription="@string/cd_chevron_right"
                     app:tint="@color/mobi_pulse_on_surface_variant" />
 
             </LinearLayout>

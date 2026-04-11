@@ -19,7 +19,8 @@
                 android:id="@+id/bannerImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop" />
+                android:scaleType="centerCrop"
+                android:contentDescription="@string/cd_banner_image" />
 
             <!-- Glassmorphism Overlay -->
             <View

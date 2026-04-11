@@ -9,7 +9,7 @@ export const Route = createFileRoute('/account/settings')({
     let currentUser = useAuthStore.getState().user;
     if (!currentUser) {
       const session = await authClient.getSession();
-      if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/account/settings' } });
+      if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/account/settings', error: '' } });
       const u = session.data.user;
       useAuthStore.getState()._setUser({
         id: u.id,

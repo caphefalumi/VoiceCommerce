@@ -38,6 +38,7 @@
                         android:layout_width="72dp"
                         android:layout_height="72dp"
                         android:src="@drawable/ic_profile"
+                        android:contentDescription="@string/profile_desc"
                         app:tint="@color/mobi_pulse_on_surface_variant" />
 
                     <TextView
@@ -78,7 +79,7 @@
                         android:layout_height="56dp"
                         android:layout_marginTop="12dp"
                         android:fontFamily="@font/space_grotesk_bold"
-                        android:text="Đăng ký tài khoản"
+                        android:text="@string/register_account"
                         android:textAllCaps="false"
                         android:textSize="15sp"
                         app:cornerRadius="12dp" />
@@ -128,6 +129,7 @@
                                 android:layout_height="match_parent"
                                 android:background="@color/mobi_pulse_primary"
                                 android:scaleType="centerCrop"
+                                android:contentDescription="@string/profile_desc"
                                 android:src="@drawable/ic_profile" />
 
                         </com.google.android.material.card.MaterialCardView>
@@ -335,11 +337,12 @@
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_chevron_right"
-                    app:tint="@color/mobi_pulse_on_surface_variant" />
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:src="@drawable/ic_chevron_right"
+                            android:contentDescription="@string/cd_chevron_right"
+                            app:tint="@color/mobi_pulse_on_surface_variant" />
 
             </LinearLayout>
 
@@ -394,6 +397,7 @@
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:src="@drawable/ic_profile"
+                            android:contentDescription="@string/profile_desc"
                             app:tint="@color/mobi_pulse_on_surface_variant" />
 
                         <TextView
@@ -410,6 +414,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:src="@drawable/ic_chevron_right"
+                            android:contentDescription="@string/cd_chevron_right"
                             app:tint="@color/mobi_pulse_on_surface_variant" />
 
                     </LinearLayout>
@@ -430,6 +435,7 @@
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:src="@drawable/ic_notification"
+                            android:contentDescription="@string/notifications"
                             app:tint="@color/mobi_pulse_on_surface_variant" />
 
                         <TextView
@@ -446,6 +452,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:src="@drawable/ic_chevron_right"
+                            android:contentDescription="@string/cd_chevron_right"
                             app:tint="@color/mobi_pulse_on_surface_variant" />
 
                     </LinearLayout>
@@ -466,6 +473,7 @@
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:src="@drawable/ic_support"
+                            android:contentDescription="@string/help_center"
                             app:tint="@color/mobi_pulse_on_surface_variant" />
 
                         <TextView
@@ -482,6 +490,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:src="@drawable/ic_chevron_right"
+                            android:contentDescription="@string/cd_chevron_right"
                             app:tint="@color/mobi_pulse_on_surface_variant" />
 
                     </LinearLayout>

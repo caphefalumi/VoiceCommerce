@@ -14,7 +14,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/ic_back"
-            app:title="Đơn hàng của tôi" />
+            app:title="@string/my_orders" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -41,7 +41,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="@font/space_grotesk_bold"
-            android:text="Chưa có đơn hàng nào"
+            android:text="@string/no_orders_yet"
             android:textColor="@color/mobi_pulse_on_surface"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -52,7 +52,7 @@
             android:layout_marginTop="8dp"
             android:fontFamily="@font/inter"
             android:gravity="center"
-            android:text="Hãy mua sản phẩm đầu tiên của bạn tại TGDĐ nhé!"
+            android:text="@string/buy_first_product_prompt"
             android:textColor="@color/mobi_pulse_on_surface_variant"
             android:textSize="14sp" />
 

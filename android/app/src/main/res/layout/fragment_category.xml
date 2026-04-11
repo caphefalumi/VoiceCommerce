@@ -348,7 +348,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:fontFamily="@font/inter"
-                        android:text="SAMSUNG"
+                        android:text="@string/brand_samsung"
                         android:textColor="@color/mobi_pulse_on_surface"
                         android:textSize="10sp"
                         android:textStyle="bold" />
@@ -419,7 +419,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="Apple"
+                        android:text="@string/brand_apple"
                     android:gravity="center"
                     android:fontFamily="@font/inter"
                     android:textStyle="bold"
@@ -442,7 +442,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="Samsung"
+                        android:text="@string/brand_samsung"
                     android:gravity="center"
                     android:fontFamily="@font/inter"
                     android:textStyle="bold"
@@ -465,7 +465,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="Oppo"
+                        android:text="@string/brand_oppo"
                     android:gravity="center"
                     android:fontFamily="@font/inter"
                     android:textStyle="bold"
@@ -488,7 +488,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="Xiaomi"
+                        android:text="@string/brand_xiaomi"
                     android:gravity="center"
                     android:fontFamily="@font/inter"
                     android:textStyle="bold"
@@ -606,14 +606,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="APPLE WATCH"
+                        android:text="@string/brand_apple_watch"
                         android:textStyle="bold"
                         android:textSize="10sp"
                         android:textColor="@color/mobi_pulse_on_surface" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Series 9 | Ultra 2"
+                        android:text="@string/series_9_ultra_2"
                         android:textSize="8sp"
                         android:textColor="@color/mobi_pulse_on_surface_variant" />
                 </LinearLayout>
@@ -651,14 +651,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="MACBOOK"
+                        android:text="@string/brand_macbook"
                         android:textStyle="bold"
                         android:textSize="10sp"
                         android:textColor="@color/mobi_pulse_on_surface" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Air M2 | Pro M3"
+                        android:text="@string/air_m2_pro_m3"
                         android:textSize="8sp"
                         android:textColor="@color/mobi_pulse_on_surface_variant" />
                 </LinearLayout>

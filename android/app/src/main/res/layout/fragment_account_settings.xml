@@ -86,7 +86,7 @@
                     android:fontFamily="@font/inter"
                     android:padding="14dp"
                     android:text="@string/profile_updated_success"
-                    android:textColor="#22543D"
+                    android:textColor="@color/status_success"
                     android:textSize="13sp" />
             </com.google.android.material.card.MaterialCardView>
 
@@ -108,7 +108,7 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/inter"
                     android:padding="14dp"
-                    android:textColor="#C62828"
+                    android:textColor="@color/status_error"
                     android:textSize="13sp" />
             </com.google.android.material.card.MaterialCardView>
 
@@ -135,7 +135,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:hint="Email"
+                android:hint="@string/email_hint"
                 app:endIconMode="clear_text">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/emailInput"

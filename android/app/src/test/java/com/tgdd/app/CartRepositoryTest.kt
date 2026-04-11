@@ -3,14 +3,19 @@ package com.tgdd.app
 import com.tgdd.app.data.local.dao.CartDao
 import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.data.local.entity.ProductEntity
+import com.tgdd.app.data.network.NetworkObserver
+import com.tgdd.app.data.remote.CartApi
 import com.tgdd.app.data.repository.CartRepository
+import io.mockk.unmockkObject
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
@@ -18,6 +23,7 @@ import org.junit.Test
 class CartRepositoryTest {
 
     private lateinit var cartDao: CartDao
+    private lateinit var cartApi: CartApi
     private lateinit var cartRepository: CartRepository
 
     private val testCartItem = CartItemEntity(
@@ -38,7 +44,11 @@ class CartRepositoryTest {
         originalPrice = 129.99,
         image = "https://example.com/image.jpg",
         category = "Electronics",
-        description = "A test product"
+        description = "A test product",
+        rating = 4.5f,
+        reviewCount = 100,
+        brand = "TestBrand",
+        inStock = true
     )
 
     private val newCartItem = CartItemEntity(
@@ -53,7 +63,15 @@ class CartRepositoryTest {
     @Before
     fun setup() {
         cartDao = mockk(relaxed = true)
-        cartRepository = CartRepository(cartDao, mockk(relaxed = true))
+        cartApi = mockk(relaxed = true)
+        cartRepository = CartRepository(cartDao, cartApi)
+        mockkObject(NetworkObserver)
+        every { NetworkObserver.isCurrentlyConnected() } returns false
+    }
+
+    @After
+    fun tearDown() {
+        unmockkObject(NetworkObserver)
     }
 
     @Test
@@ -182,6 +200,8 @@ class CartRepositoryTest {
 
     @Test
     fun `removeFromCart removes item by ID`() = runTest {
+        every { cartDao.getCartItems() } returns flowOf(testCartItemList)
+
         cartRepository.removeFromCart(1L)
 
         coVerify { cartDao.removeCartItemById(1L) }

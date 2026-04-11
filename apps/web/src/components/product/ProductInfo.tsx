@@ -28,7 +28,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
   const handleBuyNow = () => {
     if (!user) {
-      navigate({ to: '/login', search: { redirect: location.pathname } });
+      navigate({ to: '/login', search: { redirect: location.pathname, error: '' } });
       return;
     }
     addToCart(product);
@@ -37,7 +37,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
   const handleAddToCart = () => {
     if (!user) {
-      navigate({ to: '/login', search: { redirect: location.pathname } });
+      navigate({ to: '/login', search: { redirect: location.pathname, error: '' } });
       return;
     }
     addToCart(product);

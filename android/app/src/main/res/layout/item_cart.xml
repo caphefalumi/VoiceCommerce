@@ -30,7 +30,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="6dp"
-                android:scaleType="centerInside" />
+                android:scaleType="centerInside"
+                android:contentDescription="@string/cd_product_image" />
 
         </com.google.android.material.card.MaterialCardView>
 

@@ -81,6 +81,7 @@
                 android:layout_height="14dp"
                 android:layout_marginEnd="6dp"
                 android:src="@drawable/ic_location"
+                android:contentDescription="@string/cd_location_icon"
                 app:tint="@color/mobi_pulse_on_surface_variant" />
 
             <TextView
@@ -108,7 +109,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:fontFamily="@font/inter"
-                android:text="Tổng cộng"
+                android:text="@string/total_label"
                 android:textColor="@color/mobi_pulse_on_surface_variant"
                 android:textSize="13sp" />
 

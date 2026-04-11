@@ -73,4 +73,13 @@
     <color name="error">@color/mobi_pulse_tertiary</color>
     <color name="text_primary">@color/mobi_pulse_on_background</color>
     <color name="text_secondary">@color/mobi_pulse_on_surface_variant</color>
+
+    <!-- Status colors for accessibility and i18n -->
+    <color name="status_success">#22543D</color>
+    <color name="status_error">#C62828</color>
+    <color name="status_success_light">#4CAF50</color>
+    <color name="status_error_light">#F44336</color>
+
+    <!-- Error state color -->
+    <color name="mobi_pulse_error">#BA1A1A</color>
 </resources>

@@ -1,17 +1,17 @@
 package com.tgdd.app.ui.auth
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.browser.customtabs.CustomTabsIntent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.tgdd.app.R
+import com.tgdd.app.data.auth.FirebaseAuthHelper
 import com.tgdd.app.databinding.FragmentLoginBinding
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -23,6 +23,28 @@ class LoginFragment : Fragment() {
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
     private val viewModel: AuthViewModel by viewModels()
+    
+    private lateinit var firebaseAuthHelper: FirebaseAuthHelper
+    
+    private val firebaseSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            lifecycleScope.launch {
+                val data = result.data
+                val idToken = firebaseAuthHelper.handleSignInResult(data).getOrNull()
+                if (idToken != null) {
+                    viewModel.onFirebaseGoogleSignIn(idToken)
+                } else {
+                    Snackbar.make(binding.root, "Đăng nhập Firebase thất bại", Snackbar.LENGTH_SHORT).show()
+                }
+                binding.btnFirebaseGoogleSignIn.isEnabled = true
+            }
+        } else {
+            Snackbar.make(binding.root, "Đăng nhập Google đã bị huỷ", Snackbar.LENGTH_SHORT).show()
+            binding.btnFirebaseGoogleSignIn.isEnabled = true
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentLoginBinding.inflate(inflater, container, false)
@@ -31,6 +53,8 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        firebaseAuthHelper = FirebaseAuthHelper(requireActivity())
 
         binding.closeButton.setOnClickListener { findNavController().navigateUp() }
 
@@ -50,7 +74,7 @@ class LoginFragment : Fragment() {
                 binding.passwordLayout.error = "Vui lòng nhập mật khẩu"
                 valid = false
             }
-            if (valid) viewModel.login(email, password)
+            if (valid) viewModel.signInWithEmailPassword(email, password)
         }
 
         binding.forgotPasswordText.setOnClickListener {
@@ -61,30 +85,15 @@ class LoginFragment : Fragment() {
             findNavController().navigate(R.id.action_login_to_register)
         }
 
-        // Google Sign-In button
-        binding.btnGoogleSignIn.setOnClickListener {
-            lifecycleScope.launch {
-                binding.btnGoogleSignIn.isEnabled = false
-                val result = viewModel.getGoogleSignInUrl()
-                result.fold(
-                    onSuccess = { url ->
-                        openCustomTab(url)
-                    },
-                    onFailure = { e ->
-                        Snackbar.make(
-                            binding.root,
-                            e.message ?: "Không thể mở đăng nhập Google",
-                            Snackbar.LENGTH_SHORT
-                        ).show()
-                    }
-                )
-                binding.btnGoogleSignIn.isEnabled = true
-            }
+        binding.btnFirebaseGoogleSignIn.setOnClickListener {
+            binding.btnFirebaseGoogleSignIn.isEnabled = false
+            val signInIntent = firebaseAuthHelper.getSignInIntent()
+            firebaseSignInLauncher.launch(signInIntent)
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
             binding.loginButton.isEnabled = !loading
-            binding.btnGoogleSignIn.isEnabled = !loading
+            binding.btnFirebaseGoogleSignIn.isEnabled = !loading
             binding.loginButton.text = if (loading) "" else "Đăng nhập"
             binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
         }
@@ -99,25 +108,11 @@ class LoginFragment : Fragment() {
             }
         }
 
-        // SingleEvent pattern - only navigate once
         viewModel.loginSuccess.observe(viewLifecycleOwner) { event ->
             event.getContentIfNotHandled()?.let {
                 viewModel.resetLoginSuccess()
                 findNavController().navigateUp()
             }
-        }
-    }
-
-    private fun openCustomTab(url: String) {
-        try {
-            val customTabsIntent = CustomTabsIntent.Builder()
-                .setShowTitle(false)
-                .build()
-            customTabsIntent.launchUrl(requireContext(), Uri.parse(url))
-        } catch (e: Exception) {
-            // Fallback to regular browser
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            startActivity(intent)
         }
     }
 

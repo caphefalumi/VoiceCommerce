@@ -53,7 +53,7 @@ function ForgotPasswordPage() {
               <div className="px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
                 Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.
               </div>
-              <Link to="/login" className="text-red-500 hover:underline text-sm font-medium">
+              <Link to="/login" search={{ redirect: '', error: '' }} className="text-red-500 hover:underline text-sm font-medium">
                 Quay lại đăng nhập
               </Link>
             </div>
@@ -97,7 +97,7 @@ function ForgotPasswordPage() {
 
               <p className="mt-6 text-center text-sm text-gray-500">
                 Nhớ mật khẩu rồi?{' '}
-                <Link to="/login" className="text-red-500 hover:underline font-medium">
+                <Link to="/login" search={{ redirect: '', error: '' }} className="text-red-500 hover:underline font-medium">
                   Đăng nhập
                 </Link>
               </p>

@@ -151,7 +151,7 @@ function RegisterPage() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Đã có tài khoản?{' '}
-            <Link to="/login" className="text-red-500 hover:underline font-medium">
+            <Link to="/login" search={{ redirect: '', error: '' }} className="text-red-500 hover:underline font-medium">
               Đăng nhập
             </Link>
           </p>

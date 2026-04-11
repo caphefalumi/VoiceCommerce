@@ -33,15 +33,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const result = await authClient.signIn.email(
-        { email, password },
-        { throw: false },
-      );
+      const result = await authClient.signIn.email({ email, password });
       if (result?.error) {
         set({ error: result.error.message ?? 'Đăng nhập thất bại', isLoading: false });
         throw new Error(result.error.message ?? 'Đăng nhập thất bại');
       }
-      const u = result?.data?.user;
+      const u = result?.data?.user ?? null;
       if (u) {
         const authUser: AuthUser = {
           id: u.id,
@@ -64,15 +61,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
   register: async (name, email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const result = await authClient.signUp.email(
-        { name, email, password },
-        { throw: false },
-      );
+      const result = await authClient.signUp.email({ name, email, password });
       if (result?.error) {
         set({ error: result.error.message ?? 'Đăng ký thất bại', isLoading: false });
         throw new Error(result.error.message ?? 'Đăng ký thất bại');
       }
-      const u = result?.data?.user;
+      const u = result?.data?.user ?? null;
       if (u) {
         const authUser: AuthUser = {
           id: u.id,

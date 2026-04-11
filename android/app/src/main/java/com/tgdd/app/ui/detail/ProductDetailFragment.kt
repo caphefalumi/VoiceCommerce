@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
@@ -84,8 +85,8 @@ class ProductDetailFragment : Fragment() {
             binding.productRatingBar.rating = product.rating
             binding.stockBadge.text = if (product.inStock) "Còn hàng" else "Hết hàng"
             binding.stockBadge.setTextColor(
-                if (product.inStock) android.graphics.Color.parseColor("#4CAF50")
-                else android.graphics.Color.parseColor("#F44336")
+                if (product.inStock) ContextCompat.getColor(requireContext(), R.color.mobi_pulse_tertiary)
+                else ContextCompat.getColor(requireContext(), R.color.mobi_pulse_error)
             )
             binding.quantityText.text = "1"
             binding.productImage.load(product.image) {
@@ -105,12 +106,12 @@ class ProductDetailFragment : Fragment() {
                     val row = layoutInflater.inflate(android.R.layout.simple_list_item_2, binding.specsContainer, false)
                     row.findViewById<TextView>(android.R.id.text1)?.apply {
                         text = entry.key
-                        setTextColor(android.graphics.Color.parseColor("#616161"))
+                        setTextColor(ContextCompat.getColor(requireContext(), R.color.mobi_pulse_on_surface_variant))
                         textSize = 12f
                     }
                     row.findViewById<TextView>(android.R.id.text2)?.apply {
                         text = entry.value
-                        setTextColor(android.graphics.Color.parseColor("#212121"))
+                        setTextColor(ContextCompat.getColor(requireContext(), R.color.mobi_pulse_on_surface))
                         textSize = 14f
                     }
                     binding.specsContainer.addView(row)

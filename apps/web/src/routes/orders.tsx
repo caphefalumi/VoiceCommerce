@@ -6,6 +6,15 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Package, Clock, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+const getAuthHeaders = (): Headers => {
+  const headers = new Headers();
+  const token = localStorage.getItem('tgdd_auth_token');
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return headers;
+};
+
 interface OrderItem {
   name: string;
   price: number;
@@ -25,7 +34,7 @@ interface Order {
 export const Route = createFileRoute('/orders')({
   beforeLoad: async () => {
     const session = await authClient.getSession();
-    if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/orders' } });
+    if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/orders', error: '' } });
     const currentUser = useAuthStore.getState().user;
     if (!currentUser) {
       const u = session.data.user;
@@ -49,7 +58,10 @@ function OrdersPage() {
     async function fetchOrders() {
       if (!user?.id) return;
       try {
-        const res = await fetch(`${API_BASE}/api/orders/${user.id}`);
+        const res = await fetch(`${API_BASE}/api/orders/${user.id}`, {
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        });
         const data = await res.json();
         if (data.orders) {
           setOrders(data.orders);

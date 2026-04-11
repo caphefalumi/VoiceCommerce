@@ -6,6 +6,10 @@ import { Eye, EyeOff, LogIn, Loader2, X } from 'lucide-react';
 import { fetchCartOnAuth } from '@/store/auth';
 
 export const Route = createFileRoute('/login')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: typeof search.redirect === 'string' ? search.redirect : '',
+    error: typeof search.error === 'string' ? search.error : '',
+  }),
   component: LoginPage,
 });
 
@@ -20,6 +24,7 @@ function getPopupFeatures() {
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { redirect, error: oauthError } = Route.useSearch();
   const { login, isLoading, error, clearError } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,11 +37,17 @@ function LoginPage() {
     e.preventDefault();
     setGoogleLoading(true);
 
-    const { data } = await authClient.signIn.social({
+    const { data, error: socialError } = await authClient.signIn.social({
       provider: 'google',
       callbackURL: `${window.location.origin}/oauth/callback`,
-      disableRedirect: true,
     });
+
+    if (socialError) {
+      useAuthStore.getState().clearError();
+      useAuthStore.setState({ error: socialError.message });
+      setGoogleLoading(false);
+      return;
+    }
 
     const url = (data as { url?: string })?.url;
     if (!url) {
@@ -52,10 +63,40 @@ function LoginPage() {
       return;
     }
 
+    const onMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'OAUTH_ERROR') {
+        clearInterval(pollRef.current!);
+        setGoogleLoading(false);
+        useAuthStore.setState({ error: event.data.error || 'Google sign-in failed' });
+        window.removeEventListener('message', onMessage);
+        return;
+      }
+
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        const session = await authClient.getSession();
+        const u = session?.data?.user;
+        if (u) {
+          clearInterval(pollRef.current!);
+          useAuthStore.getState()._setUser({
+            id: u.id,
+            email: u.email,
+            name: u.name ?? '',
+            role: (u as { role?: string }).role ?? 'user',
+          });
+          fetchCartOnAuth();
+          navigate({ to: redirect || '/' });
+        }
+        setGoogleLoading(false);
+        window.removeEventListener('message', onMessage);
+      }
+    };
+    window.addEventListener('message', onMessage);
+
     pollRef.current = setInterval(async () => {
       if (popup?.closed) {
         clearInterval(pollRef.current!);
         setGoogleLoading(false);
+        window.removeEventListener('message', onMessage);
         return;
       }
 
@@ -72,8 +113,9 @@ function LoginPage() {
             role: (u as { role?: string }).role ?? 'user',
           });
           fetchCartOnAuth();
-          navigate({ to: '/' });
+          navigate({ to: redirect || '/' });
           setGoogleLoading(false);
+          window.removeEventListener('message', onMessage);
         }
       } catch { }
     }, 1000);
@@ -82,6 +124,7 @@ function LoginPage() {
       if (pollRef.current) {
         clearInterval(pollRef.current);
         setGoogleLoading(false);
+        window.removeEventListener('message', onMessage);
       }
     }, 5 * 60 * 1000);
   };
@@ -98,7 +141,7 @@ function LoginPage() {
     clearError();
     try {
       await login(email, password);
-      navigate({ to: '/' });
+      navigate({ to: redirect || '/' });
     } catch {
     }
   };
@@ -142,9 +185,9 @@ function LoginPage() {
             <p className="text-sm text-gray-500 mt-1">Chào mừng bạn quay lại TGDD</p>
           </div>
 
-          {error && (
+          {(error || oauthError) && (
             <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-              {error}
+              {error || oauthError}
             </div>
           )}
 

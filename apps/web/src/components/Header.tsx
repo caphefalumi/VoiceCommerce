@@ -232,7 +232,7 @@ export function Header() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link to="/login">
+              <Link to="/login" search={{ redirect: '', error: '' }}>
                 <Button
                   variant="ghost"
                   size="sm"

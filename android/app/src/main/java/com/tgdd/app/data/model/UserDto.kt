@@ -21,7 +21,9 @@ data class AuthResponse(
     @SerializedName("error")
     val error: String? = null,
     @SerializedName("message")
-    val message: String? = null
+    val message: String? = null,
+    @SerializedName("needsVerification")
+    val needsVerification: Boolean? = null
 )
 
 data class AuthUserDto(

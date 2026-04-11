@@ -41,7 +41,7 @@ class RegisterFragment : Fragment() {
             if (name.isBlank()) { binding.nameLayout.error = "Vui lòng nhập họ tên"; valid = false }
             if (email.isBlank()) { binding.emailLayout.error = "Vui lòng nhập email"; valid = false }
             if (password.length < 6) { binding.passwordLayout.error = "Mật khẩu phải có ít nhất 6 ký tự"; valid = false }
-            if (valid) viewModel.register(name, email, password)
+            if (valid) viewModel.registerWithEmailPassword(name, email, password)
         }
 
         binding.loginLink.setOnClickListener {

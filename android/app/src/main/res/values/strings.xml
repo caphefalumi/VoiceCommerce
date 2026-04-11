@@ -40,6 +40,7 @@
     <string name="your_cart_is_empty">Your cart is empty</string>
     <string name="continue_shopping">Continue Shopping</string>
     <string name="total">Total:</string>
+    <string name="total_label">Tổng cộng</string>
     <string name="subtotal">Subtotal</string>
     <string name="clear">Clear</string>
     <string name="clear_cart">Clear Cart</string>
@@ -79,8 +80,6 @@
     <string name="login">Login</string>
     <string name="logout">Logout</string>
     <string name="my_orders">My Orders</string>
-    <string name="pending_orders">%d pending</string>
-    <string name="completed_orders">%d completed</string>
     <string name="settings">Settings</string>
     <string name="about">About</string>
     <string name="profile_desc">Profile</string>
@@ -191,7 +190,16 @@
     <string name="help_center">Trung tâm hỗ trợ</string>
 
     <!-- Content Descriptions (Accessibility) -->
+    <string name="cd_voucher_icon">Voucher</string>
     <string name="cd_empty_cart">Empty cart</string>
+    <string name="cd_step_address">Step 1: Address</string>
+    <string name="cd_step_payment">Step 2: Payment</string>
+    <string name="cd_step_confirm">Step 3: Confirm</string>
+    <string name="cd_cod_payment">Cash on Delivery</string>
+    <string name="cd_stripe_payment">Stripe payment</string>
+    <string name="cd_authentic_badge">100% Authentic</string>
+    <string name="cd_return_badge">Easy return</string>
+    <string name="cd_secure_badge">Secure payment</string>
     <string name="cd_no_products">No products</string>
     <string name="cd_increase_quantity">Increase quantity</string>
     <string name="cd_decrease_quantity">Decrease quantity</string>
@@ -221,6 +229,9 @@
     <string name="cd_support_icon">Hỗ trợ 24/7</string>
     <string name="cd_call_button">Gọi hotline</string>
     <string name="cd_product_image">Hình ảnh sản phẩm</string>
+    <string name="cd_banner_image">Hình ảnh banner</string>
+    <string name="cd_location_icon">Địa chỉ</string>
+    <string name="cd_order_status_icon">Trạng thái đơn hàng</string>
     <string name="cd_chevron_right">Xem thêm</string>
     
     <!-- Category Screen -->
@@ -319,6 +330,8 @@
     <string name="voucher_feature_coming_soon">Voucher feature coming soon</string>
     
     <!-- Product Detail -->
+    <string name="specifications">Thông số kỹ thuật</string>
+    <string name="customer_reviews">Đánh giá khách hàng</string>
     <string name="reviews_format">(%d reviews)</string>
     <string name="view_cart">View Cart</string>
     
@@ -354,18 +367,67 @@
     <string name="error_generic_message">Đã xảy ra lỗi. Vui lòng thử lại sau</string>
     
     <!-- Empty States -->
+    <string name="no_orders_yet">Chưa có đơn hàng nào</string>
+    <string name="buy_first_product_prompt">Hãy mua sản phẩm đầu tiên của bạn tại TGDĐ nhé!</string>
     <string name="empty_cart_description">Hãy thêm sản phẩm yêu thích\nvào giỏ hàng của bạn</string>
     <string name="explore_products">Khám phá sản phẩm</string>
+
+    <string name="city_hint">Tỉnh/Thành phố</string>
+
+    <!-- Brands -->
+    <string name="brand_samsung">SAMSUNG</string>
+    <string name="brand_apple">Apple</string>
+    <string name="brand_oppo">Oppo</string>
+    <string name="brand_xiaomi">Xiaomi</string>
+    <string name="brand_macbook">MACBOOK</string>
+    <string name="brand_apple_watch">APPLE WATCH</string>
+    <string name="series_9_ultra_2">Series 9 | Ultra 2</string>
+    <string name="air_m2_pro_m3">Air M2 | Pro M3</string>
+    
+    <!-- ============================================ -->
+    <!-- LOGIN SCREEN -->
+    <!-- ============================================ -->
+    <string name="brand_name">TGDĐ</string>
+    <string name="welcome_back">Chào mừng\ntrở lại</string>
+    <string name="login_continue">Đăng nhập để tiếp tục mua sắm</string>
+    <string name="password_hint">Mật khẩu</string>
+    <string name="password_min_length_hint">Mật khẩu (ít nhất 6 ký tự)</string>
+    <string name="forgot_password">Quên mật khẩu?</string>
+    <string name="login_button">Đăng nhập</string>
+    <string name="or_text">hoặc</string>
+    <string name="login_google">Đăng nhập với Google</string>
+    <string name="no_account">Chưa có tài khoản? </string>
+    <string name="register_now">Đăng ký ngay</string>
+
+    <!-- ============================================ -->
+    <!-- FORGOT PASSWORD -->
+    <!-- ============================================ -->
+    <string name="forgot_password_title">Quên mật khẩu?</string>
+    <string name="forgot_password_hint">Nhập email để nhận liên kết đặt lại mật khẩu</string>
+    <string name="forgot_password_success">Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư.</string>
+    <string name="send_reset_email">Gửi email đặt lại</string>
 
     <!-- ============================================ -->
     <!-- RESET PASSWORD -->
     <!-- ============================================ -->
     <string name="reset_password_title">Đặt lại mật khẩu</string>
+    <string name="reset_password_hint">Nhập mật khẩu mới của bạn</string>
     <string name="new_password">Mật khẩu mới</string>
     <string name="confirm_new_password">Xác nhận mật khẩu mới</string>
     <string name="password_mismatch">Mật khẩu xác nhận không khớp</string>
     <string name="password_too_short">Mật khẩu phải có ít nhất 6 ký tự</string>
     <string name="reset_success_message">Mật khẩu đã được đặt lại thành công. Đang chuyển hướng...</string>
     <string name="reset_password_button">Đặt lại mật khẩu</string>
+    <string name="register_button">Đăng ký</string>
+    <string name="create_account">Tạo tài khoản</string>
+    <string name="register_subtitle">Đăng ký để mua sắm dễ dàng hơn</string>
+    <string name="already_have_account">Đã có tài khoản? </string>
+
+    <!-- ============================================ -->
+    <!-- NEW STRINGS FOR LINT FIXES -->
+    <!-- ============================================ -->
+    <string name="register_account">Đăng ký tài khoản</string>
+    <string name="product_badge_new">MỚI</string>
+    <string name="default_web_client_id">528064211736-ujifc7h4rs4gkfcuub5ueqhuql7kssig.apps.googleusercontent.com</string>
 
 </resources>

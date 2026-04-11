@@ -13,7 +13,8 @@
     }
   ],
   "vars": {
-    "BETTER_AUTH_URL": "https://tgdd-frontend.pages.dev"
+    "BETTER_AUTH_URL": "https://tgdd-frontend.pages.dev",
+    "FIREBASE_PROJECT_ID": "tgdd-a0666"
   },
   "observability": {
     "enabled": true

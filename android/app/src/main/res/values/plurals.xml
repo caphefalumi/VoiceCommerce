@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Plurals for pending orders -->
+    <plurals name="pending_orders_plural">
+        <item quantity="one">%d pending</item>
+        <item quantity="other">%d pending</item>
+    </plurals>
+    
+    <!-- Plurals for completed orders -->
+    <plurals name="completed_orders_plural">
+        <item quantity="one">%d completed</item>
+        <item quantity="other">%d completed</item>
+    </plurals>
+    
+    <!-- Plurals for reviews -->
+    <plurals name="reviews_plural">
+        <item quantity="one">(%d review)</item>
+        <item quantity="other">(%d reviews)</item>
+    </plurals>
+</resources>

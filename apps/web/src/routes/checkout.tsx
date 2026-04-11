@@ -22,7 +22,7 @@ export const Route = createFileRoute('/checkout')({
     let currentUser = useAuthStore.getState().user;
     if (!currentUser) {
       const session = await authClient.getSession();
-      if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/checkout' } });
+      if (!session?.data?.user) throw redirect({ to: '/login', search: { redirect: '/checkout', error: '' } });
       const u = session.data.user;
       useAuthStore.getState()._setUser({
         id: u.id,

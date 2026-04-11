@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from 'hono';
-import { createAuth, type Env } from '../lib/auth';
+import { getSessionFromRequest, type SimpleAuthEnv } from '../lib/simple-auth';
 
 export type AuthUser = {
   id: string;
@@ -8,10 +8,9 @@ export type AuthUser = {
   role?: string;
 };
 
-export const requireAuth: MiddlewareHandler<{ Bindings: Env; Variables: { user: AuthUser } }> =
+export const requireAuth: MiddlewareHandler<{ Bindings: SimpleAuthEnv; Variables: { user: AuthUser } }> =
   async (c, next) => {
-    const auth = createAuth(c.env);
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSessionFromRequest(c.env, c.req.raw);
     if (!session) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
@@ -19,14 +18,13 @@ export const requireAuth: MiddlewareHandler<{ Bindings: Env; Variables: { user: 
     await next();
   };
 
-export const requireAdmin: MiddlewareHandler<{ Bindings: Env; Variables: { user: AuthUser } }> =
+export const requireAdmin: MiddlewareHandler<{ Bindings: SimpleAuthEnv; Variables: { user: AuthUser } }> =
   async (c, next) => {
-    const auth = createAuth(c.env);
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSessionFromRequest(c.env, c.req.raw);
     if (!session) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
-    const userRole = (session.user as any).role;
+    const userRole = session.user.role;
     if (userRole !== 'admin') {
       return c.json({ error: 'Forbidden: Admin access required' }, 403);
     }

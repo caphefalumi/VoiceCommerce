@@ -47,7 +47,7 @@ function ResetPasswordPage() {
         setError(result.error.message ?? 'Có lỗi xảy ra. Vui lòng thử lại.');
       } else {
         setDone(true);
-        setTimeout(() => navigate({ to: '/login' }), 2500);
+        setTimeout(() => navigate({ to: '/login', search: { redirect: '', error: '' } }), 2500);
       }
     } catch {
       setError('Có lỗi xảy ra. Vui lòng thử lại.');
@@ -130,7 +130,7 @@ function ResetPasswordPage() {
               </form>
 
               <p className="mt-6 text-center text-sm text-gray-500">
-                <Link to="/login" className="text-red-500 hover:underline font-medium">
+                <Link to="/login" search={{ redirect: '', error: '' }} className="text-red-500 hover:underline font-medium">
                   Quay lại đăng nhập
                 </Link>
               </p>

@@ -26,6 +26,7 @@
                 android:layout_height="40dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_mail"
+                android:contentDescription="@string/verify_email_title"
                 app:tint="#DC2626" />
             <ProgressBar
                 android:id="@+id/loadingIcon"
@@ -42,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:fontFamily="@font/space_grotesk_bold"
-            android:text="Xác minh email"
+                android:text="@string/verify_email_title"
             android:textColor="@color/mobi_pulse_on_surface"
             android:textSize="24sp"
             android:textStyle="bold" />
@@ -54,7 +55,7 @@
             android:layout_marginTop="12dp"
             android:gravity="center"
             android:fontFamily="@font/inter"
-            android:text="Đang xác minh email của bạn..."
+                android:text="@string/verifying_email"
             android:textColor="@color/mobi_pulse_on_surface_variant"
             android:textSize="15sp" />
 
@@ -75,8 +76,8 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/inter"
                 android:padding="16dp"
-                android:text="Email của bạn đã được xác minh thành công!"
-                android:textColor="#22543D"
+                android:text="@string/email_verified_success"
+                android:textColor="@color/status_success"
                 android:textSize="14sp" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -98,7 +99,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/inter"
                 android:padding="16dp"
-                android:textColor="#C62828"
+                android:textColor="@color/status_error"
                 android:textSize="14sp" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -111,7 +112,7 @@
             android:layout_marginTop="32dp"
             android:visibility="gone"
             android:fontFamily="@font/space_grotesk_bold"
-            android:text="Tiến hành đăng nhập"
+                android:text="@string/go_to_login"
             android:textSize="16sp" />
 
     </LinearLayout>

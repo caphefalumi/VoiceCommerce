@@ -6,6 +6,15 @@ import { Button } from '../components/ui/button';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 
+const getAuthHeaders = (extra?: HeadersInit): Headers => {
+  const headers = new Headers(extra);
+  const token = localStorage.getItem('tgdd_auth_token');
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return headers;
+};
+
 interface Faq {
   id: string;
   question: string;
@@ -112,7 +121,10 @@ function AdminPage() {
   const loadFaqs = useCallback(async () => {
     setFaqLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/faqs`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/admin/faqs`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await res.json();
       setFaqs(data.faqs || []);
     } catch {
@@ -140,7 +152,7 @@ function AdminPage() {
 
     const res = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify(payload),
     });
@@ -159,14 +171,21 @@ function AdminPage() {
 
   const deleteFaq = async (id: string) => {
     if (!confirm('Xóa FAQ này?')) return;
-    await fetch(`${API_BASE}/api/admin/faqs/${id}`, { method: 'DELETE', credentials: 'include' });
+    await fetch(`${API_BASE}/api/admin/faqs/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: getAuthHeaders(),
+    });
     loadFaqs();
   };
 
   const loadLogs = useCallback(async () => {
     setLogsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/voice-logs?limit=100`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/admin/voice-logs?limit=100`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await res.json();
       setLogs(data.logs || []);
     } finally {
@@ -178,6 +197,7 @@ function AdminPage() {
     try {
       const res = await fetch(`${API_BASE}/api/admin/voice-sessions?limit=100`, {
         credentials: 'include',
+        headers: getAuthHeaders(),
       });
       const data = await res.json();
       setSessions(data.sessions || []);
@@ -191,6 +211,7 @@ function AdminPage() {
     try {
       const res = await fetch(`${API_BASE}/api/admin/voice-sessions/${sessionId}/messages`, {
         credentials: 'include',
+        headers: getAuthHeaders(),
       });
       const data = await res.json();
       setSessionMessages(data.messages || []);
@@ -204,7 +225,10 @@ function AdminPage() {
   const loadTickets = useCallback(async () => {
     setTicketsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/tickets`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/admin/tickets`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await res.json();
       setTickets(data.tickets || []);
     } finally {
@@ -215,7 +239,7 @@ function AdminPage() {
   const updateTicketStatus = async (id: string, status: string) => {
     await fetch(`${API_BASE}/api/admin/tickets/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify({ status }),
     });

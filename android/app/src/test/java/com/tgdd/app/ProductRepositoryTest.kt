@@ -2,6 +2,8 @@ package com.tgdd.app
 
 import com.tgdd.app.data.local.dao.ProductDao
 import com.tgdd.app.data.local.entity.ProductEntity
+import com.tgdd.app.data.model.ProductListResponse
+import com.tgdd.app.data.model.ProductResponse
 import com.tgdd.app.data.model.ProductDto
 import com.tgdd.app.data.remote.ProductApi
 import com.tgdd.app.data.repository.ProductRepository
@@ -27,13 +29,13 @@ class ProductRepositoryTest {
         name = "Test Product",
         price = 99.99,
         originalPrice = 129.99,
-        image = "https://example.com/image.jpg",
+        images = listOf("https://example.com/image.jpg"),
         category = "Electronics",
         description = "A test product",
         rating = 4.5f,
         reviewCount = 100,
         brand = "TestBrand",
-        inStock = true
+        stock = 10
     )
 
     private val testProductEntity = ProductEntity(
@@ -61,7 +63,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `getProducts fetches from API and caches to Room on success`() = runTest {
-        val apiResponse = Response.success(listOf(testProductDto))
+        val apiResponse = Response.success(ProductListResponse(products = listOf(testProductDto)))
         coEvery { productApi.getProducts() } returns apiResponse
 
         val result = productRepository.getProducts()
@@ -76,7 +78,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `getProducts falls back to Room on API error`() = runTest {
-        val apiResponse = Response.error<List<ProductDto>>(500, okhttp3.ResponseBody.create(null, "Server Error"))
+        val apiResponse = Response.error<ProductListResponse>(500, okhttp3.ResponseBody.create(null, "Server Error"))
         coEvery { productApi.getProducts() } returns apiResponse
         coEvery { productDao.getAllProducts() } returns flowOf(testProductList)
 
@@ -88,7 +90,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `getProducts returns failure when both API and cache fail`() = runTest {
-        val apiResponse = Response.error<List<ProductDto>>(500, okhttp3.ResponseBody.create(null, "Server Error"))
+        val apiResponse = Response.error<ProductListResponse>(500, okhttp3.ResponseBody.create(null, "Server Error"))
         coEvery { productApi.getProducts() } returns apiResponse
         coEvery { productDao.getAllProducts() } returns flowOf(emptyList())
 
@@ -120,7 +122,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `getProductById returns product from API`() = runTest {
-        val apiResponse = Response.success(testProductDto)
+        val apiResponse = Response.success(ProductResponse(product = testProductDto))
         coEvery { productApi.getProductById("prod-001") } returns apiResponse
 
         val result = productRepository.getProductById("prod-001")
@@ -133,7 +135,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `getProductById falls back to Room on API error`() = runTest {
-        val apiResponse = Response.error<ProductDto>(404, okhttp3.ResponseBody.create(null, "Not Found"))
+        val apiResponse = Response.error<ProductResponse>(404, okhttp3.ResponseBody.create(null, "Not Found"))
         coEvery { productApi.getProductById("prod-001") } returns apiResponse
         coEvery { productDao.getProductById("prod-001") } returns testProductEntity
 
@@ -145,7 +147,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `getProductById returns failure when not found in cache`() = runTest {
-        val apiResponse = Response.error<ProductDto>(404, okhttp3.ResponseBody.create(null, "Not Found"))
+        val apiResponse = Response.error<ProductResponse>(404, okhttp3.ResponseBody.create(null, "Not Found"))
         coEvery { productApi.getProductById("prod-001") } returns apiResponse
         coEvery { productDao.getProductById("prod-001") } returns null
 
@@ -156,7 +158,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `searchProducts returns filtered results from API`() = runTest {
-        val apiResponse = Response.success(listOf(testProductDto))
+        val apiResponse = Response.success(ProductListResponse(products = listOf(testProductDto)))
         coEvery { productApi.searchProducts("Test") } returns apiResponse
 
         val result = productRepository.searchProducts("Test")
@@ -168,7 +170,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `searchProducts falls back to Room search on API error`() = runTest {
-        val apiResponse = Response.error<List<ProductDto>>(500, okhttp3.ResponseBody.create(null, "Server Error"))
+        val apiResponse = Response.error<ProductListResponse>(500, okhttp3.ResponseBody.create(null, "Server Error"))
         coEvery { productApi.searchProducts("Test") } returns apiResponse
         coEvery { productDao.searchProducts("Test") } returns flowOf(testProductList)
 
@@ -180,7 +182,7 @@ class ProductRepositoryTest {
 
     @Test
     fun `searchProducts returns empty list on no results with empty cache`() = runTest {
-        val apiResponse = Response.success<List<ProductDto>>(emptyList())
+        val apiResponse = Response.success(ProductListResponse(products = emptyList()))
         coEvery { productApi.searchProducts("NonExistent") } returns apiResponse
         coEvery { productDao.searchProducts("NonExistent") } returns flowOf(emptyList())
 

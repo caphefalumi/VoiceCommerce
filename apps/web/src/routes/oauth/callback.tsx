@@ -3,26 +3,58 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { fetchCartOnAuth } from '@/store/auth';
 import { authClient } from '@/lib/auth-client';
+import { z } from 'zod';
+
+const oauthSearchSchema = z.object({
+  code: z.string().optional(),
+  state: z.string().optional(),
+  error: z.string().optional(),
+});
 
 export const Route = createFileRoute('/oauth/callback')({
+  validateSearch: (search: Record<string, unknown>) => oauthSearchSchema.parse(search),
   component: OAuthCallbackPage,
 });
 
 function OAuthCallbackPage() {
   const navigate = useNavigate();
+  const { code, state, error } = Route.useSearch();
 
   useEffect(() => {
     const finish = async () => {
+      if (error) {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({ type: 'OAUTH_ERROR', error }, '*');
+          window.close();
+          return;
+        }
+        navigate({ to: '/login', search: { redirect: '', error } });
+        return;
+      }
+
+      let userFromExchange: { id: string; email: string; name?: string; role?: string } | null = null;
+      if (code && state) {
+        const exchanged = await authClient.oauth.exchangeGoogleCallback({ code, state });
+        if (exchanged.error) {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: 'OAUTH_ERROR', error: exchanged.error.message }, '*');
+            window.close();
+            return;
+          }
+          navigate({ to: '/login', search: { redirect: '', error: exchanged.error.message } });
+          return;
+        }
+        userFromExchange = exchanged.data?.user ?? null;
+      }
+
       if (window.opener && !window.opener.closed) {
-        // Popup flow: signal the opener and let its poll loop handle the rest
         window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, '*');
         window.close();
         return;
       }
 
-      // Non-popup fallback (e.g. same-tab redirect flow)
       const session = await authClient.getSession();
-      const u = session?.data?.user;
+      const u = userFromExchange ?? session?.data?.user ?? null;
       if (u) {
         useAuthStore.getState()._setUser({
           id: u.id,
@@ -36,7 +68,7 @@ function OAuthCallbackPage() {
     };
 
     finish();
-  }, [navigate]);
+  }, [code, error, navigate, state]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-white">

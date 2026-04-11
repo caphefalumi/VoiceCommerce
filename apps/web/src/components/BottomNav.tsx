@@ -33,7 +33,7 @@ export function BottomNav() {
         ) : (
           <Link
             to="/login"
-            search={{ redirect: '/cart' }}
+            search={{ redirect: '/cart', error: '' }}
             className="flex flex-col items-center justify-center text-gray-500 hover:text-primary active:text-primary transition-colors"
           >
             <ShoppingCart className="h-6 w-6 mb-1" />

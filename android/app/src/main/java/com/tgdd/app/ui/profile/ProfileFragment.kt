@@ -10,6 +10,7 @@ import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.tgdd.app.R
+import com.tgdd.app.data.auth.FirebaseAuthHelper
 import com.tgdd.app.databinding.FragmentProfileBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -19,6 +20,8 @@ class ProfileFragment : Fragment() {
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
     private val viewModel: ProfileViewModel by viewModels()
+
+    private val firebaseAuthHelper by lazy { FirebaseAuthHelper(requireActivity()) }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentProfileBinding.inflate(inflater, container, false)
@@ -108,7 +111,10 @@ class ProfileFragment : Fragment() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.logout))
             .setMessage(getString(R.string.logout_confirmation_message))
-            .setPositiveButton(getString(R.string.logout)) { _, _ -> viewModel.logout() }
+            .setPositiveButton(getString(R.string.logout)) { _, _ ->
+                firebaseAuthHelper.signOut()
+                viewModel.logout()
+            }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
