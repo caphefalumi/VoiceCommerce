@@ -27,6 +27,10 @@ class OrdersViewModel @Inject constructor(
         loadOrders()
     }
 
+    fun refreshOrders() {
+        loadOrders()
+    }
+
     private fun loadOrders() {
         val userId = userSession.getUserId()
         if (userId.isNullOrBlank()) {
