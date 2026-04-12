@@ -10,7 +10,6 @@ plugins {
 
 ext {
     set("kotlin_version", "2.1.0")
-    set("compose_version", "1.5.8")
     set("room_version", "2.6.1")
     set("lifecycle_version", "2.7.0")
     set("nav_version", "2.7.6")
