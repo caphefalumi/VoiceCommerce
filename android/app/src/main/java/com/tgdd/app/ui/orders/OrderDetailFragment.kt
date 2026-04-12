@@ -18,6 +18,21 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Fragment displaying detailed order information with item list and status.
+ * 
+ * Navigation:
+ * - FROM: OrdersFragment
+ * - TO: None (back navigation only)
+ * 
+ * Arguments:
+ * - orderId: String - Order identifier
+ * 
+ * Results:
+ * - None
+ * 
+ * @see OrderDetailViewModel For order data and cancel operations
+ */
 @AndroidEntryPoint
 class OrderDetailFragment : Fragment() {
 

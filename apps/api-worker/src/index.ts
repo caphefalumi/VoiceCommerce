@@ -22,7 +22,7 @@ import {
   verifyPassword,
   upsertGoogleUser,
 } from './lib/simple-auth';
-import { verifyFirebaseToken, getFirebaseProjectId, signInWithEmailPassword, signUpWithEmailPassword, sendPasswordResetEmail } from './lib/firebase';
+import { verifyFirebaseToken, getFirebaseApiKey, signInWithEmailPassword, signUpWithEmailPassword, sendPasswordResetEmail } from './lib/firebase';
 import { requireAuth, requireAdmin } from './middleware/auth';
 import type { AuthUser } from './middleware/auth';
 
@@ -93,7 +93,7 @@ type Bindings = {
   GOOGLE_CLIENT_SECRET: string;
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
-  FIREBASE_PROJECT_ID: string;
+  FIREBASE_API_KEY: string;
 };
 
 type Variables = {
@@ -455,8 +455,8 @@ app.post('/api/auth/firebase', async (c) => {
   }
 
   try {
-    const projectId = getFirebaseProjectId(c.env);
-    const firebaseUser = await verifyFirebaseToken(body.idToken, projectId);
+    const apiKey = getFirebaseApiKey(c.env);
+    const firebaseUser = await verifyFirebaseToken(body.idToken, apiKey);
     if (!firebaseUser.email) {
       return c.json({ error: 'Firebase user has no email' }, 400);
     }
@@ -484,8 +484,8 @@ app.post('/api/auth/firebase/email', async (c) => {
   }
 
   try {
-    const projectId = getFirebaseProjectId(c.env);
-    const firebaseUser = await signInWithEmailPassword(body.email, body.password, projectId);
+    const apiKey = getFirebaseApiKey(c.env);
+    const firebaseUser = await signInWithEmailPassword(body.email, body.password, apiKey);
     const user = await ensureUserExistsByEmail(c, body.email, firebaseUser.displayName || undefined);
     const token = await createSession(c.env, user.id);
     return c.json({ token, user, needsVerification: !firebaseUser.emailVerified });
@@ -509,8 +509,8 @@ app.post('/api/auth/firebase/email/signup', async (c) => {
   }
 
   try {
-    const projectId = getFirebaseProjectId(c.env);
-    await signUpWithEmailPassword(body.email, body.password, body.name, projectId);
+    const apiKey = getFirebaseApiKey(c.env);
+    await signUpWithEmailPassword(body.email, body.password, body.name, apiKey);
     const user = await ensureUserExistsByEmail(c, body.email, body.name);
     const token = await createSession(c.env, user.id);
     return c.json({ token, user });
@@ -534,8 +534,8 @@ app.post('/api/auth/firebase/reset-password', async (c) => {
   }
 
   try {
-    const projectId = getFirebaseProjectId(c.env);
-    await sendPasswordResetEmail(body.email, projectId);
+    const apiKey = getFirebaseApiKey(c.env);
+    await sendPasswordResetEmail(body.email, apiKey);
     return c.json({ message: 'Password reset email sent' });
   } catch (e: any) {
     console.error('[auth/firebase/reset-password]', e);
@@ -557,8 +557,8 @@ app.post('/api/auth/firebase/create-account', async (c) => {
   }
 
   try {
-    const projectId = getFirebaseProjectId(c.env);
-    await signUpWithEmailPassword(body.email, body.password, body.name, projectId);
+    const apiKey = getFirebaseApiKey(c.env);
+    await signUpWithEmailPassword(body.email, body.password, body.name, apiKey);
     const user = await ensureUserExistsByEmail(c, body.email, body.name);
     const token = await createSession(c.env, user.id);
     return c.json({ token, user });
@@ -579,7 +579,7 @@ app.get('/api/products', async (c) => {
     const params: any[] = [];
     
     if (category && category.trim() !== '') {
-      query += ' AND category = ?';
+      query += ' AND LOWER(category) = LOWER(?)';
       params.push(category);
     }
     
@@ -911,7 +911,7 @@ app.post('/api/orders', async (c) => {
       `INSERT INTO orders (id, user_id, status, total_price, items, shipping_address, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
-      id, user_id, 'preparing', total_price,
+      id, user_id, 'pending', total_price,
       itemsJson,
       shipping_address ? JSON.stringify(shipping_address) : null,
       now, now
@@ -2380,6 +2380,89 @@ app.post('/api/reviews/:reviewId/helpful', requireAuth, async (c) => {
   }
 });
 
+// POST /api/admin/recalculate-ratings - Recalculate all product ratings from reviews column
+app.post('/api/admin/recalculate-ratings', async (c) => {
+  try {
+    const limit = parseInt(c.req.query('limit') || '100');
+    const offset = parseInt(c.req.query('offset') || '0');
+    const varyRatings = c.req.query('vary') === 'true';
+    
+    // Get products in batches
+    const { results: products } = await c.env.DB.prepare(
+      'SELECT id, reviews FROM products LIMIT ? OFFSET ?'
+    ).bind(limit, offset).all();
+    
+    if (!products || products.length === 0) {
+      return c.json({ 
+        message: 'Không còn sản phẩm nào để xử lý',
+        processed: 0,
+        offset: offset
+      });
+    }
+    
+    let updated = 0;
+    
+    // Process in smaller batches to avoid timeout
+    const batchSize = 10;
+    for (let i = 0; i < products.length; i += batchSize) {
+      const batch = products.slice(i, i + batchSize);
+      
+      await Promise.all(batch.map(async (product: any) => {
+        const reviews = parseReviews(product.reviews || '[]');
+        
+        if (reviews.length > 0) {
+          let avgRating: number;
+          
+          if (varyRatings) {
+            // Vary ratings between 3.0 and 5.0
+            avgRating = 3.0 + Math.random() * 2.0; // Random between 3.0 and 5.0
+            avgRating = Math.round(avgRating * 10) / 10; // Round to 1 decimal
+          } else {
+            const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+            avgRating = totalRating / reviews.length;
+          }
+          
+          await c.env.DB.prepare(
+            'UPDATE products SET rating = ?, review_count = ? WHERE id = ?'
+          ).bind(avgRating, reviews.length, product.id).run();
+          updated++;
+        } else {
+          await c.env.DB.prepare(
+            'UPDATE products SET rating = 0, review_count = 0 WHERE id = ?'
+          ).bind(product.id).run();
+        }
+      }));
+    }
+    
+    return c.json({ 
+      message: `Đã xử lý ${products.length} sản phẩm (${updated} có đánh giá)`,
+      processed: products.length,
+      updated,
+      offset: offset,
+      next_offset: offset + products.length,
+      has_more: products.length === limit,
+      varied: varyRatings
+    });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// GET /api/admin/categories - List all unique categories in database
+app.get('/api/admin/categories', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      'SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != "" ORDER BY category'
+    ).all();
+    
+    const categories = (results || []).map((row: any) => row.category);
+    
+    return c.json({ categories, count: categories.length });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // ── WISHLIST ──────────────────────────────────────────────────────────────────
 
 // GET /api/wishlist/:userId - Get user's wishlist
@@ -2516,29 +2599,33 @@ app.post('/api/wishlist/:productId/cart', requireAuth, async (c) => {
 
 async function updateOrderStatuses(env: Bindings) {
   const now = new Date();
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+  const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000);
 
-  const { results: toShip } = await env.DB.prepare(
-    `UPDATE orders SET status = 'shipped', updated_at = ? 
-     WHERE status IN ('confirmed', 'preparing') AND created_at <= ? AND created_at > ?
-     RETURNING id`
-  ).bind(now.toISOString(), oneHourAgo.toISOString(), twoHoursAgo.toISOString()).all();
-
-  const { results: toDeliver } = await env.DB.prepare(
-    `UPDATE orders SET status = 'delivered', updated_at = ? 
-     WHERE status = 'shipped' AND created_at <= ?
-     RETURNING id`
-  ).bind(now.toISOString(), twoHoursAgo.toISOString()).all();
-
-  await env.DB.prepare(
+  // Update pending -> preparing (after 30 seconds)
+  const { results: toPreparing } = await env.DB.prepare(
     `UPDATE orders SET status = 'preparing', updated_at = ? 
-     WHERE status = 'confirmed' AND created_at > ?`
-  ).bind(now.toISOString(), oneHourAgo.toISOString()).run();
+     WHERE status = 'pending' AND created_at <= ?
+     RETURNING id`
+  ).bind(now.toISOString(), thirtySecondsAgo.toISOString()).all();
+
+  // Update preparing -> shipped (after 30 seconds)
+  const { results: toShipped } = await env.DB.prepare(
+    `UPDATE orders SET status = 'shipped', updated_at = ? 
+     WHERE status = 'preparing' AND updated_at <= ?
+     RETURNING id`
+  ).bind(now.toISOString(), thirtySecondsAgo.toISOString()).all();
+
+  // Update shipped -> delivered (after 30 seconds)
+  const { results: toDelivered } = await env.DB.prepare(
+    `UPDATE orders SET status = 'delivered', updated_at = ? 
+     WHERE status = 'shipped' AND updated_at <= ?
+     RETURNING id`
+  ).bind(now.toISOString(), thirtySecondsAgo.toISOString()).all();
 
   return {
-    shipped: toShip?.length || 0,
-    delivered: toDeliver?.length || 0,
+    preparing: toPreparing?.length || 0,
+    shipped: toShipped?.length || 0,
+    delivered: toDelivered?.length || 0,
     timestamp: now.toISOString()
   };
 }

@@ -11,6 +11,22 @@ import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentVerifyEmailBinding
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Fragment displaying email verification status (loading, success, error).
+ * Auto-triggers verification on token from email link.
+ * 
+ * Navigation:
+ * - FROM: Registration confirmation email link
+ * - TO: LoginFragment (on action button click)
+ * 
+ * Arguments:
+ * - token: String - Verification token from email URL
+ * 
+ * Results:
+ * - None
+ * 
+ * @see VerifyEmailViewModel For verification logic
+ */
 @AndroidEntryPoint
 class VerifyEmailFragment : Fragment() {
 

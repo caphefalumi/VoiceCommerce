@@ -16,6 +16,21 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
 
+/**
+ * Fragment for placing orders with address input and coupon application.
+ * 
+ * Navigation:
+ * - FROM: CartFragment
+ * - TO: ProductListFragment (on order success)
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - orderId: String? - Created order ID returned via ViewModel
+ * 
+ * @see CheckoutViewModel For order placement logic
+ */
 @AndroidEntryPoint
 class CheckoutFragment : Fragment() {
 

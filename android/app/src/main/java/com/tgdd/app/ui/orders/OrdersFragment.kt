@@ -16,6 +16,22 @@ import com.tgdd.app.databinding.FragmentOrdersBinding
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+/**
+ * Fragment displaying user's order history list.
+ * 
+ * Navigation:
+ * - FROM: ProfileFragment, HelpFragment
+ * - TO: OrderDetailFragment (on order click)
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - None
+ * 
+ * @see OrdersViewModel For order list data
+ * @see OrdersAdapter For list rendering
+ */
 @AndroidEntryPoint
 class OrdersFragment : Fragment() {
 

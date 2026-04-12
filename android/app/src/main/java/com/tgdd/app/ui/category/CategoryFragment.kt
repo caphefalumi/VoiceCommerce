@@ -11,6 +11,19 @@ import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentCategoryBinding
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Fragment displaying product category grid with brands and promotional cards.
+ * 
+ * Navigation:
+ * - FROM: Home/main screen
+ * - TO: ProductListFragment (on category/brand/promo card click)
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - None
+ */
 @AndroidEntryPoint
 class CategoryFragment : Fragment() {
 

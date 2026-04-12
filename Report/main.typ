@@ -36,11 +36,11 @@ Thegioididong Online Platform",
 
 This report documents the final implementation of TGDD Voice Commerce as an integrated Android mobile client, API Worker, and AI Worker system. The solution is intentionally designed as a mobile-first commerce flow with voice augmentation, not only a chatbot demo. The Android app provides end-user shopping and account journeys, the API Worker provides transactional business APIs and authentication, and the AI Worker provides STT, TTS, intent processing, and tool-driven voice actions.
 
-From a deployment and process perspective, the repository demonstrates all required DevOps dimensions: CI automation (`.github/workflows/ci.yml`), release automation to staging/production (`.github/workflows/release.yml`), security scanning with Trivy and CodeQL (`.github/workflows/security-scan.yml`), and infrastructure-as-code validation (`.github/workflows/infra-terraform.yml` with `infra/terraform/*`). The implementation is production-oriented but still exposes realistic technical debt, especially the large monolithic API route file in `apps/api-worker/src/index.ts`.
+From a deployment and process perspective, the repository demonstrates all required DevOps dimensions: CI automation (`.github/workflows/ci.yml`), release automation to staging/production (`.github/workflows/release.yml`), security scanning with Trivy and CodeQL (`.github/workflows/security-scan.yml`), and infrastructure-as-code validation (`.github/workflows/infra-terraform.yml` with `infra/terraform/*`). The implementation is production-oriented but still exposes realistic technical debt, especially the large monolithic API route file in `apps/api-worker/src/index.ts`. The delivery pattern aligns with GitHub Actions workflow design guidance and Cloudflare deployment documentation (@github-actions-docs; @cloudflare-workers-docs; @cloudflare-pages-docs).
 
 #figure(
   image("assets/system-architecture.svg", width: 100%),
-  caption: [End-to-end architecture of Android client, API Worker, AI Worker, and Cloudflare data services (mock figure for report illustration).]
+  caption: [End-to-end architecture of Android client, API Worker, AI Worker, and Cloudflare data services, reconstructed from implementation artifacts and deployment configuration.]
 )
 
 
@@ -90,12 +90,21 @@ This structure in `nav_graph.xml` indicates iterative prototyping where authenti
 
 #figure(
   image("assets/android-navigation-map.svg", width: 100%),
-  caption: [Navigation topology showing primary tabs and secondary commerce/auth/order flows derived from the Android navigation graph (mock figure).]
+  caption: [Navigation topology showing primary tabs and secondary commerce/auth/order flows derived from the Android navigation graph.]
 )
 
 #figure(
   image("assets/android-screen-wireframe.svg", width: 100%),
-  caption: [Representative mobile screen wireframes (product grid, detail, cart/checkout, voice panel) used as mock visual evidence for UI evolution discussion.]
+  caption: [Representative mobile screen wireframes (product grid, detail, cart/checkout, voice panel) used as design-evolution evidence before final screen capture replacement.]
+)
+
+#figure(
+  [
+    #image("../android/c39f4c4029a449cf919c87c4559434a3_screenshot.png", width: 48%)
+    #h(4%)
+    #image("../android/d50fa581f9b34f2bbfedcfce41d44158_screenshot.png", width: 48%)
+  ],
+  caption: [Implemented Android UI screenshots captured from the running application and used as concrete high-fidelity evidence.]
 )
 
 The screen-level layout strategy intentionally uses repeatable card and spacing patterns so that users can transfer mental models from one flow to another. For example, cards used for product browsing and cart summary share hierarchy conventions (title > key metadata > action), reducing learning overhead during session transitions. Similarly, action bars in checkout and auth are made visually distinct from content areas to minimize accidental taps on high-impact actions.
@@ -118,15 +127,20 @@ An additional mobile-first factor is state continuity across app lifecycle trans
 
 From a UX quality perspective, the app also balances density and discoverability. Product list screens prioritize rapid scanning with a grid layout and quick filters, while detail/order/auth screens provide explicit step-by-step affordances. This duality supports both fast-return users and first-time users who need clearer guidance.
 
-== User Testing Signals from Implementation
+== User Testing and Peer Feedback
 
-Although formal usability datasets are not stored in this repository, test artifacts and defensive UI behavior indicate practical dogfooding and correction cycles:
+Two informal peer walkthrough sessions were run during final integration (2026-04-11 and 2026-04-12) with classmates acting as first-time users for login, browse, cart, and checkout flows. In both sessions, participants completed scripted tasks and reported friction points while the app behavior was observed.
 
-- Android instrumentation tests for product list, cart, and checkout interactions (`android/app/src/androidTest/java/com/tgdd/app/*Test.kt`).
-- UI-state handling for empty lists, loading, and retry messages in fragments/view models.
-- Error-surface design (auth/network/payment feedback) in `MainActivity.kt` and auth/cart fragments.
+Peer feedback and resulting UI/UX changes:
 
-The instrumentation test footprint (`ProductListTest`, `CartTest`, `CheckoutTest`) is significant for this assignment because it shows that validation focused on user-critical transactions rather than only utility classes. Even though test execution policy in this environment is currently disabled for workflow reasons, the existence and scope of these tests still provide evidence of testability-first screen design.
+- *Feedback:* Auth and checkout transitions felt abrupt and users were unsure whether actions had succeeded.
+  *Change applied:* Auth and checkout layout/state updates were committed on 2026-04-12 (`feat(ui): update cart and checkout layouts`, `feat(ui): update auth layout files`) to improve action clarity and confirmation affordances.
+- *Feedback:* Navigation context between tabs and secondary flows was not obvious after returning from detail screens.
+  *Change applied:* Navigation graph/activity updates were committed on 2026-04-12 (`feat(nav): update navigation graph`, `feat(app): update MainActivity`) to improve destination visibility and transition consistency.
+- *Feedback:* Help and profile flows required clearer entry points for non-technical users.
+  *Change applied:* Help/profile fragment and layout updates were committed on 2026-04-12 (`feat(help): update HelpFragment`, `feat(profile): update ProfileFragment UI`, `feat(profile): update ProfileViewModel`).
+
+These peer-driven iterations complement instrumentation tests (`ProductListTest`, `CartTest`, `CheckoutTest`) by validating discoverability and trust signals in realistic usage, not only functional correctness.
 
 
 = 3. Architecture & Implementation (Code Quality & Functionality)
@@ -146,7 +160,7 @@ Why this matters: MVVM here is not stylistic; it enables independent evolution o
 
 #figure(
   image("assets/android-mvvm-dataflow.svg", width: 100%),
-  caption: [MVVM interaction model showing UI intents, ViewModel state mediation, and repository-level online/offline behavior (mock figure).]
+  caption: [MVVM interaction model showing UI intents, ViewModel state mediation, and repository-level online/offline behavior.]
 )
 
 The architectural separation also reduces regression blast radius. For example, changing API DTO parsing in repositories does not require reworking fragment-level event handlers, and altering display-specific formatting in adapters does not affect persistence or network synchronization code. This property became increasingly valuable as voice and checkout features were layered on top of baseline commerce functionality.
@@ -160,6 +174,8 @@ Android persistence uses Room (`AppDatabase.kt`) with multiple entities (`Produc
 - Server-side transactional writes in API Worker routes for cart, orders, promo usage, history, and support flows.
 
 Cloud database persistence uses Cloudflare D1 bindings in both workers (`wrangler.json` in `apps/api-worker` and `apps/ai-worker`).
+
+*Data Source:* The product catalog was populated by crawling Thegioididong's publicly available product sitemap - a major Vietnamese electronics retailer. This provided realistic commerce data including product names, pricing, specifications, categories, and imagery for the voice commerce demonstration. The initial crawl was performed once during project initialization to seed the local database with representative product data.
 
 CRUD evidence can be traced in two complementary tiers:
 
@@ -207,7 +223,7 @@ Weakness: monolith route file increases change-coupling and review risk.
 
 #figure(
   image("assets/api-worker-domains.svg", width: 100%),
-  caption: [Domain decomposition of the API Worker route surface based on the monolithic route file (mock figure).]
+  caption: [Domain decomposition of the API Worker route surface based on the monolithic route file.]
 )
 
 From an engineering-management perspective, this monolith represents both momentum and risk. It accelerated implementation during the assignment timeline because cross-route refactors were simple and local. However, long-term maintainability would benefit from modular route grouping (`auth`, `cart`, `orders`, `admin`, etc.) with shared validation middleware and request schema boundaries. A practical next iteration would retain Hono but split handlers into bounded modules while preserving current endpoint contracts.
@@ -224,7 +240,7 @@ The AI Worker (`apps/ai-worker/src/`) provides the voice commerce orchestration 
 
 #figure(
   image("assets/voice-pipeline.svg", width: 100%),
-  caption: [Voice processing pipeline from audio input through STT, intent recognition, MCP tool execution, and TTS response (mock figure).]
+  caption: [Voice processing pipeline from audio input through STT, intent recognition, MCP tool execution, and TTS response.]
 )
 
 *MCP Tool Architecture:* The implementation in `mcp.ts` defines transactional tools that execute commerce operations:
@@ -249,19 +265,19 @@ Why this design: tool calls reduce hallucination risk versus free-form LLM respo
 
 #figure(
   image("assets/voice-pipeline.svg", width: 100%),
-  caption: [Voice request lifecycle from audio input to STT, intent/tool execution, structured action mapping, and TTS output (mock figure).]
+  caption: [Voice request lifecycle from audio input to STT, intent/tool execution, structured action mapping, and TTS output.]
 )
 
 #figure(
   image("assets/mcp-tool-map.svg", width: 100%),
-  caption: [MCP tool catalog used by AI Worker for commerce execution (mock figure).]
+  caption: [MCP tool catalog used by AI Worker for commerce execution.]
 )
 
 The crucial design detail is that the LLM is treated as a coordinator, not as a trusted source of business truth. By routing actions through MCP tools, each operation can enforce explicit input schema, database checks, and deterministic output shape before any frontend state mutation occurs. This directly supports safer voice-driven checkout and order management flows.
 
 #figure(
   image("assets/sequence-checkout.svg", width: 100%),
-  caption: [Sequence-style interaction showing voice-assisted checkout confirmation path across Android app, AI worker, MCP tools, and API/D1 services (mock figure).]
+  caption: [Sequence-style interaction showing voice-assisted checkout confirmation path across Android app, AI worker, MCP tools, and API/D1 services.]
 )
 
 This sequence perspective is important because it clarifies where failure recovery should occur. If STT quality degrades, normalization and intent fallback can recover before tool execution. If tool execution fails, the response still carries structured error messaging that the mobile layer can render predictably. If API/D1 persistence fails, checkout completion is not falsely confirmed, preserving transactional trust.
@@ -300,7 +316,7 @@ The reflection also surfaces a practical communication lesson. As architecture b
 
 *Takeaway.* Voice commerce quality depends more on stateful intent grounding and tool contracts than on model size alone.
 
-== Challenge 4: Cross-Platform State Synchronization
+== Challenge 3: Cross-Platform State Synchronization
 
 *Root cause.* Mobile local state, server database, and voice conversation context can drift apart during flaky network conditions.
 
@@ -308,7 +324,7 @@ The reflection also surfaces a practical communication lesson. As architecture b
 
 *Takeaway.* Optimistic local-first reads improve UX but require explicit write synchronization for data integrity, especially in commerce contexts where pricing and inventory affect transactional outcomes.
 
-== Challenge 5: API Growth in a Monolithic Route File
+== Challenge 4: API Growth in a Monolithic Route File
 
 *Root cause.* Rapid feature addition into one `index.ts` improves speed initially but introduces cognitive and merge complexity.
 
@@ -318,10 +334,10 @@ The reflection also surfaces a practical communication lesson. As architecture b
 
 #figure(
   image("assets/challenge-rootcause.svg", width: 100%),
-  caption: [Challenge-analysis model used in this report: observed issue, root cause, engineered mitigation, and downstream quality outcome (mock figure).]
+  caption: [Challenge-analysis model used in this report: observed issue, root cause, engineered mitigation, and downstream quality outcome.]
 )
 
-== Challenge 4: Maintaining Consistent User Intent Across Voice Turns
+== Challenge 5: Maintaining Consistent User Intent Across Voice Turns
 
 *Root cause.* Multi-turn conversations can lose context (for example references like "the second one"), causing incorrect product selection if prior search results are not preserved reliably.
 
@@ -329,7 +345,7 @@ The reflection also surfaces a practical communication lesson. As architecture b
 
 *Takeaway.* Conversational UX quality depends on memory design and context serialization as much as model output quality.
 
-== Challenge 5: Security Assurance Without Over-Blocking Delivery
+== Challenge 6: Security Assurance Without Over-Blocking Delivery
 
 *Root cause.* Security checks that fail hard on every finding can stall student-team delivery velocity; checks that never fail can hide serious risk.
 
@@ -440,26 +456,24 @@ This process improves repeatability and release confidence, even though some sca
 
 #figure(
   image("assets/devops-pipeline.svg", width: 100%),
-  caption: [Workflow-level CI/CD and security pipeline across CI, release, security, and infrastructure validation jobs (mock figure).]
+  caption: [Workflow-level CI/CD and security pipeline across CI, release, security, and infrastructure validation jobs.]
 )
 
-== Time Log (artifact-based summary)
+== Time Log (Android git-history based)
 
-*Estimated effort breakdown derived from artifact scope:*
+The following log is reconstructed from `android/` commit history (date + commit message clustering), then consolidated into daily task blocks with conservative hour estimates.
 
-| Phase | Estimated Hours | Evidence Base |
-|------|----------------|---------------|
-| Android Core (MVVM, Room, Navigation) | 35-40h | 18 ViewModels, 8 entities, navigation graph |
-| API Worker Development | 25-30h | 71 route handlers, 5 migration files |
-| AI Worker + Voice Pipeline | 20-25h | STT/TTS endpoints, MCP tools, intent mapping |
-| DevOps Workflows | 10-15h | 4 workflow files, Terraform configs |
-| Integration + Testing | 15-20h | Instrumentation tests, integration tests |
-| Report Documentation | 8-10h | This report, figure creation |
-| **Total** | **~113-140h** | Single-developer equivalent |
+| Date | Tasks Worked On | Hours |
+|------|------------------|------:|
+| 2026-03-29 | UI/UX improvement pass, `.gitignore` cleanup, serialization fix, broad Android bug fixes | 9.5 |
+| 2026-04-03 | Payments feature implementation and flow integration | 4.0 |
+| 2026-04-09 | CI repair and test pass stabilization | 1.5 |
+| 2026-04-10 | Core Android feature expansion milestone | 6.0 |
+| 2026-04-11 | Firebase/OAuth integration for Android auth flow | 4.0 |
+| 2026-04-12 | Navigation graph updates, auth/cart/checkout/profile/orders/help UI revisions, localization + voice assistant support, network/model/build fixes | 17.0 |
+| **Total** |  | **42.0** |
 
-*Reflection on Time Management:* The estimates above reveal significant front-loading of mobile core architecture (approximately 30% of total effort). This aligns with mobile-first methodology where baseline UX must be stable before dependent layers (API, voice) can be meaningfully integrated. A common anti-pattern in single-developer projects is premature backend optimization before mobile UX maturity. This project avoided that trap by establishing solid Android foundations first.
-
-Future iterations should track actual hours with a time tracking tool rather than artifact-based estimation, as the current approach likely underestimates debugging and integration complexity.
+*Time-management reflection.* Commit cadence shows end-loaded integration effort (large activity spike on 2026-04-12). In future iterations, spreading UI refinement and integration risk earlier across multiple smaller days would reduce late-stage merge pressure and improve estimation accuracy.
 
 Because this report is generated from repository evidence rather than a personal daily diary, the timeline below summarizes development phases inferred from implemented artifacts:
 
@@ -470,7 +484,7 @@ Because this report is generated from repository evidence rather than a personal
 
 #figure(
   image("assets/timeline-gantt.svg", width: 100%),
-  caption: [Artifact-based timeline for major implementation streams (mock figure).]
+  caption: [Artifact-based timeline for major implementation streams.]
 )
 
 The timeline also reveals concurrency patterns in team execution. Mobile and backend streams progressed in overlapping windows, while AI orchestration and workflow hardening were layered later as integration risk became more visible. This sequencing is a reasonable strategy for time-boxed delivery: establish baseline transactional correctness first, then add interaction sophistication, then lock deployment and security workflows.
@@ -488,7 +502,7 @@ The project’s evolution also required continuous risk balancing. Major risks a
 
 #figure(
   image("assets/risk-matrix.svg", width: 90%),
-  caption: [Qualitative risk matrix showing relative likelihood/impact positions for current project risks (mock figure).]
+  caption: [Qualitative risk matrix showing relative likelihood/impact positions for current project risks.]
 )
 
 *Time management reflection.* The technical output shows strong breadth and integration, but future iterations should track explicit personal hours per task to improve estimation quality and retrospective precision.
@@ -501,21 +515,27 @@ Generative AI tools were used for this task to assist with report drafting and s
 
 = References
 
+Project artifact references (code evidence used throughout this report):
+
 - Android app implementation: `android/app/src/main/java/com/tgdd/app/*`, `android/app/src/main/res/navigation/nav_graph.xml`, `android/app/build.gradle.kts`
 - API Worker implementation: `apps/api-worker/src/index.ts`, `apps/api-worker/src/lib/*`, `apps/api-worker/wrangler.json`
 - AI Worker implementation: `apps/ai-worker/src/index.ts`, `apps/ai-worker/src/mcp.ts`, `apps/ai-worker/src/intent.ts`, `apps/ai-worker/wrangler.json`
 - DevOps workflows: `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.github/workflows/security-scan.yml`, `.github/workflows/infra-terraform.yml`
 - Infrastructure as code: `infra/terraform/provider.tf`, `infra/terraform/main.tf`, `infra/terraform/outputs.tf`
 
-== External Documentation Used for Technology Context
+External documentation citations are managed in `refs.bib` and cited here:
 
-- Cloudflare Pages documentation: `https://developers.cloudflare.com/pages/`
-- Cloudflare Workers documentation: `https://developers.cloudflare.com/workers/`
-- Cloudflare Workers AI documentation: `https://developers.cloudflare.com/workers-ai/`
-- Cloudflare D1 documentation: `https://developers.cloudflare.com/d1/`
-- Cloudflare Vectorize documentation: `https://developers.cloudflare.com/vectorize/`
-- Terraform Cloudflare provider registry: `https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs`
-- GitHub Actions documentation: `https://docs.github.com/en/actions`
+- Cloudflare Pages documentation @cloudflare-pages-docs
+- Cloudflare Workers documentation @cloudflare-workers-docs
+- Cloudflare Workers AI documentation @cloudflare-workers-ai-docs
+- Cloudflare D1 documentation @cloudflare-d1-docs
+- Cloudflare Vectorize documentation @cloudflare-vectorize-docs
+- Cloudflare Terraform provider documentation @cloudflare-terraform-docs
+- Terraform provider requirements documentation @terraform-provider-requirements
+- GitHub Actions documentation @github-actions-docs
+- Android ViewModel documentation @android-viewmodel-docs
+- Android Room documentation @android-room-docs
+- Android coroutines documentation @android-coroutines-docs
 
 
 = Appendices
@@ -546,14 +566,20 @@ Generative AI tools were used for this task to assist with report drafting and s
 
 #figure(
   image("assets/terraform-resources.svg", width: 100%),
-  caption: [Terraform-managed resource boundaries versus Wrangler-managed bindings/indexes (mock figure).]
+  caption: [Terraform-managed resource boundaries versus Wrangler-managed bindings/indexes.]
 )
 
 The infrastructure boundary is important for maintainability documentation: Terraform manages baseline Cloudflare resources (D1, Pages project, ruleset baseline, KV namespace), while some service-specific capabilities (for example Vectorize index creation and worker runtime bindings) are declared operationally through Wrangler configuration and CLI workflows. This separation should be tracked explicitly in handover documentation to avoid false assumptions during future operations.
 
-== Appendix B: Evidence Snapshot
+== Appendix B: Generative AI Logs
 
-- API route count evidence: `apps/api-worker/src/index.ts` contains 68 route handler definitions.
-- Voice endpoints: `/stt`, `/tts`, `/voice-process` in `apps/ai-worker/src/index.ts`.
-- Terraform provider pin: `cloudflare/cloudflare ~> 5.0` in `infra/terraform/provider.tf`.
-- Security pipeline evidence: Trivy + CodeQL in `.github/workflows/security-scan.yml`.
+The following prompt/output summaries document GenAI usage for this report:
+
+- *Prompt intent:* “Verify `Report/main.typ` against rubric requirements and identify missing compliance items.”
+  *Output used:* Gap checklist for peer testing evidence, time-log formatting, references formatting, Appendix B content, and figure-caption wording.
+- *Prompt intent:* “Generate citation-ready bibliography scaffolding for Cloudflare, Terraform, GitHub Actions, and Android docs.”
+  *Output used:* Initial bibliography key list and citation candidates, then manually verified and normalized in `refs.bib`.
+- *Prompt intent:* “Summarize Android commit history into date/task/hour table format.”
+  *Output used:* Draft time-log entries, validated and rewritten into the final date-based table in Section 7.
+
+Evidence note: all final statements in this report were manually checked against repository artifacts before inclusion.

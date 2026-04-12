@@ -28,6 +28,23 @@ import com.tgdd.app.ui.adapter.ProductAdapter
 import com.tgdd.app.ui.utils.*
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Fragment displaying products in grid view with search, voice search, and filtering.
+ * 
+ * Navigation:
+ * - FROM: CategoryFragment, SearchFragment, home screen
+ * - TO: ProductDetailFragment (on product click), CartFragment (cart button)
+ * 
+ * Arguments:
+ * - category: String? - Filter by category name
+ * - brand: String? - Filter by brand name
+ * 
+ * Results:
+ * - None (navigation only)
+ * 
+ * @see ProductListViewModel For product data and state
+ * @see ProductAdapter For grid rendering
+ */
 @AndroidEntryPoint
 class ProductListFragment : Fragment() {
 

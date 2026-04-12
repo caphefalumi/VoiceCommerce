@@ -14,12 +14,12 @@
   ],
   "vars": {
     "BETTER_AUTH_URL": "https://tgdd-frontend.pages.dev",
-    "FIREBASE_PROJECT_ID": "tgdd-a0666"
+    "FIREBASE_API_KEY": "AIzaSyDfHVeJP4QvO9rvOnHvx7h3NfM7MRhoaRY"
   },
   "observability": {
     "enabled": true
   },
   "triggers": {
-    "crons": ["45 * * * *"]
+    "crons": ["* * * * *"]
   }
 }

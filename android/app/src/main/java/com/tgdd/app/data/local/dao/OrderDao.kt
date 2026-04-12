@@ -4,6 +4,24 @@ import androidx.room.*
 import com.tgdd.app.data.local.entity.OrderEntity
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Data Access Object for order database operations.
+ *
+ * Operations:
+ * - getAllOrders(): Fetch all cached orders
+ * - getOrdersByUserId(): Get orders for specific user
+ * - getOrdersByUserIdAndStatus(): Filter orders by status
+ * - getOrderById(): Get single order details
+ * - insertOrder(): Cache order from network response
+ * - updateOrder(): Update order details
+ * - updateOrderStatus(): Update order status
+ * - deleteOrder(): Remove order from cache
+ *
+ * Transactions:
+ * - All write operations are transaction-safe
+ *
+ * @see com.tgdd.app.data.local.entity.OrderEntity For entity definition
+ */
 @Dao
 interface OrderDao {
     @Query("SELECT * FROM orders ORDER BY createdAt DESC")

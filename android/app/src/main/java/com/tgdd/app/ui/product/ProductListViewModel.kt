@@ -23,6 +23,37 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 
+/**
+ * ViewModel for product list screen.
+ *
+ * Responsibilities:
+ * - Fetch products from repository (all, by category, by brand)
+ * - Handle voice command processing via AI Voice API
+ * - Manage search with debouncing and caching
+ * - Apply filters (category, brand, price range, rating, stock)
+ * - Add products to cart with login check
+ * - Voice recording and playback management
+ *
+ * UI State:
+ * - products: List<ProductEntity> - Current product list (raw from API)
+ * - filteredProducts: List<ProductEntity> - Products after filter application
+ * - isLoading: Boolean - Loading indicator for API calls
+ * - error: String? - Error message for display
+ * - addedToCart: Boolean - Success flag for cart operations
+ * - currentFilter: ProductFilter - Current filter state
+ * - assistantResponse: String? - AI voice assistant response text
+ * - isRecording: Boolean - Voice recording state
+ * - navigateToCheckout: Boolean - Navigation trigger
+ *
+ * Voice AI Integration:
+ * - processVoiceCommand: Sends text commands to AI Voice API
+ * - toggleVoiceRecording: Starts/stops microphone recording
+ * - handleAiAction: Processes AI action responses (cart, checkout navigation)
+ *
+ * @see ProductListFragment For UI binding
+ * @see ProductRepository For data fetching
+ * @see VoiceAssistantManager For audio recording/playback
+ */
 @HiltViewModel
 class ProductListViewModel @Inject constructor(
     private val productRepository: ProductRepository,
@@ -34,6 +65,7 @@ class ProductListViewModel @Inject constructor(
 
     private val gson = Gson()
 
+    // UI State - Exposed to Fragment for data binding
     private val _products = MutableLiveData<List<ProductEntity>>()
     val products: LiveData<List<ProductEntity>> = _products
 
@@ -68,6 +100,7 @@ class ProductListViewModel @Inject constructor(
     val priceRange: LiveData<Pair<Double, Double>?> = _priceRange
 
     private val _assistantResponse = MutableLiveData<String?>()
+    /** AI voice assistant response text for TTS playback */
     val assistantResponse: LiveData<String?> = _assistantResponse
 
     private val _navigateToCheckout = MutableLiveData<Boolean>(false)
@@ -76,12 +109,16 @@ class ProductListViewModel @Inject constructor(
     private val _isRecording = MutableLiveData<Boolean>(false)
     val isRecording: LiveData<Boolean> = _isRecording
 
+    // Internal state - Not exposed to UI
     private var recordingJob: Job? = null
     private var audioOutputStream: java.io.ByteArrayOutputStream? = null
 
+    // Product list state
     private var currentCategory: String? = null
     private var currentBrand: String? = null
     private var _allProducts: List<ProductEntity> = emptyList()
+
+    // Search state with caching
     private var searchJob: Job? = null
     private var lastSearchQuery: String = ""
     private val searchCache = mutableMapOf<String, List<ProductEntity>>()
@@ -128,6 +165,10 @@ class ProductListViewModel @Inject constructor(
         applyFilters()
     }
 
+    /**
+     * Applies current filter to product list.
+     * Uses ProductFilterUtils to filter _allProducts and updates _filteredProducts.
+     */
     private fun applyFilters() {
         val filter = _currentFilter.value ?: ProductFilter()
         _filteredProducts.value = ProductFilterUtils.applyFilter(_allProducts, filter)

@@ -4,6 +4,25 @@ import androidx.room.*
 import com.tgdd.app.data.local.entity.ReviewEntity
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Data Access Object for review database operations.
+ *
+ * Operations:
+ * - getReviewsByProductId(): Fetch reviews for specific product
+ * - getReviewsByUserId(): Fetch reviews written by user
+ * - getReviewById(): Get single review by ID
+ * - getAverageRating(): Calculate average rating for product
+ * - getReviewCount(): Get total review count for product
+ * - insertReview(): Cache review from network response
+ * - updateReview(): Update review details
+ * - deleteReview(): Remove review from cache
+ * - deleteReviewsByProductId(): Remove all reviews for product
+ *
+ * Transactions:
+ * - All write operations are transaction-safe
+ *
+ * @see com.tgdd.app.data.local.entity.ReviewEntity For entity definition
+ */
 @Dao
 interface ReviewDao {
     @Query("SELECT * FROM reviews WHERE productId = :productId ORDER BY createdAt DESC")

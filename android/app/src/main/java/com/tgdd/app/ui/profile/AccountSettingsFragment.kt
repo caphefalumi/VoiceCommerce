@@ -10,6 +10,21 @@ import androidx.navigation.fragment.findNavController
 import com.tgdd.app.databinding.FragmentAccountSettingsBinding
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Fragment for editing user account settings (name, email display).
+ * 
+ * Navigation:
+ * - FROM: ProfileFragment
+ * - TO: None (back navigation only)
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - None (updates profile on save)
+ * 
+ * @see ProfileViewModel For profile update operations
+ */
 @AndroidEntryPoint
 class AccountSettingsFragment : Fragment() {
 

@@ -18,6 +18,21 @@ import com.tgdd.app.databinding.FragmentHelpBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
+/**
+ * Fragment displaying help center with FAQs, quick actions, and support form.
+ * 
+ * Navigation:
+ * - FROM: ProfileFragment
+ * - TO: OrdersFragment (via quick action)
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - None
+ * 
+ * @see HelpViewModel For FAQ data and ticket submission
+ */
 @AndroidEntryPoint
 class HelpFragment : Fragment() {
 

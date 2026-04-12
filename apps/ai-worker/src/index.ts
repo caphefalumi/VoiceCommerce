@@ -160,6 +160,138 @@ app.post('/embed', async (c) => {
 // Pipeline: STT → Workers AI LLM (intent + slots) → tool execution → TTS
 const API_WORKER_BASE = 'https://api-worker.dangduytoan13l.workers.dev';
 
+// ── New voice/process endpoint for Android ──────────────────────────────────
+app.post('/voice/process', async (c) => {
+  try {
+    const { audio_base64, session_id, user_id, history } = await c.req.json();
+    
+    if (!audio_base64) {
+      return c.json({ error: 'Missing audio_base64' }, 400);
+    }
+
+    const env = c.env;
+    
+    // STT: Transcribe audio
+    let userText = '';
+    try {
+      const stt = await (env.AI as any).run('@cf/openai/whisper-large-v3-turbo', {
+        audio: audio_base64,
+        language: 'vi',
+        initial_prompt: 'Cửa hàng điện máy Việt Nam. Tên sản phẩm: iPhone, Samsung, OPPO, Xiaomi, MacBook, Dell.'
+      });
+      userText = normalizeProductNames(stt.text || '');
+    } catch (sttErr) {
+      console.error('STT error:', sttErr);
+      return c.json({ error: 'Failed to transcribe audio' }, 500);
+    }
+
+    if (!userText.trim()) {
+      return c.json({ 
+        text: 'Xin lỗi, tôi không nghe rõ.',
+        audio_base64: null,
+        intent: null,
+        navigate_to: null
+      });
+    }
+
+    // Build conversation history for context
+    const conversationHistory = (history || []).map((msg: any) => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.text
+    }));
+
+    // Initialize MCP server and client
+    const { createCommerceMcpServer } = await import('./mcp');
+    const { createMCPClient } = await import('@ai-sdk/mcp');
+    const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js');
+    
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    
+    const mcpServer = createCommerceMcpServer({
+      AI: env.AI,
+      VECTORIZE: env.VECTORIZE,
+      VECTORIZE_FAQ: env.VECTORIZE_FAQ,
+      DB: env.DB
+    }, [], user_id || '');
+    await mcpServer.connect(serverTransport);
+    
+    const mcpClient = await createMCPClient({ transport: clientTransport as any });
+    const mcpTools = await mcpClient.tools();
+
+    const workersai = createWorkersAI({ binding: env.AI as any });
+
+    const systemPrompt = `Bạn là TGDD AI — trợ lý giọng nói thông minh của Thế Giới Di Động (TGDD).
+Bạn giao tiếp bằng tiếng Việt. Hãy trả lời ngắn gọn (1-3 câu). 
+Luôn gọi công cụ (tool) cho các hành động mua sắm — không tự tạo dữ liệu giả.
+Khi người dùng muốn thanh toán hoặc đặt hàng, hãy xác nhận và hướng dẫn họ đến trang thanh toán.
+${conversationHistory.length > 0 ? `\n\n## Cuộc trò chuyện gần đây:\n${conversationHistory.map((h: any) => `${h.role === 'user' ? 'User' : 'AI'}: ${h.content}`).join('\n')}` : ''}`;
+
+    const messages = [{ role: 'user', content: userText }];
+
+    const result = await generateText({
+      model: workersai('@cf/nvidia/nemotron-3-120b-a12b') as any,
+      system: systemPrompt,
+      messages: messages as any,
+      tools: mcpTools as any,
+    });
+
+    let responseText = result.text || 'Tôi đã xử lý yêu cầu của bạn.';
+
+    // TTS: Generate audio response
+    let audioBase64 = null;
+    try {
+      const tts = await (env.AI as any).run('@cf/myshell-ai/melotts', {
+        prompt: responseText.slice(0, 500),
+        lang: 'en'
+      });
+      audioBase64 = (tts as any).audio || tts;
+    } catch (ttsErr) {
+      console.error('TTS error:', ttsErr);
+    }
+
+    // Detect intent and navigation
+    let intent: string | null = null;
+    let navigateTo: string | null = null;
+
+    if ((result as any).toolCalls?.length) {
+      intent = (result as any).toolCalls[0]?.toolName || null;
+    } else if (result.toolResults?.length) {
+      intent = (result.toolResults[0] as any)?.toolName || null;
+    }
+
+    // Check if user wants to checkout
+    const checkoutKeywords = /(thanh toán|đặt hàng|checkout|mua|order)/i;
+    if (checkoutKeywords.test(userText) || intent === 'checkout' || intent === 'createOrder') {
+      navigateTo = 'checkout';
+    }
+
+    // Log to api-worker (fire-and-forget)
+    const ctx = (c as any).executionCtx;
+    const logFetch = fetch(`${API_WORKER_BASE}/api/admin/voice-logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: session_id || 'default',
+        user_id: user_id,
+        user_text: userText,
+        response_text: responseText,
+        intent,
+      }),
+    }).catch(() => {});
+    if (ctx?.waitUntil) ctx.waitUntil(logFetch);
+
+    return c.json({
+      text: responseText,
+      audio_base64: audioBase64,
+      intent: intent,
+      navigate_to: navigateTo
+    });
+  } catch (error: any) {
+    console.error('Voice process error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 app.post('/voice-process', async (c) => {
   try {
     const { text: inputText, audio_base64, session_id, context } = await c.req.json();

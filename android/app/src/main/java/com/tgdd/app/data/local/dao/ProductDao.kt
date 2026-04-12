@@ -4,6 +4,24 @@ import androidx.room.*
 import com.tgdd.app.data.local.entity.ProductEntity
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Data Access Object for product database operations.
+ *
+ * Operations:
+ * - getAllProducts(): Fetch all cached products sorted by creation date
+ * - getProductById(): Get single product by ID
+ * - searchProducts(): Search products by name or category
+ * - getProductsByCategory(): Get products filtered by category
+ * - insertProducts(): Cache network response (bulk insert)
+ * - insertProduct(): Cache single product
+ * - deleteProduct(): Remove product from cache
+ * - deleteAllProducts(): Clear entire product cache
+ *
+ * Transactions:
+ * - All write operations are transaction-safe
+ *
+ * @see com.tgdd.app.data.local.entity.ProductEntity For entity definition
+ */
 @Dao
 interface ProductDao {
     @Query("SELECT * FROM products ORDER BY createdAt DESC")

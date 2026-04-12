@@ -10,6 +10,21 @@ import androidx.navigation.fragment.findNavController
 import com.tgdd.app.databinding.FragmentForgotPasswordBinding
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Fragment for requesting password reset via email.
+ * 
+ * Navigation:
+ * - FROM: LoginFragment
+ * - TO: ResetPasswordFragment (via email link with token)
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - None (shows success state on email sent)
+ * 
+ * @see ForgotPasswordViewModel For reset request handling
+ */
 @AndroidEntryPoint
 class ForgotPasswordFragment : Fragment() {
 

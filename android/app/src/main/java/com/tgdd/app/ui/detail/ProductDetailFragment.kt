@@ -22,6 +22,21 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.util.Locale
 
+/**
+ * Fragment displaying detailed product information with reviews.
+ * 
+ * Navigation:
+ * - FROM: ProductListFragment, SearchFragment
+ * - TO: CartFragment (on add to cart via global action)
+ * 
+ * Arguments:
+ * - productId: String - Product identifier
+ * 
+ * Results:
+ * - None (adds to cart, navigates to cart on action)
+ * 
+ * @see ProductDetailViewModel For product data and cart operations
+ */
 @AndroidEntryPoint
 class ProductDetailFragment : Fragment() {
 

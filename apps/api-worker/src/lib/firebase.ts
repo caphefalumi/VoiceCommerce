@@ -21,10 +21,10 @@ export interface FirebaseSignInResult {
 
 export async function verifyFirebaseToken(
   idToken: string,
-  projectId: string
+  apiKey: string
 ): Promise<FirebaseUserRecord> {
   const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${projectId}`,
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,10 +49,10 @@ export async function verifyFirebaseToken(
 export async function signInWithEmailPassword(
   email: string,
   password: string,
-  projectId: string
+  apiKey: string
 ): Promise<FirebaseSignInResult> {
   const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${projectId}`,
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -72,10 +72,10 @@ export async function signUpWithEmailPassword(
   email: string,
   password: string,
   displayName: string,
-  projectId: string
+  apiKey: string
 ): Promise<FirebaseSignInResult> {
   const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${projectId}`,
+    `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,10 +93,10 @@ export async function signUpWithEmailPassword(
 
 export async function sendPasswordResetEmail(
   email: string,
-  projectId: string
+  apiKey: string
 ): Promise<void> {
   const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${projectId}`,
+    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -110,9 +110,9 @@ export async function sendPasswordResetEmail(
   }
 }
 
-export function getFirebaseProjectId(env: { FIREBASE_PROJECT_ID?: string }): string {
-  if (!env.FIREBASE_PROJECT_ID) {
-    throw new Error('FIREBASE_PROJECT_ID is not configured');
+export function getFirebaseApiKey(env: { FIREBASE_API_KEY?: string }): string {
+  if (!env.FIREBASE_API_KEY) {
+    throw new Error('FIREBASE_API_KEY is not configured');
   }
-  return env.FIREBASE_PROJECT_ID;
+  return env.FIREBASE_API_KEY;
 }

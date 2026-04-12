@@ -4,6 +4,24 @@ import androidx.room.*
 import com.tgdd.app.data.local.entity.AddressEntity
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Data Access Object for address database operations.
+ *
+ * Operations:
+ * - getAddressesByUserId(): Fetch all addresses for user (default first)
+ * - getDefaultAddress(): Get user's default shipping address
+ * - getAddressById(): Get address by ID
+ * - insertAddress(): Add new address (returns auto-generated ID)
+ * - updateAddress(): Update address details
+ * - deleteAddress(): Remove address
+ * - clearDefaultFlags(): Clear all default flags for user
+ * - setAsDefault(): Set address as default
+ *
+ * Transactions:
+ * - All write operations are transaction-safe
+ *
+ * @see com.tgdd.app.data.local.entity.AddressEntity For entity definition
+ */
 @Dao
 interface AddressDao {
     @Query("SELECT * FROM addresses WHERE userId = :userId ORDER BY isDefault DESC, id DESC")

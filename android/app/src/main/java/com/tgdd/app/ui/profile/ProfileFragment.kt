@@ -16,6 +16,21 @@ import com.tgdd.app.databinding.FragmentProfileBinding
 import com.tgdd.app.util.LocaleHelper
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Fragment displaying user profile with login/logout, order status, and settings.
+ * 
+ * Navigation:
+ * - FROM: Main screen (bottom nav)
+ * - TO: LoginFragment, RegisterFragment, OrdersFragment, AccountSettingsFragment, HelpFragment
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - None
+ * 
+ * @see ProfileViewModel For user session and profile data
+ */
 @AndroidEntryPoint
 class ProfileFragment : Fragment() {
 

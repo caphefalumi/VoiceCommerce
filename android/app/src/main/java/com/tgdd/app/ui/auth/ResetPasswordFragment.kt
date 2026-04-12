@@ -13,6 +13,22 @@ import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentResetPasswordBinding
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Fragment for setting new password after reset request.
+ * Auto-triggers reset on token from email link.
+ * 
+ * Navigation:
+ * - FROM: Password reset email link
+ * - TO: LoginFragment (on success, after 2.5s delay)
+ * 
+ * Arguments:
+ * - token: String - Reset token from email URL
+ * 
+ * Results:
+ * - None
+ * 
+ * @see ResetPasswordViewModel For password reset logic
+ */
 @AndroidEntryPoint
 class ResetPasswordFragment : Fragment() {
 

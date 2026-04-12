@@ -11,6 +11,21 @@ import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentRegisterBinding
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Fragment for new user registration with name, email, and password.
+ * 
+ * Navigation:
+ * - FROM: LoginFragment
+ * - TO: LoginFragment (on success, clears backstack)
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - None (pops to LoginFragment on success)
+ * 
+ * @see AuthViewModel For registration state management
+ */
 @AndroidEntryPoint
 class RegisterFragment : Fragment() {
 

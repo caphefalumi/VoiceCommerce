@@ -4,6 +4,24 @@ import androidx.room.*
 import com.tgdd.app.data.local.entity.WishlistEntity
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Data Access Object for wishlist database operations.
+ *
+ * Operations:
+ * - getAllWishlistItems(): Fetch all wishlist items sorted by addition time
+ * - getWishlistItemByProductId(): Check if product is in wishlist
+ * - isInWishlist(): Flow-based check for UI reactive updates
+ * - insertWishlistItem(): Add product to wishlist
+ * - deleteWishlistItem(): Remove item from wishlist
+ * - deleteByProductId(): Remove by product ID
+ * - clearWishlist(): Empty entire wishlist
+ * - getWishlistCount(): Get total wishlist item count
+ *
+ * Transactions:
+ * - All write operations are transaction-safe
+ *
+ * @see com.tgdd.app.data.local.entity.WishlistEntity For entity definition
+ */
 @Dao
 interface WishlistDao {
     @Query("SELECT * FROM wishlist ORDER BY addedAt DESC")

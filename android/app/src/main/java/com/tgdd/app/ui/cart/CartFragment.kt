@@ -24,6 +24,22 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
 
+/**
+ * Fragment displaying shopping cart with quantity management and coupon input.
+ * 
+ * Navigation:
+ * - FROM: ProductListFragment, ProductDetailFragment (global action)
+ * - TO: CheckoutFragment (checkout button), ProductListFragment (shop now)
+ * 
+ * Arguments:
+ * - showBackButton: Boolean - Whether to show back navigation (default: true)
+ * 
+ * Results:
+ * - None
+ * 
+ * @see CartViewModel For cart state and operations
+ * @see CartAdapter For item rendering
+ */
 @AndroidEntryPoint
 class CartFragment : Fragment() {
 

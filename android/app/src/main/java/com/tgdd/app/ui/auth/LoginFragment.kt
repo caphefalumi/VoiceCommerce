@@ -17,6 +17,21 @@ import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
+/**
+ * Fragment for user authentication with email/password and Google Sign-In.
+ * 
+ * Navigation:
+ * - FROM: RegisterFragment, main screen (global action)
+ * - TO: RegisterFragment (register link), ForgotPasswordFragment (forgot password link)
+ * 
+ * Arguments:
+ * - None
+ * 
+ * Results:
+ * - None (navigates up on success, stays on screen on error)
+ * 
+ * @see AuthViewModel For authentication state management
+ */
 @AndroidEntryPoint
 class LoginFragment : Fragment() {
 
