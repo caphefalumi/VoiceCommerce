@@ -41,6 +41,15 @@ class OrdersFragment : Fragment() {
         }
         
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
+        binding.toolbar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_refresh -> {
+                    viewModel.refreshOrders()
+                    true
+                }
+                else -> false
+            }
+        }
         setupRecyclerView()
         observeViewModel()
     }
