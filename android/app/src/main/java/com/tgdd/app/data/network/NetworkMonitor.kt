@@ -8,6 +8,31 @@ import android.net.NetworkRequest
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 
+/**
+ * Monitors device network connectivity status using Android's ConnectivityManager.
+ *
+ * This class registers a network callback to receive real-time updates when the
+ * device's network connection changes (wifi ↔ cellular ↔ disconnected).
+ *
+ * ### What It Monitors:
+ * - Network availability (is any network present?)
+ * - Internet capability (can the network reach the internet?)
+ * - Validation (has the network been proven to work?)
+ *
+ * ### Network Capabilities Checked:
+ * - NET_CAPABILITY_INTERNET: Network can reach the internet
+ * - NET_CAPABILITY_VALIDATED: Network has proven internet access (DNS works)
+ *
+ * ### Usage:
+ * - Singleton pattern via getInstance()
+ * - Use NetworkObserver wrapper for easier access with LiveData
+ * - Call startMonitoring() when app enters foreground
+ * - Call stopMonitoring() when app enters background
+ *
+ * ### LiveData Flow:
+ * - isConnected: LiveData<Boolean> - UI observes for connectivity changes
+ * - Updates posted on background threads via postValue()
+ */
 class NetworkMonitor(private val context: Context) {
     
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

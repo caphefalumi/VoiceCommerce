@@ -17,6 +17,24 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
+/**
+ * RecyclerView Adapter for displaying cart items in a list.
+ *
+ * Data Source: List of [CartItemEntity] from cart repository
+ * Layout: R.layout.item_cart (product image, name, brand, price, quantity controls, line total)
+ *
+ * Features:
+ * - Quantity adjustment buttons (+/-)
+ * - Remove item button
+ * - Async brand lookup via [ProductRepository]
+ * - Real-time line total calculation
+ *
+ * View Binding: [ItemCartBinding] in [onCreateViewHolder]
+ * Data Binding: CartItemEntity properties bound in [CartViewHolder.bind]
+ *
+ * @see CartItemEntity For item data model
+ * @see R.layout.item_cart For item layout
+ */
 class CartAdapter(
     private val productRepository: ProductRepository,
     private val onQuantityChanged: (CartItemEntity, Int) -> Unit,

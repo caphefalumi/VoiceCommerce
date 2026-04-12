@@ -15,6 +15,24 @@ import com.tgdd.app.databinding.ItemProductGridBinding
 import java.text.NumberFormat
 import java.util.Locale
 
+/**
+ * RecyclerView Adapter for displaying products in a grid layout.
+ *
+ * Data Source: List of [ProductEntity] from repository
+ * Layout: R.layout.item_product_grid (product image, name, price, rating, discount badge)
+ *
+ * Features:
+ * - Product click listener for navigation to detail
+ * - Add to cart button (optional callback)
+ * - Discount badge for original price items
+ * - Rating display with review count
+ *
+ * View Binding: [ItemProductGridBinding] in [onCreateViewHolder]
+ * Data Binding: ProductEntity properties bound in [ViewHolder.bind]
+ *
+ * @see ProductEntity For item data model
+ * @see R.layout.item_product_grid For item layout
+ */
 class ProductAdapter(
     private val onProductClick: (ProductEntity) -> Unit,
     private val onAddToCart: ((ProductEntity) -> Unit)? = null

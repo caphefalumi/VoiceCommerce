@@ -7,6 +7,7 @@ import com.tgdd.app.data.model.VoiceResponse
 import com.tgdd.app.data.remote.VoiceApi
 import com.tgdd.app.util.AudioPlayer
 import com.tgdd.app.util.VoiceRecorder
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -16,7 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class VoiceAssistantManager @Inject constructor(
     private val voiceApi: VoiceApi,
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     private val voiceRecorder = VoiceRecorder(context)
     private val audioPlayer = AudioPlayer(context)

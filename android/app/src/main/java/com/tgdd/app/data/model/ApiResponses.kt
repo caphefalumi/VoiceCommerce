@@ -3,31 +3,78 @@ package com.tgdd.app.data.model
 import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
 
+/**
+ * Response wrapper for product list endpoints.
+ *
+ * Maps to: GET /api/v1/products
+ *
+ * @property products List of ProductDto items
+ */
 data class ProductListResponse(
     @SerializedName("products")
     val products: List<ProductDto>? = null
 )
 
+/**
+ * Response wrapper for single product endpoint.
+ *
+ * Maps to: GET /api/v1/products/{id}
+ *
+ * @property product The product data
+ */
 data class ProductResponse(
     @SerializedName("product")
     val product: ProductDto? = null
 )
 
+/**
+ * Response wrapper for user data endpoint.
+ *
+ * Maps to: GET /api/v1/user/me
+ *
+ * @property user The user data
+ */
 data class UserResponse(
     @SerializedName("user")
     val user: UserDto? = null
 )
 
+/**
+ * Response wrapper for order list endpoint.
+ *
+ * Maps to: GET /api/v1/orders
+ *
+ * @property orders List of OrderDto items
+ */
 data class OrderListResponse(
     @SerializedName("orders")
     val orders: List<OrderDto>? = null
 )
 
+/**
+ * Response wrapper for single order endpoint.
+ *
+ * Maps to: GET /api/v1/orders/{id}
+ *
+ * @property order The order data
+ */
 data class OrderResponse(
     @SerializedName("order")
     val order: OrderDto? = null
 )
 
+/**
+ * Response from order creation.
+ *
+ * Maps to: POST /api/v1/orders
+ *
+ * @property id Created order ID
+ * @property status Order status
+ * @property totalPrice Order total
+ * @property confirmationText Confirmation message
+ * @property message Response message
+ * @property error Error message if failed
+ */
 data class OrderCreateResponse(
     @SerializedName("id")
     val id: String? = null,
@@ -43,6 +90,15 @@ data class OrderCreateResponse(
     val error: String? = null
 )
 
+/**
+ * Response from cart retrieval.
+ *
+ * Maps to: GET /api/v1/cart
+ *
+ * @property cart List of cart items
+ * @property totalItems Total item count
+ * @property totalPrice Total cart value
+ */
 data class CartResponse(
     @SerializedName("cart")
     val cart: List<CartItemDto>? = null,
@@ -52,6 +108,15 @@ data class CartResponse(
     val totalPrice: Double? = null
 )
 
+/**
+ * Response from add to cart operation.
+ *
+ * Maps to: POST /api/v1/cart/items
+ *
+ * @property id Cart item ID
+ * @property message Response message
+ * @property success Whether operation succeeded
+ */
 data class AddToCartResponse(
     @SerializedName("id")
     val id: String? = null,
@@ -61,6 +126,12 @@ data class AddToCartResponse(
     val success: Boolean = false
 )
 
+/**
+ * Generic message response.
+ *
+ * @property message Response message
+ * @property success Whether operation succeeded
+ */
 data class MessageResponse(
     @SerializedName("message")
     val message: String? = null,
@@ -68,6 +139,19 @@ data class MessageResponse(
     val success: Boolean? = null
 )
 
+/**
+ * Response from ticket/contact creation.
+ *
+ * Maps to: POST /api/v1/tickets
+ *
+ * @property id Created ticket ID
+ * @property shortId Human-readable ticket ID
+ * @property status Ticket status
+ * @property categoryLabel Category display name
+ * @property confirmationText Confirmation message
+ * @property message Response message
+ * @property error Error message if failed
+ */
 data class TicketCreateResponse(
     @SerializedName("id")
     val id: String? = null,
@@ -85,11 +169,32 @@ data class TicketCreateResponse(
     val error: String? = null
 )
 
+/**
+ * Response wrapper for ticket list.
+ *
+ * Maps to: GET /api/v1/tickets
+ *
+ * @property tickets List of TicketDto items
+ */
 data class TicketListResponse(
     @SerializedName("tickets")
     val tickets: List<TicketDto>? = null
 )
 
+/**
+ * Data Transfer Object for Support Ticket.
+ *
+ * Maps to: GET /api/v1/tickets
+ *
+ * @property id Ticket unique ID
+ * @property userId User ID who created ticket
+ * @property category Ticket category
+ * @property categoryLabel Category display name
+ * @property message Ticket message
+ * @property status Ticket status
+ * @property shortId Human-readable ticket ID
+ * @property createdAt Creation timestamp
+ */
 data class TicketDto(
     @SerializedName("id")
     val id: String? = null,
@@ -110,6 +215,15 @@ data class TicketDto(
 )
 
 // Stripe checkout session response
+/**
+ * Response from Stripe checkout session creation.
+ *
+ * Maps to: POST /api/v1/checkout/create-session
+ *
+ * @property sessionId Stripe session ID
+ * @property url Stripe payment URL
+ * @property error Error message if failed
+ */
 data class CheckoutSessionResponse(
     @SerializedName("sessionId")
     val sessionId: String? = null,
@@ -120,6 +234,15 @@ data class CheckoutSessionResponse(
 )
 
 // Stripe payment status response
+/**
+ * Response from Stripe payment status check.
+ *
+ * Maps to: GET /api/v1/checkout/status/{orderId}
+ *
+ * @property status Payment status (paid, unpaid, canceled)
+ * @property orderId Associated order ID
+ * @property error Error message if failed
+ */
 data class PaymentStatusResponse(
     @SerializedName("status")
     val status: String? = null, // "paid", "unpaid", "canceled"
@@ -130,6 +253,15 @@ data class PaymentStatusResponse(
 )
 
 // Review responses
+/**
+ * Response wrapper for reviews list.
+ *
+ * Maps to: GET /api/v1/products/{id}/reviews
+ *
+ * @property reviews List of ReviewDto items
+ * @property averageRating Average rating score
+ * @property totalCount Total number of reviews
+ */
 data class ReviewsResponse(
     @SerializedName("reviews")
     val reviews: List<ReviewDto>? = null,
@@ -139,6 +271,15 @@ data class ReviewsResponse(
     val totalCount: Int? = null
 )
 
+/**
+ * Response wrapper for single review operation.
+ *
+ * Maps to: POST /api/v1/products/{id}/reviews
+ *
+ * @property review Created review data
+ * @property message Response message
+ * @property error Error message if failed
+ */
 data class ReviewResponse(
     @SerializedName("review")
     val review: ReviewDto? = null,
@@ -149,6 +290,14 @@ data class ReviewResponse(
 )
 
 // Wishlist responses
+/**
+ * Response wrapper for wishlist endpoints.
+ *
+ * Maps to: GET /api/v1/wishlist
+ *
+ * @property wishlist List of wishlisted products
+ * @property totalItems Total items count
+ */
 data class WishlistResponse(
     @SerializedName("wishlist")
     val wishlist: List<ProductDto>? = null,
@@ -157,11 +306,31 @@ data class WishlistResponse(
 )
 
 // Promo code responses
+/**
+ * Response wrapper for promo codes list.
+ *
+ * Maps to: GET /api/v1/promo-codes
+ *
+ * @property promoCodes List of available promo codes
+ */
 data class PromoCodesResponse(
     @SerializedName("promo_codes")
     val promoCodes: List<PromoCodeDto>? = null
 )
 
+/**
+ * Data Transfer Object for Promo Code.
+ *
+ * Maps to: GET /api/v1/promo-codes
+ *
+ * @property code Promo code string
+ * @property discountType Type (percentage, fixed)
+ * @property discountValue Discount amount
+ * @property minOrderValue Minimum order value required
+ * @property maxDiscount Maximum discount cap
+ * @property expiresAt Expiration timestamp
+ * @property description Promo description
+ */
 data class PromoCodeDto(
     @SerializedName("code")
     val code: String,
@@ -179,6 +348,16 @@ data class PromoCodeDto(
     val description: String = ""
 )
 
+/**
+ * Response from promo code validation.
+ *
+ * Maps to: POST /api/v1/cart/validate-promo
+ *
+ * @property valid Whether code is valid
+ * @property discountAmount Calculated discount
+ * @property message Response message
+ * @property error Error message if invalid
+ */
 data class PromoCodeValidationResponse(
     @SerializedName("valid")
     val valid: Boolean,
@@ -190,6 +369,17 @@ data class PromoCodeValidationResponse(
     val error: String? = null
 )
 
+/**
+ * Response from promo code application.
+ *
+ * Maps to: POST /api/v1/cart/apply-promo
+ *
+ * @property success Whether code was applied
+ * @property discountAmount Discount applied
+ * @property finalTotal Final total after discount
+ * @property message Response message
+ * @property error Error message if failed
+ */
 data class PromoCodeApplicationResponse(
     @SerializedName("success")
     val success: Boolean,
@@ -203,6 +393,22 @@ data class PromoCodeApplicationResponse(
     val error: String? = null
 )
 
+/**
+ * Response from coupon application at checkout.
+ *
+ * Maps to: POST /api/v1/checkout/apply-coupon
+ *
+ * @property success Whether coupon applied
+ * @property couponCode Applied code
+ * @property discountType Type of discount
+ * @property discountValue Discount amount
+ * @property subtotal Subtotal before discount
+ * @property discountAmount Discount applied
+ * @property finalTotal Final total
+ * @property description Coupon description
+ * @property message Response message
+ * @property error Error message if failed
+ */
 data class CouponApplyResponse(
     @SerializedName("success")
     val success: Boolean,
@@ -227,11 +433,34 @@ data class CouponApplyResponse(
 )
 
 // Address response
+/**
+ * Response wrapper for address list.
+ *
+ * Maps to: GET /api/v1/user/addresses
+ *
+ * @property addresses List of AddressDto items
+ */
 data class AddressListResponse(
     @SerializedName("addresses")
     val addresses: List<AddressDto>? = null
 )
 
+/**
+ * Data Transfer Object for User Address.
+ *
+ * Maps to: GET /api/v1/user/addresses, POST /api/v1/user/addresses
+ *
+ * @property id Address ID
+ * @property userId Associated user ID
+ * @property name Address label/name
+ * @property phone Contact phone
+ * @property street Street address
+ * @property city City
+ * @property district District
+ * @property ward Ward/Commune
+ * @property isDefault Whether this is default address
+ * @property label Address type label (Home, Work)
+ */
 data class AddressDto(
     @SerializedName("id")
     val id: Long? = null,
@@ -350,6 +579,16 @@ object ApiResponses {
     data class AddressListResponse(val addresses: List<AddressDto>? = null)
 }
 
+/**
+ * Request payload for AI voice assistant (for AI Worker).
+ *
+ * Maps to: POST /api/v1/ai/voice
+ *
+ * @property text Optional text input (for text-based queries)
+ * @property audioBase64 Base64 encoded audio data
+ * @property sessionId Current session identifier
+ * @property context Additional context (user_id)
+ */
 data class AiVoiceRequest(
     @SerializedName("text")
     val text: String? = null,
@@ -361,11 +600,27 @@ data class AiVoiceRequest(
     val context: AiVoiceContext? = null,
 )
 
+/**
+ * Context data for AI voice requests.
+ *
+ * @property userId Authenticated user ID (nullable for guest users)
+ */
 data class AiVoiceContext(
     @SerializedName("user_id")
     val userId: String? = null,
 )
 
+/**
+ * Response from AI voice assistant (from AI Worker).
+ *
+ * Maps to: POST /api/v1/ai/voice
+ *
+ * @property transcribedText Transcribed user speech (if audio provided)
+ * @property responseText AI response text
+ * @property action JSON action to execute (add to cart, search, etc.)
+ * @property searchResults Product search results (if applicable)
+ * @property error Error message if failed
+ */
 data class AiVoiceResponse(
     @SerializedName("transcribed_text")
     val transcribedText: String? = null,
@@ -379,6 +634,16 @@ data class AiVoiceResponse(
     val error: String? = null,
 )
 
+/**
+ * Product search result from AI voice assistant.
+ *
+ * @property id Product ID
+ * @property name Product name
+ * @property price Product price
+ * @property brand Brand name
+ * @property category Product category
+ * @property index Result index for ordering
+ */
 data class AiSearchResult(
     @SerializedName("id")
     val id: String,

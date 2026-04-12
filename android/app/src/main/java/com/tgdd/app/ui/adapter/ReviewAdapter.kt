@@ -8,6 +8,24 @@ import androidx.recyclerview.widget.RecyclerView
 import com.tgdd.app.data.model.ReviewDto
 import com.tgdd.app.databinding.ItemReviewBinding
 
+/**
+ * RecyclerView Adapter for displaying product reviews in a list.
+ *
+ * Data Source: List of [ReviewDto] from API
+ * Layout: R.layout.item_review (user name, rating stars, comment)
+ *
+ * Features:
+ * - Display reviewer name (defaults to "Ẩn danh" if blank)
+ * - Rating stars display
+ * - Review comment (defaults to empty if blank)
+ * - Read-only (no click listeners)
+ *
+ * View Binding: [ItemReviewBinding] in [onCreateViewHolder]
+ * Data Binding: ReviewDto properties bound in [ViewHolder.bind]
+ *
+ * @see ReviewDto For item data model
+ * @see R.layout.item_review For item layout
+ */
 class ReviewAdapter : ListAdapter<ReviewDto, ReviewAdapter.ViewHolder>(DIFF) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
