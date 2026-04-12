@@ -356,23 +356,44 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical"
                     android:padding="16dp"
                     android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="0dp"
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/help_faq_order"
-                        android:textColor="@color/mobi_pulse_on_surface"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/help_faq_order"
+                            android:textColor="@color/mobi_pulse_on_surface"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:id="@+id/iconFaqOrder"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_chevron_right"
+                            android:contentDescription="@string/cd_faq_arrow"
+                            app:tint="@color/mobi_pulse_on_surface_variant"
+                            android:rotation="90" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/textFaqAnswerOrder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/msg_order_guide"
+                        android:textColor="@color/mobi_pulse_on_surface_variant"
                         android:textSize="12sp"
-                        android:textStyle="bold" />
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_chevron_right"
-                        android:contentDescription="@string/cd_faq_arrow"
-                        app:tint="@color/mobi_pulse_on_surface_variant"
-                        android:rotation="90" />
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -389,23 +410,44 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical"
                     android:padding="16dp"
                     android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="0dp"
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/help_faq_payment"
-                        android:textColor="@color/mobi_pulse_on_surface"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/help_faq_payment"
+                            android:textColor="@color/mobi_pulse_on_surface"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:id="@+id/iconFaqPayment"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_chevron_right"
+                            android:contentDescription="@string/cd_faq_arrow"
+                            app:tint="@color/mobi_pulse_on_surface_variant"
+                            android:rotation="90" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/textFaqAnswerPayment"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/msg_payment_guide"
+                        android:textColor="@color/mobi_pulse_on_surface_variant"
                         android:textSize="12sp"
-                        android:textStyle="bold" />
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_chevron_right"
-                        android:contentDescription="@string/cd_faq_arrow"
-                        app:tint="@color/mobi_pulse_on_surface_variant"
-                        android:rotation="90" />
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -422,23 +464,44 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical"
                     android:padding="16dp"
                     android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="0dp"
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/help_faq_delivery"
-                        android:textColor="@color/mobi_pulse_on_surface"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/help_faq_delivery"
+                            android:textColor="@color/mobi_pulse_on_surface"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:id="@+id/iconFaqDelivery"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_chevron_right"
+                            android:contentDescription="@string/cd_faq_arrow"
+                            app:tint="@color/mobi_pulse_on_surface_variant"
+                            android:rotation="90" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/textFaqAnswerDelivery"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/msg_delivery_time"
+                        android:textColor="@color/mobi_pulse_on_surface_variant"
                         android:textSize="12sp"
-                        android:textStyle="bold" />
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_chevron_right"
-                        android:contentDescription="@string/cd_faq_arrow"
-                        app:tint="@color/mobi_pulse_on_surface_variant"
-                        android:rotation="90" />
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -602,6 +665,15 @@
                         android:background="@null"
                         android:inputType="textMultiLine" />
                 </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:id="@+id/textSupportStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:textSize="12sp"
+                    android:textColor="@color/mobi_pulse_on_surface_variant"
+                    android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSubmitRequest"
