@@ -44,7 +44,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="48dp"
-                android:indeterminateTint="?attr/colorPrimary"
+                android:indeterminateTint="@color/mobi_pulse_primary"
                 android:visibility="gone" />
 
             <!-- Empty Cart State -->
