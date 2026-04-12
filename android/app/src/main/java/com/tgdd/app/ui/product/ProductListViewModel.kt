@@ -227,19 +227,29 @@ class ProductListViewModel @Inject constructor(
         applyFilters()
     }
 
+    /**
+     * Searches products with debouncing and caching.
+     *
+     * Performance optimizations:
+     * - Debounce: 100ms delay to avoid excessive API calls
+     * - Cache: Stores up to 20 recent search results
+     * - Minimum query length: 2 characters
+     *
+     * Flow: query → API → cache → _allProducts → applyFilters → _filteredProducts
+     */
     fun searchProducts(query: String) {
-        // Cancel previous search
+        // Cancel previous search to prevent race conditions
         searchJob?.cancel()
         
         val trimmedQuery = query.trim()
         
-        // Return early if query is too short
+        // Return early if query is too short (minimum 2 chars)
         if (trimmedQuery.length < 2) {
             _products.value = _allProducts
             return
         }
         
-        // Check cache first
+        // Check cache first to avoid unnecessary API calls
         if (searchCache.containsKey(trimmedQuery)) {
             _products.value = searchCache[trimmedQuery]
             lastSearchQuery = trimmedQuery
@@ -251,22 +261,23 @@ class ProductListViewModel @Inject constructor(
             _error.value = null
             
             try {
-                // Add slight delay for debouncing
+                // Debounce: slight delay to batch rapid keystrokes
                 delay(100)
                 
                 val result = productRepository.searchProducts(trimmedQuery)
                 
                 result.fold(
                     onSuccess = { results ->
-                        // Cache the results
+                        // Cache the results for future searches
                         searchCache[trimmedQuery] = results
                         
-                        // Limit cache size to prevent memory issues
+                        // LRU eviction: limit cache to 20 entries to prevent memory issues
                         if (searchCache.size > 20) {
                             val oldestKey = searchCache.keys.first()
                             searchCache.remove(oldestKey)
                         }
                         
+                        // Update product lists and re-apply filters
                         _allProducts = results
                         _products.value = results
                         lastSearchQuery = trimmedQuery
@@ -280,6 +291,7 @@ class ProductListViewModel @Inject constructor(
                     }
                 )
             } catch (e: Exception) {
+                // Ignore CancellationException from cancelled coroutines
                 if (e !is kotlinx.coroutines.CancellationException) {
                     _error.value = e.message ?: "Lỗi không xác định"
                     _isLoading.value = false
@@ -328,6 +340,21 @@ class ProductListViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Processes voice command via AI Voice API.
+     *
+     * Voice Command Flow:
+     * 1. Send spoken text to AI Voice API with user context
+     * 2. Receive AI response with action and text
+     * 3. Display response via TTS (_assistantResponse)
+     * 4. Execute action if specified (cart sync, checkout navigation)
+     *
+     * Supported Actions:
+     * - add_to_cart, remove_from_cart, update_cart, view_cart, list_cart
+     * - checkout_start, checkout_review, checkout_complete, navigate_checkout
+     *
+     * @param spokenText Raw text from voice recognition
+     */
     fun processVoiceCommand(spokenText: String) {
         if (spokenText.isBlank()) {
             _error.value = "Không nghe rõ nội dung"
@@ -336,6 +363,7 @@ class ProductListViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                // Send voice command to AI with session context
                 val response = aiVoiceApi.processVoice(
                     AiVoiceRequest(
                         text = spokenText,
@@ -355,10 +383,12 @@ class ProductListViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Extract response text for TTS playback
                 _assistantResponse.value = body.responseText?.takeIf { it.isNotBlank() }
                     ?: body.error
                     ?: "Đã xử lý lệnh giọng nói"
 
+                // Execute AI-determined action
                 handleAiAction(body.action)
             } catch (e: Exception) {
                 _error.value = e.message ?: "Không thể xử lý giọng nói"

@@ -134,7 +134,16 @@ class ProductRepository @Inject constructor(
         }
     }
 
+    /**
+     * Searches products by query string with caching for offline search.
+     * 
+     * Search results are cached in Room to enable offline search functionality.
+     * 
+     * @param query Search query string
+     * @return Result containing list of matching products
+     */
     suspend fun searchProducts(query: String): Result<List<ProductEntity>> = withContext(Dispatchers.IO) {
+        // Offline: search in cached products
         if (!NetworkObserver.isCurrentlyConnected()) {
             val cached = productDao.searchProducts(query).firstOrNull() ?: emptyList()
             return@withContext if (cached.isNotEmpty()) {
@@ -169,6 +178,13 @@ class ProductRepository @Inject constructor(
         }
     }
 
+    /**
+     * Fetches raw DTO for product detail (no caching).
+     * Used for detailed product view that requires fresh data.
+     * 
+     * @param id Product ID
+     * @return ProductDto or null if fetch fails
+     */
     suspend fun getProductDtoById(id: String): ProductDto? = withContext(Dispatchers.IO) {
         return@withContext try {
             val response = productApi.getProductById(id)
@@ -176,19 +192,37 @@ class ProductRepository @Inject constructor(
         } catch (_: Exception) { null }
     }
 
+    /**
+     * Clears all cached product data from Room database.
+     * Use when cache becomes stale or to free up storage.
+     */
     suspend fun clearCache() = withContext(Dispatchers.IO) {
         productDao.deleteAllProducts()
     }
 
+    /**
+     * Inserts a product directly into local cache.
+     * Used for caching individual products.
+     */
     suspend fun insertProduct(product: ProductEntity) = withContext(Dispatchers.IO) {
         productDao.insertProduct(product)
     }
 
+    /**
+     * Deletes a product from local cache.
+     */
     suspend fun deleteProduct(product: ProductEntity) = withContext(Dispatchers.IO) {
         productDao.deleteProduct(product)
     }
 
+    /**
+     * Fetches products filtered by category.
+     * 
+     * @param category Category name to filter by
+     * @return Result containing list of products in category
+     */
     suspend fun getProductsByCategory(category: String): Result<List<ProductEntity>> = withContext(Dispatchers.IO) {
+        // Offline: return cached category products
         if (!NetworkObserver.isCurrentlyConnected()) {
             val cached = productDao.getProductsByCategory(category).firstOrNull() ?: emptyList()
             return@withContext if (cached.isNotEmpty()) {
@@ -221,7 +255,14 @@ class ProductRepository @Inject constructor(
         }
     }
 
+    /**
+     * Fetches products filtered by brand name.
+     * 
+     * @param brand Brand name to filter by
+     * @return Result containing list of products from brand
+     */
     suspend fun getProductsByBrand(brand: String): Result<List<ProductEntity>> = withContext(Dispatchers.IO) {
+        // Offline: search cached products by brand name
         if (!NetworkObserver.isCurrentlyConnected()) {
             val cached = productDao.searchProducts(brand).firstOrNull() ?: emptyList()
             return@withContext if (cached.isNotEmpty()) {

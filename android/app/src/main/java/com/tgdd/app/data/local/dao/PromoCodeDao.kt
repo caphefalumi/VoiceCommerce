@@ -4,6 +4,23 @@ import androidx.room.*
 import com.tgdd.app.data.local.entity.PromoCodeEntity
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Data Access Object for promo code database operations.
+ *
+ * Operations:
+ * - getActivePromoCodes(): Fetch valid promo codes (not expired, under usage limit)
+ * - getPromoCodeByCode(): Lookup specific promo code by code string
+ * - insertPromoCode(): Cache promo code from network
+ * - updatePromoCode(): Update promo code details
+ * - incrementUsageCount(): Increment usage counter when code is applied
+ * - deletePromoCode(): Remove promo code from cache
+ * - deleteExpiredPromoCodes(): Cleanup expired codes
+ *
+ * Transactions:
+ * - All write operations are transaction-safe
+ *
+ * @see com.tgdd.app.data.local.entity.PromoCodeEntity For entity definition
+ */
 @Dao
 interface PromoCodeDao {
     @Query("SELECT * FROM promo_codes WHERE expiresAt > :currentTime AND usedCount < usageLimit")
