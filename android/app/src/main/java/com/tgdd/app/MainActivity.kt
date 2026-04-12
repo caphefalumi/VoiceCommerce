@@ -1,5 +1,6 @@
 package com.tgdd.app
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -14,6 +15,7 @@ import com.tgdd.app.databinding.ActivityMainBinding
 import com.tgdd.app.data.network.AuthEvents
 import com.tgdd.app.data.network.NetworkObserver
 import com.tgdd.app.data.remote.OrderApi
+import com.tgdd.app.util.LocaleHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -57,6 +59,10 @@ class MainActivity : AppCompatActivity() {
         NetworkObserver.isConnected?.observe(this, networkObserver)
         
         handleDeepLink()
+    }
+    
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.setLocale(newBase, LocaleHelper.getLanguage(newBase)))
     }
     
     override fun onNewIntent(intent: android.content.Intent) {
