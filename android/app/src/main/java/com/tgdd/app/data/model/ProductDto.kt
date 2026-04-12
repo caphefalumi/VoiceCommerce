@@ -31,6 +31,8 @@ data class ProductDto(
     val isNew: Boolean = false,
     @SerializedName("specs")
     val specs: Map<String, String>? = null,
+    @SerializedName("reviews")
+    val reviews: List<ReviewDto>? = null,
     @SerializedName("url")
     val url: String? = null,
     @SerializedName("createdAt")
