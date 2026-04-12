@@ -1,5 +1,6 @@
 package com.tgdd.app.ui.profile
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +13,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.tgdd.app.R
 import com.tgdd.app.data.auth.FirebaseAuthHelper
 import com.tgdd.app.databinding.FragmentProfileBinding
+import com.tgdd.app.util.LocaleHelper
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -33,6 +35,7 @@ class ProfileFragment : Fragment() {
         setupOrderStatusCards()
         setupClickListeners()
         observeViewModel()
+        updateLanguageDisplay()
     }
 
     private fun setupOrderStatusCards() {
@@ -87,6 +90,44 @@ class ProfileFragment : Fragment() {
         binding.statusDeliveredCard.root.setOnClickListener {
             Snackbar.make(binding.root, getString(R.string.delivered_orders_coming_soon), Snackbar.LENGTH_SHORT).show()
         }
+        binding.languageRow.setOnClickListener {
+            showLanguageDialog()
+        }
+    }
+
+    private fun updateLanguageDisplay() {
+        val currentLanguage = LocaleHelper.getLanguage(requireContext())
+        binding.currentLanguageText.text = if (currentLanguage == "vi") {
+            getString(R.string.language_vietnamese)
+        } else {
+            getString(R.string.language_english)
+        }
+    }
+
+    private fun showLanguageDialog() {
+        val languages = arrayOf(
+            getString(R.string.language_vietnamese),
+            getString(R.string.language_english)
+        )
+        val currentLanguage = LocaleHelper.getLanguage(requireContext())
+        val selectedIndex = if (currentLanguage == "vi") 0 else 1
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.language))
+            .setSingleChoiceItems(languages, selectedIndex) { dialog, which ->
+                val newLanguage = if (which == 0) "vi" else "en"
+                if (newLanguage != currentLanguage) {
+                    LocaleHelper.setLocale(requireContext(), newLanguage)
+                    
+                    // Restart the activity to apply language change
+                    val intent = requireActivity().intent
+                    requireActivity().finish()
+                    startActivity(intent)
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
     }
 
     private fun observeViewModel() {
@@ -98,6 +139,18 @@ class ProfileFragment : Fragment() {
         }
         viewModel.orders.observe(viewLifecycleOwner) { orders ->
             binding.orderCountText.text = orders.size.toString()
+        }
+        viewModel.pendingCount.observe(viewLifecycleOwner) { count ->
+            binding.statusPendingCard.statusCount.text = count.toString()
+        }
+        viewModel.preparingCount.observe(viewLifecycleOwner) { count ->
+            binding.statusPreparingCard.statusCount.text = count.toString()
+        }
+        viewModel.shippedCount.observe(viewLifecycleOwner) { count ->
+            binding.statusShippedCard.statusCount.text = count.toString()
+        }
+        viewModel.deliveredCount.observe(viewLifecycleOwner) { count ->
+            binding.statusDeliveredCard.statusCount.text = count.toString()
         }
         viewModel.error.observe(viewLifecycleOwner) { error ->
             error?.let {
