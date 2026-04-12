@@ -45,7 +45,7 @@ class AuthViewModel @Inject constructor(
             _isLoading.value = true
             _error.value = null
             try {
-                userRepository.signUp(name, email, password).fold(
+                userRepository.signUpWithFirebase(name, email, password).fold(
                     onSuccess = { _loginSuccess.value = SingleEvent(Unit) },
                     onFailure = { e -> _error.value = e.message ?: "Đăng ký thất bại" }
                 )
@@ -79,7 +79,6 @@ class AuthViewModel @Inject constructor(
     }
 
     fun clearError() { _error.value = null }
-    fun resetLoginSuccess() { _loginSuccess.value = SingleEvent(Unit) }
 }
 
 class SingleEvent<out T>(private val content: T) {
