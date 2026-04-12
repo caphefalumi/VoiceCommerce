@@ -3,20 +3,20 @@ package com.tgdd.app.ui.help
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.ImageView
+import android.widget.TextView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.snackbar.Snackbar
 import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentHelpBinding
-import com.tgdd.app.data.repository.TicketRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class HelpFragment : Fragment() {
@@ -46,44 +46,41 @@ class HelpFragment : Fragment() {
 
     private fun setupQuickActions() {
         binding.cardOrders.setOnClickListener {
-            Snackbar.make(binding.root, getString(R.string.msg_check_order_status), Snackbar.LENGTH_LONG)
-                .setAction(getString(R.string.msg_view_orders)) {
-                    findNavController().navigate(R.id.ordersFragment)
-                }.show()
+            findNavController().navigate(R.id.ordersFragment)
         }
 
         binding.cardDelivery.setOnClickListener {
-            showInfoSnackbar(getString(R.string.msg_shipping_policy), getString(R.string.msg_shipping_time))
+            showInfoDialog(getString(R.string.msg_shipping_policy), getString(R.string.msg_shipping_time))
         }
 
         binding.cardPayment.setOnClickListener {
-            showInfoSnackbar(getString(R.string.help_payment_title), getString(R.string.msg_payment_info))
+            showInfoDialog(getString(R.string.help_payment_title), getString(R.string.msg_payment_info))
         }
 
         binding.cardWarranty.setOnClickListener {
-            showInfoSnackbar(getString(R.string.help_warranty_title), getString(R.string.msg_warranty_info))
+            showInfoDialog(getString(R.string.help_warranty_title), getString(R.string.msg_warranty_info))
         }
 
         binding.cardReturns.setOnClickListener {
-            showInfoSnackbar(getString(R.string.help_returns_title), getString(R.string.msg_return_policy))
+            showInfoDialog(getString(R.string.help_returns_title), getString(R.string.msg_return_policy))
         }
 
         binding.cardContact.setOnClickListener {
-            showInfoSnackbar(getString(R.string.help_contact_title), getString(R.string.msg_contact_info))
+            showInfoDialog(getString(R.string.help_contact_title), getString(R.string.msg_contact_info))
         }
     }
 
     private fun setupFAQItems() {
         binding.cardFaqOrder.setOnClickListener {
-            Snackbar.make(binding.root, getString(R.string.msg_order_guide), Snackbar.LENGTH_LONG).show()
+            toggleFaq(binding.textFaqAnswerOrder, binding.iconFaqOrder)
         }
 
         binding.cardFaqPayment.setOnClickListener {
-            Snackbar.make(binding.root, getString(R.string.msg_payment_guide), Snackbar.LENGTH_LONG).show()
+            toggleFaq(binding.textFaqAnswerPayment, binding.iconFaqPayment)
         }
 
         binding.cardFaqDelivery.setOnClickListener {
-            Snackbar.make(binding.root, getString(R.string.msg_delivery_time), Snackbar.LENGTH_LONG).show()
+            toggleFaq(binding.textFaqAnswerDelivery, binding.iconFaqDelivery)
         }
     }
 
@@ -115,30 +112,26 @@ class HelpFragment : Fragment() {
         )
         val categoryValues = arrayOf("product_issue", "delivery", "payment", "return_exchange", "warranty", "other")
 
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.issue_select_title))
             .setItems(categories) { _, which ->
                 selectedCategory = categoryValues[which]
-                val textView = binding.cardIssueSelector.findViewById<android.widget.TextView>(R.id.textIssuePlaceholder)
-                if (textView != null) {
-                    textView.text = categories[which]
-                } else {
-                    Snackbar.make(binding.root, categories[which], Snackbar.LENGTH_SHORT).show()
-                }
+                binding.textIssuePlaceholder.text = categories[which]
             }
             .show()
     }
 
     private fun submitSupportRequest() {
-        val description = binding.editDescription.text?.toString() ?: ""
+        val description = binding.editDescription.text?.toString()?.trim().orEmpty()
 
         if (description.isBlank()) {
-            Snackbar.make(binding.root, getString(R.string.msg_fill_description), Snackbar.LENGTH_SHORT).show()
+            showSupportStatus(getString(R.string.msg_fill_description), isError = true)
             return
         }
 
         binding.btnSubmitRequest.isEnabled = false
         binding.btnSubmitRequest.text = getString(R.string.help_sending)
+        showSupportStatus(getString(R.string.help_sending), isError = false)
 
         lifecycleScope.launch {
             val userId = viewModel.getUserId()
@@ -147,20 +140,41 @@ class HelpFragment : Fragment() {
                 onSuccess = { confirmation ->
                     binding.btnSubmitRequest.isEnabled = true
                     binding.btnSubmitRequest.text = getString(R.string.help_submit)
-                    Snackbar.make(binding.root, confirmation, Snackbar.LENGTH_LONG).show()
+                    showSupportStatus(confirmation, isError = false)
                     binding.editDescription.text?.clear()
                 },
                 onFailure = { error ->
                     binding.btnSubmitRequest.isEnabled = true
                     binding.btnSubmitRequest.text = getString(R.string.help_submit)
-                    Snackbar.make(binding.root, getString(R.string.msg_submit_failed, error.message ?: ""), Snackbar.LENGTH_LONG).show()
+                    showSupportStatus(getString(R.string.msg_submit_failed, error.message ?: ""), isError = true)
                 }
             )
         }
     }
 
-    private fun showInfoSnackbar(title: String, message: String) {
-        Snackbar.make(binding.root, "$title: $message", Snackbar.LENGTH_LONG).show()
+    private fun showInfoDialog(title: String, message: String) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton(getString(R.string.ok), null)
+            .show()
+    }
+
+    private fun toggleFaq(answerView: TextView, iconView: ImageView) {
+        val expanded = answerView.visibility == View.VISIBLE
+        answerView.visibility = if (expanded) View.GONE else View.VISIBLE
+        iconView.rotation = if (expanded) 90f else 270f
+    }
+
+    private fun showSupportStatus(message: String, isError: Boolean) {
+        binding.textSupportStatus.visibility = View.VISIBLE
+        binding.textSupportStatus.text = message
+        binding.textSupportStatus.setTextColor(
+            resources.getColor(
+                if (isError) R.color.error else R.color.status_success,
+                requireContext().theme
+            )
+        )
     }
 
     private fun observeViewModel() {
