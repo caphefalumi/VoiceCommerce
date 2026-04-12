@@ -14,6 +14,16 @@
         app:popEnterAnim="@anim/slide_in_up"
         app:popExitAnim="@anim/slide_out_down" />
 
+    <!-- Global action: navigate to cart from anywhere -->
+    <action
+        android:id="@+id/action_global_cart"
+        app:destination="@id/cartFragment">
+        <argument
+            android:name="showBackButton"
+            app:argType="boolean"
+            android:defaultValue="true" />
+    </action>
+
     <!-- ======================================================== -->
     <!-- BOTTOM NAV DESTINATIONS (5 tabs, Stitch design) -->
     <!-- ======================================================== -->
@@ -37,7 +47,12 @@
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
-            app:popExitAnim="@anim/slide_out_right" />
+            app:popExitAnim="@anim/slide_out_right">
+            <argument
+                android:name="showBackButton"
+                app:argType="boolean"
+                android:defaultValue="true" />
+        </action>
         <argument
             android:name="category"
             app:argType="string"
@@ -89,6 +104,10 @@
         android:name="com.tgdd.app.ui.cart.CartFragment"
         android:label="@string/nav_cart"
         tools:layout="@layout/fragment_cart">
+        <argument
+            android:name="showBackButton"
+            app:argType="boolean"
+            android:defaultValue="false" />
         <action
             android:id="@+id/action_cart_to_checkout"
             app:destination="@id/checkoutFragment"
@@ -135,7 +154,7 @@
     <fragment
         android:id="@+id/ordersFragment"
         android:name="com.tgdd.app.ui.orders.OrdersFragment"
-        android:label="Đơn hàng"
+        android:label="@string/orders_nav_label"
         tools:layout="@layout/fragment_orders">
         <argument
             android:name="filterStatus"
@@ -154,7 +173,7 @@
     <fragment
         android:id="@+id/orderDetailFragment"
         android:name="com.tgdd.app.ui.orders.OrderDetailFragment"
-        android:label="Chi tiết đơn hàng"
+        android:label="@string/order_detail_nav_label"
         tools:layout="@layout/fragment_order_detail">
         <argument
             android:name="orderId"
@@ -165,7 +184,7 @@
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.tgdd.app.ui.auth.LoginFragment"
-        android:label="Đăng nhập"
+        android:label="@string/login_nav_label"
         tools:layout="@layout/fragment_login">
         <action
             android:id="@+id/action_login_to_register"
@@ -186,13 +205,13 @@
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.tgdd.app.ui.auth.RegisterFragment"
-        android:label="Đăng ký"
+        android:label="@string/register_nav_label"
         tools:layout="@layout/fragment_register" />
 
     <fragment
         android:id="@+id/forgotPasswordFragment"
         android:name="com.tgdd.app.ui.auth.ForgotPasswordFragment"
-        android:label="Quên mật khẩu"
+        android:label="@string/forgot_password_nav_label"
         tools:layout="@layout/fragment_forgot_password">
         <action
             android:id="@+id/action_forgotPassword_to_resetPassword"
