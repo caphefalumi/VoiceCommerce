@@ -16,9 +16,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.GridLayoutManager
+import kotlinx.coroutines.launch
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentProductListBinding
@@ -114,31 +116,44 @@ class ProductListFragment : Fragment() {
             findNavController().navigate(R.id.action_productList_to_cart)
         }
     }
+    private var searchJob: kotlinx.coroutines.Job? = null
+    
     private fun setupSearchView() {
         binding.searchEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                val query = s?.toString() ?: ""
-                if (query.isBlank()) {
-                    viewModel.refreshProducts()
-                } else if (query.length >= 2) {
-                    viewModel.searchProducts(query)
+                val query = s?.toString()?.trim() ?: ""
+                
+                // Cancel previous search job
+                searchJob?.cancel()
+                
+                // Debounce search with 300ms delay
+                searchJob = viewLifecycleOwner.lifecycleScope.launch {
+                    kotlinx.coroutines.delay(300)
+                    
+                    when {
+                        query.isBlank() -> viewModel.refreshProducts()
+                        query.length >= 2 -> viewModel.searchProducts(query)
+                    }
                 }
             }
         })
+        
+        // Clear button functionality
+        binding.searchEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus && binding.searchEditText.text?.isNotEmpty() == true) {
+                // Show clear button when focused and has text
+            }
+        }
     }
 
     private fun setupVoiceSearch() {
-        binding.micButton.setOnClickListener {
-            if (!isSpeechRecognizerAvailable()) {
-                binding.root.showErrorSnackbar(getString(R.string.voice_not_supported))
-                return@setOnClickListener
-            }
-            if (hasAudioPermission()) {
-                launchVoiceRecognition()
-            } else {
+        binding.voiceButton.setOnClickListener {
+            if (!hasAudioPermission()) {
                 audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            } else {
+                viewModel.toggleVoiceRecording()
             }
         }
     }
@@ -178,7 +193,7 @@ class ProductListFragment : Fragment() {
             val max = binding.maxPriceInput.text?.toString()?.toDoubleOrNull()
             
             if (min != null && max != null && min > max) {
-                binding.root.showErrorSnackbar("Giá tối thiểu phải nhỏ hơn giá tối đa")
+                binding.root.showErrorSnackbar(getString(R.string.filter_min_price_error))
                 return@setOnClickListener
             }
             
@@ -187,7 +202,7 @@ class ProductListFragment : Fragment() {
             binding.filterPanel.hide()
             
             if (min != null || max != null) {
-                binding.root.showSuccessSnackbar("Đã áp dụng bộ lọc")
+                binding.root.showSuccessSnackbar(getString(R.string.filter_applied))
             }
         }
         
@@ -196,18 +211,16 @@ class ProductListFragment : Fragment() {
             binding.maxPriceInput.text?.clear()
             binding.clearFilterButton.hide()
             viewModel.clearFilters()
-            binding.root.showInfoSnackbar("Đã xóa bộ lọc")
+            binding.root.showInfoSnackbar(getString(R.string.filter_cleared))
         }
     }
 
     private fun setupCategoryChips() {
         binding.categoryChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
             val category = when (checkedIds.firstOrNull()) {
-                R.id.chipPhones -> "Điện thoại"
-                R.id.chipLaptops -> "Laptop"
-                R.id.chipTablets -> "Máy tính bảng"
-                R.id.chipWearables -> "Đồng hồ"
-                R.id.chipAccessories -> "Phụ kiện"
+                R.id.chipPhones -> "phone"
+                R.id.chipLaptops -> "laptop"
+                R.id.chipWearables -> "smartwatch"
                 else -> null
             }
             viewModel.loadProducts(category)
@@ -215,8 +228,14 @@ class ProductListFragment : Fragment() {
     }
 
     private fun setupSwipeRefresh() {
-        binding.swipeRefreshLayout.setOnRefreshListener {
-            viewModel.refreshProducts()
+        binding.swipeRefreshLayout.apply {
+            setColorSchemeColors(
+                ContextCompat.getColor(requireContext(), R.color.mobi_pulse_primary),
+                ContextCompat.getColor(requireContext(), R.color.mobi_pulse_primary_variant)
+            )
+            setOnRefreshListener {
+                viewModel.refreshProducts()
+            }
         }
     }
 
@@ -229,7 +248,7 @@ class ProductListFragment : Fragment() {
                 binding.productsRecyclerView.hide()
                 binding.errorText.apply {
                     show()
-                    text = "Không tìm thấy sản phẩm"
+                    text = getString(R.string.no_products)
                 }
             } else {
                 binding.productsRecyclerView.fadeIn()
@@ -289,13 +308,27 @@ class ProductListFragment : Fragment() {
                 viewModel.onNavigatedToCheckout()
             }
         }
+
+        viewModel.isRecording.observe(viewLifecycleOwner) { isRecording ->
+            if (isRecording) {
+                binding.voiceButton.setImageResource(R.drawable.ic_stop)
+                binding.voiceButton.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.error)
+                )
+            } else {
+                binding.voiceButton.setImageResource(R.drawable.ic_mic)
+                binding.voiceButton.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.mobi_pulse_primary)
+                )
+            }
+        }
     }
 
     private fun showLoginRequiredDialog() {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Đăng nhập để tiếp tục")
-            .setMessage("Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.")
-            .setPositiveButton("Đăng nhập") { _, _ ->
+            .setTitle(getString(R.string.login_to_continue))
+            .setMessage(getString(R.string.login_to_add_cart))
+            .setPositiveButton(getString(R.string.login)) { _, _ ->
                 findNavController().navigate(R.id.action_global_login)
             }
             .setNegativeButton(getString(R.string.cancel), null)
@@ -304,6 +337,7 @@ class ProductListFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        searchJob?.cancel()
         _binding = null
     }
 }

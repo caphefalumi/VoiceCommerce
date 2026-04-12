@@ -13,11 +13,14 @@ import com.tgdd.app.data.local.entity.ProductEntity
 import com.tgdd.app.data.remote.AiVoiceApi
 import com.tgdd.app.data.repository.CartRepository
 import com.tgdd.app.data.repository.ProductRepository
+import com.tgdd.app.data.repository.VoiceAssistantManager
 import com.tgdd.app.utils.ProductFilter
 import com.tgdd.app.utils.ProductFilterUtils
 import com.tgdd.app.utils.SortOption
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @HiltViewModel
@@ -25,7 +28,8 @@ class ProductListViewModel @Inject constructor(
     private val productRepository: ProductRepository,
     private val cartRepository: CartRepository,
     private val userSession: UserSession,
-    private val aiVoiceApi: AiVoiceApi
+    private val aiVoiceApi: AiVoiceApi,
+    private val voiceAssistantManager: VoiceAssistantManager
 ) : ViewModel() {
 
     private val gson = Gson()
@@ -69,9 +73,18 @@ class ProductListViewModel @Inject constructor(
     private val _navigateToCheckout = MutableLiveData<Boolean>(false)
     val navigateToCheckout: LiveData<Boolean> = _navigateToCheckout
 
+    private val _isRecording = MutableLiveData<Boolean>(false)
+    val isRecording: LiveData<Boolean> = _isRecording
+
+    private var recordingJob: Job? = null
+    private var audioOutputStream: java.io.ByteArrayOutputStream? = null
+
     private var currentCategory: String? = null
     private var currentBrand: String? = null
     private var _allProducts: List<ProductEntity> = emptyList()
+    private var searchJob: Job? = null
+    private var lastSearchQuery: String = ""
+    private val searchCache = mutableMapOf<String, List<ProductEntity>>()
 
     init {
         loadProducts()
@@ -174,31 +187,75 @@ class ProductListViewModel @Inject constructor(
     }
 
     fun searchProducts(query: String) {
-        viewModelScope.launch {
+        // Cancel previous search
+        searchJob?.cancel()
+        
+        val trimmedQuery = query.trim()
+        
+        // Return early if query is too short
+        if (trimmedQuery.length < 2) {
+            _products.value = _allProducts
+            return
+        }
+        
+        // Check cache first
+        if (searchCache.containsKey(trimmedQuery)) {
+            _products.value = searchCache[trimmedQuery]
+            lastSearchQuery = trimmedQuery
+            return
+        }
+        
+        searchJob = viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            productRepository.searchProducts(query).fold(
-                onSuccess = { results ->
-                    _allProducts = results
-                    _products.value = results
-                    initializeFilterOptions(results)
-                    applyFilters()
-                    _isLoading.value = false
-                },
-                onFailure = { e ->
-                    _error.value = e.message ?: "Search failed"
+            
+            try {
+                // Add slight delay for debouncing
+                delay(100)
+                
+                val result = productRepository.searchProducts(trimmedQuery)
+                
+                result.fold(
+                    onSuccess = { results ->
+                        // Cache the results
+                        searchCache[trimmedQuery] = results
+                        
+                        // Limit cache size to prevent memory issues
+                        if (searchCache.size > 20) {
+                            val oldestKey = searchCache.keys.first()
+                            searchCache.remove(oldestKey)
+                        }
+                        
+                        _allProducts = results
+                        _products.value = results
+                        lastSearchQuery = trimmedQuery
+                        initializeFilterOptions(results)
+                        applyFilters()
+                        _isLoading.value = false
+                    },
+                    onFailure = { e ->
+                        _error.value = e.message ?: "Tìm kiếm thất bại"
+                        _isLoading.value = false
+                    }
+                )
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    _error.value = e.message ?: "Lỗi không xác định"
                     _isLoading.value = false
                 }
-            )
+            }
         }
     }
 
     fun refreshProducts() {
+        searchCache.clear()
+        lastSearchQuery = ""
         loadProducts(currentCategory, currentBrand)
     }
 
     fun clearCache() {
         viewModelScope.launch {
+            searchCache.clear()
             productRepository.clearCache()
         }
     }
@@ -311,4 +368,91 @@ class ProductListViewModel @Inject constructor(
     fun resetAddedToCart() { _addedToCart.value = false }
     fun clearAddedToCartMessage() { _addedToCartMessage.value = null }
     fun resetRequireLogin() { _requireLogin.value = false }
+
+    fun toggleVoiceRecording() {
+        if (_isRecording.value == true) {
+            stopVoiceRecording()
+        } else {
+            startVoiceRecording()
+        }
+    }
+
+    private fun startVoiceRecording() {
+        recordingJob = viewModelScope.launch {
+            try {
+                _isRecording.value = true
+                audioOutputStream = voiceAssistantManager.startRecording()
+            } catch (e: Exception) {
+                _error.value = "Không thể bắt đầu ghi âm: ${e.message}"
+                _isRecording.value = false
+            }
+        }
+    }
+
+    private fun stopVoiceRecording() {
+        recordingJob?.cancel()
+        voiceAssistantManager.stopRecording()
+        _isRecording.value = false
+
+        audioOutputStream?.let { stream ->
+            val audioData = stream.toByteArray()
+            processVoiceInput(audioData)
+        }
+        audioOutputStream = null
+    }
+
+    private fun processVoiceInput(audioData: ByteArray) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val result = voiceAssistantManager.processVoiceInput(
+                    audioData = audioData,
+                    userId = userSession.getUserId()
+                )
+
+                result.fold(
+                    onSuccess = { response ->
+                        _assistantResponse.value = response.text
+                        
+                        // Handle navigation
+                        if (response.navigate_to == "checkout") {
+                            _navigateToCheckout.value = true
+                        }
+                        
+                        // Handle intent-based actions
+                        response.intent?.let { intent ->
+                            handleVoiceIntent(intent)
+                        }
+                    },
+                    onFailure = { e ->
+                        _error.value = "Lỗi xử lý giọng nói: ${e.message}"
+                    }
+                )
+            } catch (e: Exception) {
+                _error.value = "Lỗi: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private suspend fun handleVoiceIntent(intent: String) {
+        when (intent.lowercase()) {
+            "add_to_cart", "cart_add" -> {
+                cartRepository.syncCart()
+            }
+            "checkout", "navigate_checkout" -> {
+                _navigateToCheckout.value = true
+            }
+            "search", "search_product" -> {
+                // Search is handled by the AI response text
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        voiceAssistantManager.stopRecording()
+        voiceAssistantManager.stopAudioPlayback()
+    }
 }
