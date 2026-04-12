@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -30,6 +31,7 @@ class CartFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: CartViewModel by viewModels()
+    private val args: CartFragmentArgs by navArgs()
     private lateinit var cartAdapter: CartAdapter
 
     @Inject
@@ -54,10 +56,18 @@ class CartFragment : Fragment() {
         setupSwipeRefresh()
         setupClickListeners()
         observeViewModel()
+        
+        // Sync cart with server when fragment loads
+        viewModel.refreshCart()
     }
 
     private fun setupToolbar() {
-        binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
+        // Only show back button if navigating from home screen cart button
+        if (args.showBackButton) {
+            binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
+        } else {
+            binding.toolbar.navigationIcon = null
+        }
     }
 
     private fun setupRecyclerView() {
