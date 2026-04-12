@@ -40,11 +40,11 @@ class ResetPasswordFragment : Fragment() {
 
             var valid = true
             if (password.isBlank()) {
-                binding.passwordLayout.error = "Vui lòng nhập mật khẩu mới"
+                binding.passwordLayout.error = getString(R.string.reset_password_required)
                 valid = false
             }
             if (confirmPassword.isBlank()) {
-                binding.confirmPasswordLayout.error = "Vui lòng xác nhận mật khẩu"
+                binding.confirmPasswordLayout.error = getString(R.string.confirm_password_required)
                 valid = false
             }
             if (valid) viewModel.resetPassword(token, password, confirmPassword)

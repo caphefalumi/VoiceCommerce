@@ -32,16 +32,23 @@ class LoginFragment : Fragment() {
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             lifecycleScope.launch {
                 val data = result.data
-                val idToken = firebaseAuthHelper.handleSignInResult(data).getOrNull()
-                if (idToken != null) {
-                    viewModel.onFirebaseGoogleSignIn(idToken)
-                } else {
-                    Snackbar.make(binding.root, "Đăng nhập Firebase thất bại", Snackbar.LENGTH_SHORT).show()
-                }
-                binding.btnFirebaseGoogleSignIn.isEnabled = true
+                val tokenResult = firebaseAuthHelper.handleSignInResult(data)
+                tokenResult.fold(
+                    onSuccess = { idToken ->
+                        viewModel.onFirebaseGoogleSignIn(idToken)
+                    },
+                    onFailure = { error ->
+                        binding.btnFirebaseGoogleSignIn.isEnabled = true
+                        Snackbar.make(
+                            binding.root,
+                            getString(R.string.login_failed_prefix, error.message ?: getString(R.string.error_generic)),
+                            Snackbar.LENGTH_LONG
+                        ).show()
+                    }
+                )
             }
         } else {
-            Snackbar.make(binding.root, "Đăng nhập Google đã bị huỷ", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root, getString(R.string.google_login_cancelled), Snackbar.LENGTH_SHORT).show()
             binding.btnFirebaseGoogleSignIn.isEnabled = true
         }
     }
@@ -67,11 +74,11 @@ class LoginFragment : Fragment() {
 
             var valid = true
             if (email.isBlank()) {
-                binding.emailLayout.error = "Vui lòng nhập email"
+                binding.emailLayout.error = getString(R.string.login_email_required)
                 valid = false
             }
             if (password.isBlank()) {
-                binding.passwordLayout.error = "Vui lòng nhập mật khẩu"
+                binding.passwordLayout.error = getString(R.string.login_password_required)
                 valid = false
             }
             if (valid) viewModel.signInWithEmailPassword(email, password)
@@ -94,7 +101,7 @@ class LoginFragment : Fragment() {
         viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
             binding.loginButton.isEnabled = !loading
             binding.btnFirebaseGoogleSignIn.isEnabled = !loading
-            binding.loginButton.text = if (loading) "" else "Đăng nhập"
+            binding.loginButton.text = if (loading) "" else getString(R.string.login_button)
             binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
         }
 
@@ -110,7 +117,6 @@ class LoginFragment : Fragment() {
 
         viewModel.loginSuccess.observe(viewLifecycleOwner) { event ->
             event.getContentIfNotHandled()?.let {
-                viewModel.resetLoginSuccess()
                 findNavController().navigateUp()
             }
         }

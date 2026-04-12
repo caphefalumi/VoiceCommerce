@@ -37,7 +37,7 @@ class VerifyEmailFragment : Fragment() {
                 is VerifyEmailViewModel.VerifyStatus.Loading -> {
                     binding.loadingIcon.visibility = View.VISIBLE
                     binding.statusIcon.visibility = View.GONE
-                    binding.messageText.text = "Đang xác minh email của bạn..."
+                    binding.messageText.text = getString(R.string.verify_email_message_loading)
                     binding.successCard.visibility = View.GONE
                     binding.errorCard.visibility = View.GONE
                     binding.actionButton.visibility = View.GONE
@@ -48,7 +48,7 @@ class VerifyEmailFragment : Fragment() {
                     binding.statusIcon.setImageResource(R.drawable.ic_check_circle)
                     binding.statusIcon.setColorFilter(resources.getColor(R.color.mobi_pulse_primary, null))
                     binding.iconCard.setCardBackgroundColor(resources.getColor(android.R.color.transparent, null))
-                    binding.messageText.text = "Xác minh email"
+                    binding.messageText.text = getString(R.string.verify_email_message_title)
                     binding.successCard.visibility = View.VISIBLE
                     binding.errorCard.visibility = View.GONE
                     binding.actionButton.visibility = View.VISIBLE
@@ -59,12 +59,12 @@ class VerifyEmailFragment : Fragment() {
                     binding.statusIcon.setImageResource(R.drawable.ic_info)
                     binding.statusIcon.setColorFilter(resources.getColor(R.color.mobi_pulse_tertiary, null))
                     binding.iconCard.setCardBackgroundColor(resources.getColor(android.R.color.transparent, null))
-                    binding.messageText.text = "Xác minh email"
+                    binding.messageText.text = getString(R.string.verify_email_message_title)
                     binding.successCard.visibility = View.GONE
                     binding.errorCard.visibility = View.VISIBLE
                     binding.errorText.text = status.message
                     binding.actionButton.visibility = View.VISIBLE
-                    binding.actionButton.text = "Quay lại đăng nhập"
+                    binding.actionButton.text = getString(R.string.verify_email_action_back_to_login)
                 }
             }
         }
