@@ -8,22 +8,18 @@ import com.tgdd.app.data.local.entity.*
 @Database(
     entities = [
         ProductEntity::class,
-        CartItemEntity::class,
         OrderEntity::class,
-        WishlistEntity::class,
         ReviewEntity::class,
         AddressEntity::class,
         PromoCodeEntity::class,
         SearchHistoryEntity::class
     ],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
-    abstract fun cartDao(): CartDao
     abstract fun orderDao(): OrderDao
-    abstract fun wishlistDao(): WishlistDao
     abstract fun reviewDao(): ReviewDao
     abstract fun addressDao(): AddressDao
     abstract fun promoCodeDao(): PromoCodeDao

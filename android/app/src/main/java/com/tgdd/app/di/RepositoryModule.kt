@@ -2,7 +2,6 @@ package com.tgdd.app.di
 
 import android.content.Context
 import com.tgdd.app.data.local.UserSession
-import com.tgdd.app.data.local.dao.CartDao
 import com.tgdd.app.data.local.dao.OrderDao
 import com.tgdd.app.data.local.dao.ProductDao
 import com.tgdd.app.data.remote.CartApi
@@ -109,24 +108,22 @@ object RepositoryModule {
      * Provides [CartRepository] for shopping cart management.
      *
      * ## Dependency Graph
-     * - **Local**: [CartDao] for cart persistence
-     * - **Remote**: [CartApi] for sync operations
+     * - **Remote**: [CartApi] for API operations
      * - **Session**: [UserSession] for user identification
      *
      * ## Data Flow
-     * - Cart stored locally for offline access
-     * - Synced with server when online
-     * - Merges local and remote cart on sync
+     * - All cart operations via API
+     * - Requires network connection
+     * - No local persistence
      *
-     * @param cartDao Local cart data access
      * @param cartApi Remote cart API interface
      * @param userSession User session for cart ownership
      * @return CartRepository instance
      */
     @Provides
     @Singleton
-    fun provideCartRepository(cartDao: CartDao, cartApi: CartApi, userSession: UserSession): CartRepository {
-        return CartRepository(cartDao, cartApi, userSession)
+    fun provideCartRepository(cartApi: CartApi, userSession: UserSession): CartRepository {
+        return CartRepository(cartApi, userSession)
     }
 
     /**
@@ -135,19 +132,19 @@ object RepositoryModule {
      * ## Dependency Graph
      * - **Remote**: [UserApi] for authentication and profile APIs
      * - **Session**: [UserSession] for token and session management
-     * - **Local**: [CartDao], [WishlistDao], [OrderDao] for data migration
+     * - **Cart**: [CartRepository] for cart clearing on logout
+     * - **Local**: [OrderDao] for order history access
      *
      * ## Purpose
      * Handles:
      * - User authentication (login, register, logout)
      * - Profile management
      * - Account settings
-     * - Cart/wishlist migration on login
+     * - Data cleanup on logout
      *
      * @param userApi Remote user API interface
      * @param userSession User session management
-     * @param cartDao Cart DAO for data migration
-     * @param wishlistDao Wishlist DAO for data migration
+     * @param cartRepository Cart repository for data cleanup
      * @param orderDao Order DAO for order history access
      * @return UserRepository instance
      */
@@ -156,28 +153,28 @@ object RepositoryModule {
     fun provideUserRepository(
         userApi: UserApi, 
         userSession: UserSession,
-        cartDao: CartDao,
-        wishlistDao: com.tgdd.app.data.local.dao.WishlistDao,
+        cartRepository: CartRepository,
         orderDao: OrderDao
     ): UserRepository {
-        return UserRepository(userApi, userSession, cartDao, wishlistDao, orderDao)
+        return UserRepository(userApi, userSession, cartRepository, orderDao)
     }
 
     /**
      * Provides [OrderRepository] for order management operations.
      *
      * ## Dependency Graph
-     * - **Local**: [OrderDao], [CartDao] for persistence
+     * - **Local**: [OrderDao] for persistence
+     * - **Cart**: [CartRepository] for order creation
      * - **Remote**: [OrderApi] for order operations
      * - **Context**: [ApplicationContext] for order notifications
      *
      * ## Data Flow
-     * - Creates orders from cart data
+     * - Creates orders from cart data (via API)
      * - Persists order history locally
      * - Syncs order status with server
      *
      * @param orderDao Local order data access
-     * @param cartDao Cart DAO for order creation
+     * @param cartRepository Cart repository for order creation
      * @param orderApi Remote order API interface
      * @param context Application context for notifications
      * @return OrderRepository instance
@@ -186,39 +183,11 @@ object RepositoryModule {
     @Singleton
     fun provideOrderRepository(
         orderDao: OrderDao,
-        cartDao: CartDao,
+        cartRepository: CartRepository,
         orderApi: OrderApi,
         @ApplicationContext context: Context
     ): OrderRepository {
-        return OrderRepository(orderDao, cartDao, orderApi, context)
-    }
-
-    /**
-     * Provides WishlistRepository for wishlist management.
-     *
-     * ## Dependency Graph
-     * - **Local**: WishlistDao for persistence
-     * - **Remote**: WishlistApi for sync operations
-     * - **Session**: [UserSession] for user identification
-     *
-     * ## Data Flow
-     * - Wishlist cached locally
-     * - Synced with server on changes
-     * - Supports offline wishlist viewing
-     *
-     * @param wishlistDao Local wishlist data access
-     * @param wishlistApi Remote wishlist API interface
-     * @param userSession User session for wishlist ownership
-     * @return WishlistRepository instance
-     */
-    @Provides
-    @Singleton
-    fun provideWishlistRepository(
-        wishlistDao: com.tgdd.app.data.local.dao.WishlistDao,
-        wishlistApi: com.tgdd.app.data.remote.WishlistApi,
-        userSession: UserSession
-    ): com.tgdd.app.data.repository.WishlistRepository {
-        return com.tgdd.app.data.repository.WishlistRepository(wishlistDao, wishlistApi, userSession)
+        return OrderRepository(orderDao, cartRepository, orderApi, context)
     }
 
     /**

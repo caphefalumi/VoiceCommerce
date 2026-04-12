@@ -159,10 +159,16 @@
     <!-- BOTTOM NAV (Stitch 5-tab) -->
     <!-- ============================================ -->
     <string name="nav_home">Home</string>
+    <string name="nav_chatbot">Chat AI</string>
     <string name="nav_category">Danh mục</string>
     <string name="nav_cart">Giỏ hàng</string>
     <string name="nav_account">Tài khoản</string>
     <string name="nav_support">Hỗ trợ</string>
+
+    <!-- Chatbot -->
+    <string name="clear_chat">Clear Chat</string>
+    <string name="clear_chat_confirmation">Are you sure you want to clear all chat messages?</string>
+    <string name="chat_cleared">Chat history cleared</string>
 
     <!-- ============================================ -->
     <!-- HOME SCREEN -->

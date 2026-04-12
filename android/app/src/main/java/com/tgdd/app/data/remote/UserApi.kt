@@ -162,22 +162,3 @@ interface UserApi {
     @POST("auth/firebase/create-account")
     suspend fun firebaseCreateAccount(@Body body: Map<String, String>): Response<AuthResponse>
 }
-
-/**
- * Retrofit API interface for AI voice processing operations.
- * Defines endpoints for voice-based AI interactions.
- *
- * Base URL: https://api-worker.dangduytoan13l.workers.dev/api/
- * Requires: Bearer token authentication header
- */
-interface AiVoiceApi {
-    /**
-     * Processes voice input using AI.
-     * @param body Voice request containing audio/text data
-     * @return Response with AI processing result
-     * @see AiVoiceRequest
-     * @see AiVoiceResponse
-     */
-    @POST("voice-process")
-    suspend fun processVoice(@Body body: AiVoiceRequest): Response<AiVoiceResponse>
-}

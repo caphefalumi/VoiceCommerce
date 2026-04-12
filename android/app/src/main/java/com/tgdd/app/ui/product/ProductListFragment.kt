@@ -32,7 +32,7 @@ import dagger.hilt.android.AndroidEntryPoint
  * Fragment displaying products in grid view with search, voice search, and filtering.
  * 
  * Navigation:
- * - FROM: CategoryFragment, SearchFragment, home screen
+ * - FROM: SearchFragment, home screen, deep links
  * - TO: ProductDetailFragment (on product click), CartFragment (cart button)
  * 
  * Arguments:
@@ -96,6 +96,7 @@ class ProductListFragment : Fragment() {
         setupSwipeRefresh()
         setupSearchView()
         setupVoiceSearch()
+        setupAiResponseCard()
         setupPriceFilter()
         setupCategoryChips()
         setupCartButton()
@@ -173,6 +174,33 @@ class ProductListFragment : Fragment() {
                 viewModel.toggleVoiceRecording()
             }
         }
+    }
+
+    private fun setupAiResponseCard() {
+        binding.closeResponseButton.setOnClickListener {
+            hideAiResponseCard()
+        }
+    }
+
+    private fun showAiResponseCard(text: String) {
+        binding.aiResponseText.text = text
+        binding.aiResponseCard.visibility = View.VISIBLE
+        binding.aiResponseCard.alpha = 0f
+        binding.aiResponseCard.animate()
+            .alpha(1f)
+            .setDuration(300)
+            .start()
+    }
+
+    private fun hideAiResponseCard() {
+        binding.aiResponseCard.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                binding.aiResponseCard.visibility = View.GONE
+                viewModel.clearAssistantResponse()
+            }
+            .start()
     }
 
     private fun hasAudioPermission(): Boolean {
@@ -274,11 +302,6 @@ class ProductListFragment : Fragment() {
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            if (isLoading) {
-                binding.progressBar.fadeIn()
-            } else {
-                binding.progressBar.fadeOut()
-            }
             binding.swipeRefreshLayout.isRefreshing = isLoading
         }
 
@@ -314,8 +337,13 @@ class ProductListFragment : Fragment() {
 
         viewModel.assistantResponse.observe(viewLifecycleOwner) { text ->
             text?.let {
-                binding.root.showInfoSnackbar(it)
-                viewModel.clearAssistantResponse()
+                showAiResponseCard(it)
+                // Auto-hide after 10 seconds
+                binding.aiResponseCard.postDelayed({
+                    if (binding.aiResponseCard.visibility == View.VISIBLE) {
+                        hideAiResponseCard()
+                    }
+                }, 10000)
             }
         }
 
@@ -327,18 +355,111 @@ class ProductListFragment : Fragment() {
         }
 
         viewModel.isRecording.observe(viewLifecycleOwner) { isRecording ->
-            if (isRecording) {
+            updateVoiceButtonState(isRecording, viewModel.isProcessingVoice.value ?: false)
+        }
+
+        viewModel.isProcessingVoice.observe(viewLifecycleOwner) { isProcessing ->
+            updateVoiceButtonState(viewModel.isRecording.value ?: false, isProcessing)
+        }
+    }
+
+    /**
+     * Updates voice button appearance and enabled state based on recording and processing status.
+     * 
+     * States:
+     * - Recording: Red stop icon, enabled, pulsing animation
+     * - Processing: Disabled with pulsing scale animation
+     * - Idle: Blue mic icon, enabled
+     */
+    private fun updateVoiceButtonState(isRecording: Boolean, isProcessing: Boolean) {
+        when {
+            isProcessing -> {
+                // Show loading state and disable button
+                binding.voiceButton.isEnabled = false
+                binding.voiceButton.alpha = 0.7f
+                binding.voiceButton.setImageResource(R.drawable.ic_mic)
+                binding.voiceButton.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.mobi_pulse_primary_variant)
+                )
+                // Pulsing scale animation to indicate processing
+                startPulsingAnimation()
+            }
+            isRecording -> {
+                // Show recording state with pulsing
+                stopPulsingAnimation()
+                binding.voiceButton.isEnabled = true
+                binding.voiceButton.alpha = 1.0f
                 binding.voiceButton.setImageResource(R.drawable.ic_stop)
                 binding.voiceButton.backgroundTintList = android.content.res.ColorStateList.valueOf(
                     ContextCompat.getColor(requireContext(), R.color.error)
                 )
-            } else {
+                // Pulsing animation for recording
+                startRecordingPulse()
+            }
+            else -> {
+                // Show idle state
+                stopPulsingAnimation()
+                binding.voiceButton.isEnabled = true
+                binding.voiceButton.alpha = 1.0f
                 binding.voiceButton.setImageResource(R.drawable.ic_mic)
                 binding.voiceButton.backgroundTintList = android.content.res.ColorStateList.valueOf(
                     ContextCompat.getColor(requireContext(), R.color.mobi_pulse_primary)
                 )
             }
         }
+    }
+
+    private fun startPulsingAnimation() {
+        binding.voiceButton.animate()
+            .scaleX(1.2f)
+            .scaleY(1.2f)
+            .setDuration(600)
+            .withEndAction {
+                if (viewModel.isProcessingVoice.value == true) {
+                    binding.voiceButton.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(600)
+                        .withEndAction {
+                            if (viewModel.isProcessingVoice.value == true) {
+                                startPulsingAnimation()
+                            }
+                        }
+                        .start()
+                }
+            }
+            .start()
+    }
+
+    private fun startRecordingPulse() {
+        binding.voiceButton.animate()
+            .scaleX(1.15f)
+            .scaleY(1.15f)
+            .alpha(0.8f)
+            .setDuration(500)
+            .withEndAction {
+                if (viewModel.isRecording.value == true) {
+                    binding.voiceButton.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .alpha(1.0f)
+                        .setDuration(500)
+                        .withEndAction {
+                            if (viewModel.isRecording.value == true) {
+                                startRecordingPulse()
+                            }
+                        }
+                        .start()
+                }
+            }
+            .start()
+    }
+
+    private fun stopPulsingAnimation() {
+        binding.voiceButton.animate().cancel()
+        binding.voiceButton.scaleX = 1.0f
+        binding.voiceButton.scaleY = 1.0f
+        binding.voiceButton.rotation = 0f
     }
 
     private fun showLoginRequiredDialog() {
@@ -355,6 +476,7 @@ class ProductListFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         searchJob?.cancel()
+        stopPulsingAnimation()
         _binding = null
     }
 }

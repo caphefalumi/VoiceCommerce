@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "528064211736",
+    "project_id": "tgdd-a0666",
+    "storage_bucket": "tgdd-a0666.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:528064211736:android:57cd3b1476eb6b23474c6d",
+        "android_client_info": {
+          "package_name": "com.tgdd.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfHVeJP4QvO9rvOnHvx7h3NfM7MRhoaRY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

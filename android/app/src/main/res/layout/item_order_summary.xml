@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="8dp"
+    android:gravity="center_vertical">
+
+    <!-- Index Number -->
+    <TextView
+        android:id="@+id/productIndex"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:background="@drawable/bg_circle_white"
+        android:gravity="center"
+        android:fontFamily="@font/space_grotesk_bold"
+        android:textColor="@color/mobi_pulse_primary"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <!-- Product Name -->
+    <TextView
+        android:id="@+id/productName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/inter"
+        android:maxLines="2"
+        android:textColor="@color/mobi_pulse_on_surface"
+        android:textSize="13sp" />
+
+    <!-- Remove Button -->
+    <ImageButton
+        android:id="@+id/removeButton"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/remove"
+        android:src="@drawable/ic_delete"
+        app:tint="@color/mobi_pulse_on_surface_variant" />
+
+</LinearLayout>

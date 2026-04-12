@@ -69,6 +69,7 @@ object LocaleHelper {
      * Updates resources for Android N+.
      * Uses createConfigurationContext for locale change.
      */
+    @Suppress("DEPRECATION")
     private fun updateResources(context: Context, language: String): Context {
         val locale = Locale(language)
         Locale.setDefault(locale)

@@ -6,13 +6,36 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import com.tgdd.app.data.local.entity.CartItemEntity
+import com.tgdd.app.data.model.CartItemDto
 import com.tgdd.app.data.repository.CartRepository
 import com.tgdd.app.data.repository.PromoCodeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * ViewModel for shopping cart screen.
+ *
+ * Responsibilities:
+ * - Display cart items from API
+ * - Calculate cart totals (subtotal, discount, final total)
+ * - Apply/remove promo codes
+ * - Update item quantities
+ * - Remove items from cart
+ * - Fetch cart from server
+ *
+ * UI State:
+ * - cartItems: List<CartItemDto> - Items in cart (from API)
+ * - cartTotal: Double - Subtotal before discount
+ * - cartItemCount: Int - Number of items
+ * - appliedCouponCode: String? - Currently applied coupon
+ * - discountAmount: Double - Calculated discount
+ * - finalTotal: Double - Total after discount
+ * - isRefreshing: Boolean - Sync progress indicator
+ *
+ * @see CartFragment For UI binding
+ * @see CartRepository For cart data operations
+ */
 @HiltViewModel
 class CartViewModel @Inject constructor(
     private val cartRepository: CartRepository,
@@ -20,7 +43,7 @@ class CartViewModel @Inject constructor(
     private val userSession: com.tgdd.app.data.local.UserSession
 ) : ViewModel() {
 
-    val cartItems: LiveData<List<CartItemEntity>> = cartRepository.getAllCartItems().asLiveData()
+    val cartItems: LiveData<List<CartItemDto>> = cartRepository.getAllCartItems().asLiveData()
 
     val cartTotal: LiveData<Double> = cartRepository.getCartTotal().asLiveData()
 
@@ -38,6 +61,11 @@ class CartViewModel @Inject constructor(
     private val _discountAmount = MutableLiveData(0.0)
     val discountAmount: LiveData<Double> = _discountAmount
 
+    /**
+     * Reactive total calculation using MediatorLiveData.
+     * Automatically recalculates when cartTotal or discountAmount changes.
+     * Formula: finalTotal = max(0, subtotal - discount)
+     */
     private val _finalTotal = MediatorLiveData<Double>().apply {
         value = 0.0
         addSource(cartTotal) { subtotal ->
@@ -51,11 +79,19 @@ class CartViewModel @Inject constructor(
     }
     val finalTotal: LiveData<Double> = _finalTotal
 
+    init {
+        // Load cart on initialization
+        refreshCart()
+    }
+
     fun refreshCart() {
         _isRefreshing.value = true
         viewModelScope.launch {
             try {
-                cartRepository.syncCart()
+                val result = cartRepository.refreshCart()
+                if (result.isFailure) {
+                    _error.value = result.exceptionOrNull()?.message
+                }
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
@@ -64,24 +100,30 @@ class CartViewModel @Inject constructor(
         }
     }
 
-    fun updateQuantity(itemId: Long, quantity: Int) {
-        if (quantity < 1) {
-            removeItem(itemId)
+    fun updateQuantity(productId: String, quantity: Int) {
+        if (quantity <= 0) {
+            removeItem(productId)
             return
         }
         viewModelScope.launch {
             try {
-                cartRepository.updateQuantity(itemId, quantity)
+                val result = cartRepository.updateQuantity(productId, quantity)
+                if (result.isFailure) {
+                    _error.value = result.exceptionOrNull()?.message
+                }
             } catch (e: Exception) {
                 _error.value = e.message
             }
         }
     }
 
-    fun removeItem(itemId: Long) {
+    fun removeItem(productId: String) {
         viewModelScope.launch {
             try {
-                cartRepository.removeFromCart(itemId)
+                val result = cartRepository.removeFromCart(productId)
+                if (result.isFailure) {
+                    _error.value = result.exceptionOrNull()?.message
+                }
             } catch (e: Exception) {
                 _error.value = e.message
             }
@@ -121,7 +163,7 @@ class CartViewModel @Inject constructor(
                 _discountAmount.value = coupon.discountAmount
                 _error.value = coupon.message
             } else {
-                _error.value = result.exceptionOrNull()?.message ?: "Không thể áp dụng mã giảm giá"
+                _error.value = result.exceptionOrNull()?.message ?: "Unable to apply coupon code"
             }
         }
     }

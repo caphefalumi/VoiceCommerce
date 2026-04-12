@@ -5,9 +5,9 @@
         android:icon="@drawable/ic_home"
         android:title="@string/nav_home" />
     <item
-        android:id="@+id/categoryFragment"
-        android:icon="@drawable/ic_category"
-        android:title="@string/nav_category" />
+        android:id="@+id/chatbotFragment"
+        android:icon="@drawable/ic_chat"
+        android:title="@string/nav_chatbot" />
     <item
         android:id="@+id/cartFragment"
         android:icon="@drawable/ic_cart"

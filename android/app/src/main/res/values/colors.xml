@@ -73,6 +73,12 @@
     <color name="error">@color/mobi_pulse_tertiary</color>
     <color name="text_primary">@color/mobi_pulse_on_background</color>
     <color name="text_secondary">@color/mobi_pulse_on_surface_variant</color>
+    
+    <!-- Additional colors for chatbot -->
+    <color name="primary">@color/mobi_pulse_primary</color>
+    <color name="background">@color/mobi_pulse_background</color>
+    <color name="white">#FFFFFF</color>
+    <color name="border">#E0E3E6</color>
 
     <!-- Status colors for accessibility and i18n -->
     <color name="status_success">#22543D</color>

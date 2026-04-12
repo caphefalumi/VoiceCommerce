@@ -1,5 +1,6 @@
 package com.tgdd.app.data.remote
 
+import com.tgdd.app.data.model.TicketCreateRequest
 import com.tgdd.app.data.model.TicketCreateResponse
 import com.tgdd.app.data.model.TicketListResponse
 import retrofit2.Response
@@ -15,12 +16,12 @@ import retrofit2.http.*
 interface TicketApi {
     /**
      * Creates a new support ticket.
-     * @param ticket Map containing ticket details (subject, description, priority)
+     * @param ticket Ticket request containing subject, description, priority
      * @return Response with created ticket confirmation
      * @see TicketCreateResponse
      */
     @POST("tickets")
-    suspend fun createTicket(@Body ticket: Map<String, Any>): Response<TicketCreateResponse>
+    suspend fun createTicket(@Body ticket: TicketCreateRequest): Response<TicketCreateResponse>
 
     /**
      * Fetches all tickets for a specific user.

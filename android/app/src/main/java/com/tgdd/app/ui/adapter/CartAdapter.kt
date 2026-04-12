@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.tgdd.app.R
-import com.tgdd.app.data.local.entity.CartItemEntity
+import com.tgdd.app.data.model.CartItemDto
 import com.tgdd.app.data.repository.ProductRepository
 import com.tgdd.app.databinding.ItemCartBinding
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +20,7 @@ import java.util.Locale
 /**
  * RecyclerView Adapter for displaying cart items in a list.
  *
- * Data Source: List of [CartItemEntity] from cart repository
+ * Data Source: List of [CartItemDto] from cart API
  * Layout: R.layout.item_cart (product image, name, brand, price, quantity controls, line total)
  *
  * Features:
@@ -30,18 +30,26 @@ import java.util.Locale
  * - Real-time line total calculation
  *
  * View Binding: [ItemCartBinding] in [onCreateViewHolder]
- * Data Binding: CartItemEntity properties bound in [CartViewHolder.bind]
+ * Data Binding: CartItemDto properties bound in [CartViewHolder.bind]
  *
- * @see CartItemEntity For item data model
+ * @see CartItemDto For item data model
  * @see R.layout.item_cart For item layout
  */
 class CartAdapter(
     private val productRepository: ProductRepository,
-    private val onQuantityChanged: (CartItemEntity, Int) -> Unit,
-    private val onRemoveClicked: (CartItemEntity) -> Unit
-) : ListAdapter<CartItemEntity, CartAdapter.CartViewHolder>(CartItemDiffCallback()) {
+    private val onQuantityChanged: (CartItemDto, Int) -> Unit,
+    private val onRemoveClicked: (CartItemDto) -> Unit
+) : ListAdapter<CartItemDto, CartAdapter.CartViewHolder>(CartItemDiffCallback()) {
 
     private val adapterScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    override fun submitList(list: List<CartItemDto>?) {
+        android.util.Log.d("CartAdapter", "submitList called with ${list?.size ?: 0} items")
+        list?.forEach { item ->
+            android.util.Log.d("CartAdapter", "  - ${item.name} (qty: ${item.quantity})")
+        }
+        super.submitList(list)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CartViewHolder {
         val binding = ItemCartBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -49,48 +57,28 @@ class CartAdapter(
     }
 
     override fun onBindViewHolder(holder: CartViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val item = getItem(position)
+        android.util.Log.d("CartAdapter", "Binding item at position $position: ${item.name}")
+        holder.bind(item)
     }
 
     inner class CartViewHolder(private val binding: ItemCartBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: CartItemEntity) {
+        @Suppress("DEPRECATION")
+        fun bind(item: CartItemDto) {
             binding.apply {
-                productName.text = item.name
+                // Set index (position + 1)
+                productIndex.text = (bindingAdapterPosition + 1).toString()
+                
+                // Set product name
+                productName.text = item.name ?: "Product"
+                
+                // Set price
                 productPrice.text = String.format(Locale("vi", "VN"), "%,.0f₫", item.price)
-                lineTotalText.text = root.context.getString(
-                    R.string.line_total_format,
-                    String.format(Locale("vi", "VN"), "%,.0f₫", item.price * item.quantity)
-                )
+                
+                // Set quantity
                 quantityText.text = item.quantity.toString()
 
-                productBrand.text = root.context.getString(R.string.brand_unknown)
-                adapterScope.launch {
-                    val product = withContext(Dispatchers.IO) {
-                        runCatching { productRepository.getProductById(item.productId).getOrNull() }.getOrNull()
-                    }
-                    if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
-                        productBrand.text = product?.brand?.takeIf { it.isNotBlank() }
-                            ?: root.context.getString(R.string.brand_unknown)
-                    }
-                }
-                
-                productImage.load(item.image) {
-                    placeholder(R.drawable.ic_placeholder)
-                    error(R.drawable.ic_placeholder)
-                }
-
-                increaseButton.setOnClickListener {
-                    onQuantityChanged(item, item.quantity + 1)
-                }
-
-                decreaseButton.setOnClickListener {
-                    if (item.quantity > 1) {
-                        onQuantityChanged(item, item.quantity - 1)
-                    } else {
-                        onRemoveClicked(item)
-                    }
-                }
-
+                // Remove button
                 removeButton.setOnClickListener {
                     onRemoveClicked(item)
                 }
@@ -99,12 +87,12 @@ class CartAdapter(
     }
 }
 
-class CartItemDiffCallback : DiffUtil.ItemCallback<CartItemEntity>() {
-    override fun areItemsTheSame(oldItem: CartItemEntity, newItem: CartItemEntity): Boolean {
-        return oldItem.id == newItem.id
+class CartItemDiffCallback : DiffUtil.ItemCallback<CartItemDto>() {
+    override fun areItemsTheSame(oldItem: CartItemDto, newItem: CartItemDto): Boolean {
+        return oldItem.productId == newItem.productId
     }
 
-    override fun areContentsTheSame(oldItem: CartItemEntity, newItem: CartItemEntity): Boolean {
+    override fun areContentsTheSame(oldItem: CartItemDto, newItem: CartItemDto): Boolean {
         return oldItem == newItem
     }
 }

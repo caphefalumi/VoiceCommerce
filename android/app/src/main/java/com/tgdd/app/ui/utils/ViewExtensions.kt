@@ -8,16 +8,26 @@ import com.tgdd.app.R
  * Extension functions for common View operations
  */
 
-fun View.fadeIn(duration: Long = 200) {
+fun View.fadeIn(duration: Long = 0) {
     if (visibility == View.VISIBLE) return
+    if (duration <= 0L) {
+        visibility = View.VISIBLE
+        clearAnimation()
+        return
+    }
     val animation = AnimationUtils.loadAnimation(context, R.anim.fade_in)
     animation.duration = duration
     visibility = View.VISIBLE
     startAnimation(animation)
 }
 
-fun View.fadeOut(duration: Long = 150) {
+fun View.fadeOut(duration: Long = 0) {
     if (visibility != View.VISIBLE) return
+    if (duration <= 0L) {
+        clearAnimation()
+        visibility = View.GONE
+        return
+    }
     val animation = AnimationUtils.loadAnimation(context, R.anim.fade_out)
     animation.duration = duration
     startAnimation(animation)

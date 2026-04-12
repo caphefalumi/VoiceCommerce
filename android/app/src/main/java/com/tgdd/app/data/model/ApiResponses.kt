@@ -140,6 +140,22 @@ data class MessageResponse(
 )
 
 /**
+ * Request body for creating a support ticket.
+ *
+ * @property userId User ID (optional)
+ * @property category Ticket category
+ * @property message Ticket message content
+ */
+data class TicketCreateRequest(
+    @SerializedName("user_id")
+    val userId: String,
+    @SerializedName("category")
+    val category: String,
+    @SerializedName("message")
+    val message: String
+)
+
+/**
  * Response from ticket/contact creation.
  *
  * Maps to: POST /api/v1/tickets
@@ -432,6 +448,38 @@ data class CouponApplyResponse(
     val error: String? = null
 )
 
+/**
+ * Request for validating a promo code.
+ */
+data class PromoCodeValidationRequest(
+    @SerializedName("code")
+    val code: String,
+    @SerializedName("order_total")
+    val orderTotal: Double
+)
+
+/**
+ * Request for applying a promo code.
+ */
+data class PromoCodeApplicationRequest(
+    @SerializedName("code")
+    val code: String,
+    @SerializedName("order_total")
+    val orderTotal: Double
+)
+
+/**
+ * Request for applying a coupon.
+ */
+data class CouponApplyRequest(
+    @SerializedName("code")
+    val code: String,
+    @SerializedName("order_total")
+    val orderTotal: Double,
+    @SerializedName("user_id")
+    val userId: String? = null
+)
+
 // Address response
 /**
  * Response wrapper for address list.
@@ -577,6 +625,30 @@ object ApiResponses {
         val error: String? = null
     )
     data class AddressListResponse(val addresses: List<AddressDto>? = null)
+    
+    // Request classes
+    data class PromoCodeValidationRequest(
+        @SerializedName("code")
+        val code: String,
+        @SerializedName("order_total")
+        val orderTotal: Double
+    )
+    
+    data class PromoCodeApplicationRequest(
+        @SerializedName("code")
+        val code: String,
+        @SerializedName("order_total")
+        val orderTotal: Double
+    )
+    
+    data class CouponApplyRequest(
+        @SerializedName("code")
+        val code: String,
+        @SerializedName("order_total")
+        val orderTotal: Double,
+        @SerializedName("user_id")
+        val userId: String? = null
+    )
 }
 
 /**
@@ -657,4 +729,31 @@ data class AiSearchResult(
     val category: String? = null,
     @SerializedName("index")
     val index: Int? = null,
+)
+
+/**
+ * Request body for adding item to cart.
+ *
+ * Maps to: POST /api/cart
+ *
+ * @property productId Product ID to add
+ * @property quantity Quantity to add
+ */
+data class AddToCartRequest(
+    @SerializedName("product_id")
+    val productId: String,
+    @SerializedName("quantity")
+    val quantity: Int = 1
+)
+
+/**
+ * Request body for updating cart item quantity.
+ *
+ * Maps to: PATCH /api/cart/{productId}
+ *
+ * @property quantity New quantity
+ */
+data class UpdateCartQuantityRequest(
+    @SerializedName("quantity")
+    val quantity: Int
 )

@@ -5,7 +5,6 @@ package com.tgdd.app.di
 import android.content.Context
 import androidx.room.Room
 import com.tgdd.app.data.local.AppDatabase
-import com.tgdd.app.data.local.dao.CartDao
 import com.tgdd.app.data.local.dao.OrderDao
 import com.tgdd.app.data.local.dao.ProductDao
 import dagger.Module
@@ -21,9 +20,7 @@ import javax.inject.Singleton
  * ## Provides
  * - [AppDatabase] - The main Room database instance (`tgdd_database`)
  * - [ProductDao] - Data access for product caching
- * - [CartDao] - Data access for cart items
  * - [OrderDao] - Data access for order history
- * - [WishlistDao] - Data access for wishlist items
  * - [ReviewDao] - Data access for cached reviews
  * - [AddressDao] - Data access for saved addresses
  * - [PromoCodeDao] - Data access for cached promo codes
@@ -100,24 +97,6 @@ object DatabaseModule {
     }
 
     /**
-     * Provides [CartDao] for cart item local database operations.
-     *
-     * ## Purpose
-     * Manages local cart persistence. Cart items are stored locally to:
-     * - Preserve cart across app restarts
-     * - Enable offline cart viewing
-     * - Sync with server when online
-     *
-     * @param database Room database instance containing this DAO
-     * @return CartDao implementation
-     */
-    @Provides
-    @Singleton
-    fun provideCartDao(database: AppDatabase): CartDao {
-        return database.cartDao()
-    }
-
-    /**
      * Provides [OrderDao] for order history local database operations.
      *
      * ## Purpose
@@ -133,24 +112,6 @@ object DatabaseModule {
     @Singleton
     fun provideOrderDao(database: AppDatabase): OrderDao {
         return database.orderDao()
-    }
-
-    /**
-     * Provides WishlistDao for wishlist local database operations.
-     *
-     * ## Purpose
-     * Persists user's wishlist locally to:
-     * - Quick wishlist access without network
-     * - Preserve wishlist across sessions
-     * - Sync with server on connectivity
-     *
-     * @param database Room database instance containing this DAO
-     * @return WishlistDao implementation
-     */
-    @Provides
-    @Singleton
-    fun provideWishlistDao(database: AppDatabase): com.tgdd.app.data.local.dao.WishlistDao {
-        return database.wishlistDao()
     }
 
     /**

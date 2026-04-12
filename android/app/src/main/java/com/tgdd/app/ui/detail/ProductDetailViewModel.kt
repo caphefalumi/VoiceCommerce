@@ -2,16 +2,13 @@ package com.tgdd.app.ui.detail
 
 import androidx.lifecycle.*
 import com.tgdd.app.data.local.UserSession
-import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.data.local.entity.ProductEntity
 import com.tgdd.app.data.local.entity.ReviewEntity
 import com.tgdd.app.data.model.ProductDto
 import com.tgdd.app.data.repository.CartRepository
 import com.tgdd.app.data.repository.ProductRepository
 import com.tgdd.app.data.repository.ReviewRepository
-import com.tgdd.app.data.repository.WishlistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,7 +16,6 @@ import javax.inject.Inject
 class ProductDetailViewModel @Inject constructor(
     private val productRepository: ProductRepository,
     private val cartRepository: CartRepository,
-    private val wishlistRepository: WishlistRepository,
     private val reviewRepository: ReviewRepository,
     private val userSession: UserSession
 ) : ViewModel() {
@@ -29,9 +25,6 @@ class ProductDetailViewModel @Inject constructor(
 
     private val _productDto = MutableLiveData<ProductDto?>()
     val productDto: LiveData<ProductDto?> = _productDto
-
-    private val _isInWishlist = MutableLiveData<Boolean>(false)
-    val isInWishlist: LiveData<Boolean> = _isInWishlist
 
     private val _reviews = MutableLiveData<List<ReviewEntity>>(emptyList())
     val reviews: LiveData<List<ReviewEntity>> = _reviews
@@ -105,9 +98,6 @@ class ProductDetailViewModel @Inject constructor(
                     }
                 }
 
-                val inWishlist = wishlistRepository.isInWishlist(productId).first()
-                _isInWishlist.value = inWishlist
-
                 // Only load from reviews table if we don't have reviews from DTO
                 if (!hasReviewsFromDto) {
                     loadReviews(productId)
@@ -148,18 +138,6 @@ class ProductDetailViewModel @Inject constructor(
         }
     }
 
-    fun toggleWishlist() {
-        val currentProduct = _product.value ?: return
-        if (!userSession.isLoggedIn()) {
-            _requireLogin.value = true
-            return
-        }
-        viewModelScope.launch {
-            val added = wishlistRepository.toggleWishlist(currentProduct)
-            _isInWishlist.value = added
-        }
-    }
-
     fun addToCart(product: ProductEntity, quantity: Int = 1) {
         if (!userSession.isLoggedIn()) {
             _requireLogin.value = true
@@ -167,16 +145,14 @@ class ProductDetailViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                val cartItem = CartItemEntity(
-                    productId = product.id,
-                    name = product.name,
-                    image = product.image,
-                    price = product.price,
-                    quantity = quantity
-                )
-                cartRepository.addToCart(cartItem)
-                _addedToCart.value = true
-                _addedToCartMessage.value = "Đã thêm ${product.name} vào giỏ hàng"
+                val result = cartRepository.addToCart(product.id, quantity)
+                if (result.isSuccess) {
+                    // Set message first, then trigger the added flag
+                    _addedToCartMessage.value = "Đã thêm ${product.name} vào giỏ hàng"
+                    _addedToCart.value = true
+                } else {
+                    _error.value = result.exceptionOrNull()?.message ?: "Failed to add to cart"
+                }
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to add to cart"
             }

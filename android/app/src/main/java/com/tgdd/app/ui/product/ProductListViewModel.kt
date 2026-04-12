@@ -5,12 +5,10 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonSyntaxException
-import com.tgdd.app.data.model.AiVoiceContext
-import com.tgdd.app.data.model.AiVoiceRequest
+import com.tgdd.app.data.model.VoiceRequest
 import com.tgdd.app.data.local.UserSession
-import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.data.local.entity.ProductEntity
-import com.tgdd.app.data.remote.AiVoiceApi
+import com.tgdd.app.data.remote.VoiceApi
 import com.tgdd.app.data.repository.CartRepository
 import com.tgdd.app.data.repository.ProductRepository
 import com.tgdd.app.data.repository.VoiceAssistantManager
@@ -48,7 +46,6 @@ import javax.inject.Inject
  * Voice AI Integration:
  * - processVoiceCommand: Sends text commands to AI Voice API
  * - toggleVoiceRecording: Starts/stops microphone recording
- * - handleAiAction: Processes AI action responses (cart, checkout navigation)
  *
  * @see ProductListFragment For UI binding
  * @see ProductRepository For data fetching
@@ -59,7 +56,7 @@ class ProductListViewModel @Inject constructor(
     private val productRepository: ProductRepository,
     private val cartRepository: CartRepository,
     private val userSession: UserSession,
-    private val aiVoiceApi: AiVoiceApi,
+    private val voiceApi: VoiceApi,
     private val voiceAssistantManager: VoiceAssistantManager
 ) : ViewModel() {
 
@@ -109,8 +106,10 @@ class ProductListViewModel @Inject constructor(
     private val _isRecording = MutableLiveData<Boolean>(false)
     val isRecording: LiveData<Boolean> = _isRecording
 
+    private val _isProcessingVoice = MutableLiveData<Boolean>(false)
+    val isProcessingVoice: LiveData<Boolean> = _isProcessingVoice
+
     // Internal state - Not exposed to UI
-    private var recordingJob: Job? = null
     private var audioOutputStream: java.io.ByteArrayOutputStream? = null
 
     // Product list state
@@ -123,8 +122,20 @@ class ProductListViewModel @Inject constructor(
     private var lastSearchQuery: String = ""
     private val searchCache = mutableMapOf<String, List<ProductEntity>>()
 
-    init {
-        loadProducts()
+    /**
+     * Gets current displayed products as SearchResult for voice context.
+     * Returns up to 10 products with index, id, name, and price.
+     */
+    fun getCurrentSearchResults(): List<com.tgdd.app.data.model.SearchResult> {
+        val products = _filteredProducts.value ?: emptyList()
+        return products.take(10).mapIndexed { index, product ->
+            com.tgdd.app.data.model.SearchResult(
+                id = product.id,
+                name = product.name,
+                price = product.price,
+                index = index + 1
+            )
+        }
     }
 
     fun loadProducts(category: String? = null, brand: String? = null) {
@@ -324,16 +335,14 @@ class ProductListViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                val cartItem = CartItemEntity(
-                    productId = product.id,
-                    name = product.name,
-                    image = product.image,
-                    price = product.price,
-                    quantity = quantity
-                )
-                cartRepository.addToCart(cartItem)
-                _addedToCart.value = true
-                _addedToCartMessage.value = "Đã thêm ${product.name} vào giỏ hàng"
+                val result = cartRepository.addToCart(product.id, quantity)
+                if (result.isSuccess) {
+                    // Set message first, then trigger the added flag
+                    _addedToCartMessage.value = "Đã thêm ${product.name} vào giỏ hàng"
+                    _addedToCart.value = true
+                } else {
+                    _error.value = result.exceptionOrNull()?.message ?: "Failed to add to cart"
+                }
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to add to cart"
             }
@@ -357,18 +366,18 @@ class ProductListViewModel @Inject constructor(
      */
     fun processVoiceCommand(spokenText: String) {
         if (spokenText.isBlank()) {
-            _error.value = "Không nghe rõ nội dung"
+            _error.value = "Could not hear clearly"
             return
         }
 
         viewModelScope.launch {
             try {
                 // Send voice command to AI with session context
-                val response = aiVoiceApi.processVoice(
-                    AiVoiceRequest(
+                val response = voiceApi.processVoice(
+                    VoiceRequest(
                         text = spokenText,
-                        sessionId = "android-${System.currentTimeMillis()}",
-                        context = AiVoiceContext(userId = userSession.getUserId())
+                        session_id = "android-${System.currentTimeMillis()}",
+                        user_id = userSession.getUserId()
                     )
                 )
 
@@ -383,48 +392,18 @@ class ProductListViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Extract response text for TTS playback
-                _assistantResponse.value = body.responseText?.takeIf { it.isNotBlank() }
-                    ?: body.error
-                    ?: "Đã xử lý lệnh giọng nói"
+                // Extract response text for display
+                _assistantResponse.value = body.text
 
-                // Execute AI-determined action
-                handleAiAction(body.action)
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Không thể xử lý giọng nói"
-            }
-        }
-    }
-
-    private suspend fun handleAiAction(actionElement: JsonElement?) {
-        val actionObject = parseActionObject(actionElement) ?: return
-        val actionType = actionObject.getAsJsonPrimitive("type")?.asString
-            ?: actionObject.getAsJsonPrimitive("action")?.asString
-            ?: return
-
-        when (actionType.lowercase()) {
-            "add_to_cart", "remove_from_cart", "update_cart", "view_cart", "list_cart" -> {
-                cartRepository.syncCart()
-            }
-
-            "checkout_start", "checkout_review", "checkout_complete", "navigate_checkout" -> {
-                _navigateToCheckout.value = true
-            }
-        }
-    }
-
-    private fun parseActionObject(actionElement: JsonElement?): JsonObject? {
-        if (actionElement == null || actionElement.isJsonNull) return null
-        return try {
-            when {
-                actionElement.isJsonObject -> actionElement.asJsonObject
-                actionElement.isJsonPrimitive && actionElement.asJsonPrimitive.isString -> {
-                    gson.fromJson(actionElement.asString, JsonObject::class.java)
+                // Handle navigation if specified
+                body.navigate_to?.let { destination ->
+                    when (destination) {
+                        "checkout" -> _navigateToCheckout.value = true
+                    }
                 }
-                else -> null
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Unable to process voice"
             }
-        } catch (_: JsonSyntaxException) {
-            null
         }
     }
 
@@ -440,7 +419,18 @@ class ProductListViewModel @Inject constructor(
     fun clearAddedToCartMessage() { _addedToCartMessage.value = null }
     fun resetRequireLogin() { _requireLogin.value = false }
 
+    /**
+     * Toggles voice recording state.
+     * If currently recording, stops and processes audio.
+     * If not recording, starts microphone capture.
+     * Prevents toggling while processing voice input.
+     */
     fun toggleVoiceRecording() {
+        // Prevent interaction while processing AI response
+        if (_isProcessingVoice.value == true) {
+            return
+        }
+        
         if (_isRecording.value == true) {
             stopVoiceRecording()
         } else {
@@ -448,49 +438,86 @@ class ProductListViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Starts audio recording via VoiceAssistantManager.
+     * Captures microphone input into ByteArrayOutputStream.
+     */
     private fun startVoiceRecording() {
-        recordingJob = viewModelScope.launch {
-            try {
-                _isRecording.value = true
-                audioOutputStream = voiceAssistantManager.startRecording()
-            } catch (e: Exception) {
-                _error.value = "Không thể bắt đầu ghi âm: ${e.message}"
-                _isRecording.value = false
-            }
+        try {
+            android.util.Log.d("ProductListViewModel", "Starting voice recording...")
+            _isRecording.value = true
+            audioOutputStream = voiceAssistantManager.startRecording()
+            android.util.Log.d("ProductListViewModel", "Voice recording started successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("ProductListViewModel", "Error starting recording", e)
+            _error.value = "Unable to start recording: ${e.message}"
+            _isRecording.value = false
         }
     }
 
+    /**
+     * Stops recording and processes captured audio.
+     * Converts ByteArrayOutputStream to ByteArray and sends to voice processing.
+     */
     private fun stopVoiceRecording() {
-        recordingJob?.cancel()
+        android.util.Log.d("ProductListViewModel", "Stopping voice recording...")
         voiceAssistantManager.stopRecording()
         _isRecording.value = false
 
-        audioOutputStream?.let { stream ->
-            val audioData = stream.toByteArray()
-            processVoiceInput(audioData)
-        }
+        // Set processing state SYNCHRONOUSLY before async processing
+        // This ensures the UI shows loading immediately when stopping recording
+        _isProcessingVoice.value = true
+        _isLoading.value = true
+
+        val audioData = audioOutputStream?.toByteArray()
         audioOutputStream = null
+
+        if (audioData != null && audioData.isNotEmpty()) {
+            android.util.Log.d("ProductListViewModel", "Audio data size: ${audioData.size} bytes")
+            processVoiceInput(audioData)
+        } else {
+            android.util.Log.e("ProductListViewModel", "No audio data captured!")
+            _error.value = "No audio data"
+            // Reset processing state since processVoiceInput won't be called
+            _isProcessingVoice.value = false
+            _isLoading.value = false
+        }
     }
 
+    /**
+     * Processes raw audio data through VoiceAssistantManager.
+     * Handles navigation intents and action triggers from voice recognition.
+     *
+     * Response handling:
+     * - text: Sent to TTS for audio playback
+     * - navigate_to: Triggers UI navigation (e.g., checkout)
+     * - intent: Maps to business logic (cart, checkout actions)
+     */
     private fun processVoiceInput(audioData: ByteArray) {
         viewModelScope.launch {
+            _isProcessingVoice.value = true
             _isLoading.value = true
             try {
+                // Get current search results for voice context
+                val searchResults = getCurrentSearchResults()
+                
                 val result = voiceAssistantManager.processVoiceInput(
                     audioData = audioData,
-                    userId = userSession.getUserId()
+                    userId = userSession.getUserId(),
+                    searchResults = searchResults
                 )
 
                 result.fold(
                     onSuccess = { response ->
+                        // Send text to TTS for audio feedback
                         _assistantResponse.value = response.text
                         
-                        // Handle navigation
+                        // Handle explicit navigation from AI
                         if (response.navigate_to == "checkout") {
                             _navigateToCheckout.value = true
                         }
                         
-                        // Handle intent-based actions
+                        // Process intent-based business actions
                         response.intent?.let { intent ->
                             handleVoiceIntent(intent)
                         }
@@ -503,24 +530,24 @@ class ProductListViewModel @Inject constructor(
                 _error.value = "Lỗi: ${e.message}"
             } finally {
                 _isLoading.value = false
+                _isProcessingVoice.value = false
             }
         }
     }
 
+    /**
+     * Maps voice intents to business logic actions.
+     * Intents are extracted from voice recognition response.
+     */
     private suspend fun handleVoiceIntent(intent: String) {
         when (intent.lowercase()) {
-            "add_to_cart", "cart_add" -> {
-                cartRepository.syncCart()
-            }
-            "checkout", "navigate_checkout" -> {
-                _navigateToCheckout.value = true
-            }
-            "search", "search_product" -> {
-                // Search is handled by the AI response text
-            }
+            "add_to_cart", "cart_add" -> cartRepository.syncCart()
+            "checkout", "navigate_checkout" -> _navigateToCheckout.value = true
+            "search", "search_product" -> { /* Handled by AI response text */ }
         }
     }
 
+    /** Cleanup: Stop any ongoing recording/playback when ViewModel is destroyed */
     override fun onCleared() {
         super.onCleared()
         voiceAssistantManager.stopRecording()

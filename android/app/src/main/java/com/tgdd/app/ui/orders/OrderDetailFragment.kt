@@ -76,6 +76,7 @@ class OrderDetailFragment : Fragment() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun observeViewModel() {
         viewModel.order.observe(viewLifecycleOwner) { order ->
             order?.let {

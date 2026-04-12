@@ -1,188 +1,273 @@
 package com.tgdd.app.data.repository
 
 import android.util.Log
-import com.tgdd.app.data.local.dao.CartDao
-import com.tgdd.app.data.local.entity.CartItemEntity
-import com.tgdd.app.data.local.entity.ProductEntity
+import com.tgdd.app.data.model.AddToCartRequest
 import com.tgdd.app.data.model.CartItemDto
+import com.tgdd.app.data.model.UpdateCartQuantityRequest
 import com.tgdd.app.data.network.NetworkObserver
 import com.tgdd.app.data.remote.CartApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
+/**
+ * Repository for shopping cart data with API-only strategy.
+ * 
+ * Data Source Strategy: API-only (no local caching)
+ * 
+ * ## Read Flow (API-First):
+ * 1. Always fetch from API
+ * 2. UI observes StateFlow for reactive updates
+ * 3. Requires network connection for all operations
+ * 
+ * ## Write Flow (Direct API):
+ * 1. Write directly to API
+ * 2. Refresh cart data after successful write
+ * 3. All operations require authentication
+ * 
+ * ## Caching Mechanism:
+ * - In-memory StateFlow for current session only
+ * - No persistent storage
+ * - Cart data cleared on app restart
+ * 
+ * @see CartApi For API operations
+ */
 class CartRepository @Inject constructor(
-    private val cartDao: CartDao,
     private val cartApi: CartApi,
     private val userSession: com.tgdd.app.data.local.UserSession
 ) {
-    fun getCartItems(): Flow<List<CartItemEntity>> = cartDao.getCartItems()
+    private val _cartItems = MutableStateFlow<List<CartItemDto>>(emptyList())
+    private val _isLoading = MutableStateFlow(false)
+    private val _error = MutableStateFlow<String?>(null)
 
-    fun getAllCartItems(): Flow<List<CartItemEntity>> = cartDao.getCartItems()
+    /**
+     * Observes cart items as a reactive stream.
+     * 
+     * @return Flow emitting current cart items list
+     */
+    fun getCartItems(): Flow<List<CartItemDto>> = _cartItems
 
-    fun getCartItemCount(): Flow<Int> = cartDao.getCartItemCount().map { it ?: 0 }
+    /**
+     * Alias for getCartItems() - returns all cart items.
+     */
+    fun getAllCartItems(): Flow<List<CartItemDto>> = _cartItems
 
-    fun getCartTotal(): Flow<Double> = cartDao.getCartTotal().map { it ?: 0.0 }
+    /**
+     * Observes cart item count.
+     * 
+     * @return Flow emitting total number of items in cart
+     */
+    fun getCartItemCount(): Flow<Int> = _cartItems.map { items ->
+        items.sumOf { it.quantity }
+    }
 
-    fun calculateItemTotal(item: CartItemEntity): Double {
+    /**
+     * Observes cart total price.
+     * 
+     * @return Flow emitting sum of (price * quantity) for all items
+     */
+    fun getCartTotal(): Flow<Double> = _cartItems.map { items ->
+        items.sumOf { it.price * it.quantity }
+    }
+
+    /**
+     * Calculates total price for a single cart item.
+     * 
+     * @param item Cart item to calculate total for
+     * @return item.price * item.quantity
+     */
+    fun calculateItemTotal(item: CartItemDto): Double {
         return item.price * item.quantity
     }
 
-    suspend fun addToCart(product: ProductEntity) {
-        val cartItem = CartItemEntity(
-            productId = product.id,
-            name = product.name,
-            image = product.image,
-            price = product.price,
-            quantity = 1
-        )
-        val existingItem = cartDao.getCartItemByProductId(product.id)
-        if (existingItem != null) {
-            val updatedItem = existingItem.copy(quantity = existingItem.quantity + 1)
-            cartDao.updateCartItem(updatedItem)
-        } else {
-            cartDao.insertCartItem(cartItem)
+    /**
+     * Adds a product to cart via API.
+     * 
+     * @param productId Product ID to add
+     * @param quantity Quantity to add (default: 1)
+     */
+    suspend fun addToCart(productId: String, quantity: Int = 1): Result<Unit> {
+        Log.d(TAG, "addToCart called: productId=$productId, quantity=$quantity")
+        
+        if (!userSession.isLoggedIn()) {
+            Log.e(TAG, "User not logged in")
+            return Result.failure(Exception("User not logged in"))
         }
-        // Sync to server
-        syncAddToCart(product.id, 1)
-    }
-
-    suspend fun addToCart(item: CartItemEntity) {
-        val existingItem = cartDao.getCartItemByProductId(item.productId)
-        if (existingItem != null) {
-            val updatedItem = existingItem.copy(quantity = existingItem.quantity + item.quantity)
-            cartDao.updateCartItem(updatedItem)
-        } else {
-            cartDao.insertCartItem(item)
-        }
-        // Sync to server
-        syncAddToCart(item.productId, item.quantity)
-    }
-
-    suspend fun updateCartItem(item: CartItemEntity) {
-        cartDao.updateCartItem(item)
-    }
-
-    suspend fun updateQuantity(itemId: Long, quantity: Int) {
-        val items = getCartItems().first()
-        val item = items.find { it.id == itemId }
-        if (quantity < 1) {
-            cartDao.removeCartItemById(itemId)
-            item?.let { syncRemoveFromCart(it.productId) }
-        } else {
-            cartDao.updateQuantity(itemId, quantity)
-            item?.let { syncSetQuantity(it.productId, quantity) }
-        }
-    }
-
-    suspend fun removeFromCart(itemId: Long) {
-        // Get the productId before deleting so we can sync with server
-        val items = getCartItems().first()
-        val item = items.find { it.id == itemId }
-        cartDao.removeCartItemById(itemId)
-        item?.let { syncRemoveFromCart(it.productId) }
-    }
-
-    suspend fun removeFromCart(item: CartItemEntity) {
-        cartDao.deleteCartItem(item)
-        syncRemoveFromCart(item.productId)
-    }
-
-    suspend fun removeByProductId(productId: String) {
-        cartDao.removeCartItemByProductId(productId)
-        syncRemoveFromCart(productId)
-    }
-
-    suspend fun clearCart() {
-        cartDao.clearCart()
-    }
-
-    private suspend fun syncAddToCart(productId: String, quantity: Int) {
-        if (!userSession.isLoggedIn()) return
-        if (!NetworkObserver.isCurrentlyConnected()) return
-        try {
-            val dto = mapOf("product_id" to productId, "quantity" to quantity)
-            val response = cartApi.addToCart(dto)
-            if (!response.isSuccessful) {
-                Log.e(TAG, "Add to cart sync failed: ${response.code()}")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Add to cart sync failed: ${e.message}", e)
-        }
-    }
-
-    private suspend fun syncRemoveFromCart(productId: String) {
-        if (!userSession.isLoggedIn()) return
-        if (!NetworkObserver.isCurrentlyConnected()) return
-        try {
-            val response = cartApi.removeFromCart(productId)
-            if (!response.isSuccessful) {
-                Log.e(TAG, "Remove from cart sync failed: ${response.code()}")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Remove from cart sync failed: ${e.message}", e)
-        }
-    }
-
-    private suspend fun syncSetQuantity(productId: String, quantity: Int) {
-        if (!userSession.isLoggedIn()) return
-        if (!NetworkObserver.isCurrentlyConnected()) return
-        try {
-            val response = cartApi.setCartQuantity(productId, mapOf("quantity" to quantity))
-            if (!response.isSuccessful) {
-                Log.e(TAG, "Set quantity sync failed: ${response.code()}")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Set quantity sync failed: ${e.message}", e)
-        }
-    }
-
-    suspend fun syncCart() {
-        if (!userSession.isLoggedIn()) return
         if (!NetworkObserver.isCurrentlyConnected()) {
-            Log.w(TAG, "Cannot sync cart: no network connection")
-            return
+            Log.e(TAG, "No network connection")
+            return Result.failure(Exception("No network connection"))
         }
-        try {
-            val response = cartApi.getCart()
+
+        return try {
+            _isLoading.value = true
+            val request = AddToCartRequest(productId = productId, quantity = quantity)
+            Log.d(TAG, "Calling API addToCart with: $request")
+            val response = cartApi.addToCart(request)
+            
+            Log.d(TAG, "API response: code=${response.code()}, success=${response.isSuccessful}")
+            
             if (response.isSuccessful) {
-                response.body()?.cart?.let { items ->
-                    val entities = items.map { it.toEntity() }
-                    cartDao.clearCart()
-                    entities.forEach { cartDao.insertCartItem(it) }
-                    Log.d(TAG, "Cart synced: ${items.size} items")
+                Log.d(TAG, "Add to cart successful, refreshing cart...")
+                // Refresh cart after adding to get updated cart state
+                val refreshResult = refreshCart()
+                if (refreshResult.isSuccess) {
+                    Log.d(TAG, "Cart refresh successful")
+                    Result.success(Unit)
+                } else {
+                    // Cart was added but refresh failed - still consider it success
+                    Log.w(TAG, "Cart refresh failed after add: ${refreshResult.exceptionOrNull()?.message}")
+                    Result.success(Unit)
                 }
             } else {
-                Log.e(TAG, "Cart sync failed: ${response.code()}")
+                val errorMsg = "Failed to add to cart: ${response.code()} - ${response.message()}"
+                Log.e(TAG, errorMsg)
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Cart sync failed: ${e.message}", e)
+            Log.e(TAG, "Add to cart exception: ${e.message}", e)
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
         }
     }
+
+    /**
+     * Updates quantity for a cart item by product ID.
+     * Removes item if quantity < 1.
+     * 
+     * @param productId Product ID
+     * @param quantity New quantity (removes if < 1)
+     */
+    suspend fun updateQuantity(productId: String, quantity: Int): Result<Unit> {
+        if (!userSession.isLoggedIn()) {
+            return Result.failure(Exception("User not logged in"))
+        }
+        if (!NetworkObserver.isCurrentlyConnected()) {
+            return Result.failure(Exception("No network connection"))
+        }
+
+        return try {
+            _isLoading.value = true
+            
+            if (quantity < 1) {
+                // Remove item if quantity becomes invalid
+                return removeFromCart(productId)
+            }
+            
+            val request = UpdateCartQuantityRequest(quantity = quantity)
+            val response = cartApi.setCartQuantity(productId, request)
+            
+            if (response.isSuccessful) {
+                // Refresh cart after updating to get updated cart state
+                val refreshResult = refreshCart()
+                if (refreshResult.isSuccess) {
+                    Result.success(Unit)
+                } else {
+                    Log.w(TAG, "Cart refresh failed after update: ${refreshResult.exceptionOrNull()?.message}")
+                    Result.success(Unit)
+                }
+            } else {
+                val errorMsg = "Failed to update quantity: ${response.code()}"
+                Log.e(TAG, errorMsg)
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Update quantity failed: ${e.message}", e)
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    /**
+     * Removes a cart item by product ID.
+     * 
+     * @param productId Product ID to remove from cart
+     */
+    suspend fun removeFromCart(productId: String): Result<Unit> {
+        if (!userSession.isLoggedIn()) {
+            return Result.failure(Exception("User not logged in"))
+        }
+        if (!NetworkObserver.isCurrentlyConnected()) {
+            return Result.failure(Exception("No network connection"))
+        }
+
+        return try {
+            _isLoading.value = true
+            val response = cartApi.removeFromCart(productId)
+            
+            if (response.isSuccessful) {
+                // Refresh cart after removing to get updated cart state
+                val refreshResult = refreshCart()
+                if (refreshResult.isSuccess) {
+                    Result.success(Unit)
+                } else {
+                    Log.w(TAG, "Cart refresh failed after remove: ${refreshResult.exceptionOrNull()?.message}")
+                    Result.success(Unit)
+                }
+            } else {
+                val errorMsg = "Failed to remove from cart: ${response.code()}"
+                Log.e(TAG, errorMsg)
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Remove from cart failed: ${e.message}", e)
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    /**
+     * Clears all items from cart locally.
+     * Note: Server cart is cleared automatically when order is created.
+     * This method is called after successful order creation.
+     */
+    suspend fun clearCart() {
+        _cartItems.value = emptyList()
+    }
+
+    /**
+     * Fetches cart from API and updates local state.
+     * This is the primary method to sync cart data.
+     */
+    suspend fun refreshCart(): Result<Unit> {
+        if (!userSession.isLoggedIn()) {
+            _cartItems.value = emptyList()
+            return Result.failure(Exception("User not logged in"))
+        }
+        if (!NetworkObserver.isCurrentlyConnected()) {
+            return Result.failure(Exception("No network connection"))
+        }
+
+        return try {
+            val response = cartApi.getCart()
+            
+            if (response.isSuccessful) {
+                val items = response.body()?.cart ?: emptyList()
+                _cartItems.value = items
+                Log.d(TAG, "Cart refreshed: ${items.size} items")
+                Result.success(Unit)
+            } else {
+                val errorMsg = "Failed to fetch cart: ${response.code()}"
+                Log.e(TAG, errorMsg)
+                _error.value = errorMsg
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Cart refresh failed: ${e.message}", e)
+            _error.value = e.message
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Alias for refreshCart() for backward compatibility.
+     */
+    suspend fun syncCart(): Result<Unit> = refreshCart()
 
     companion object {
         private const val TAG = "CartRepository"
     }
-}
-
-fun CartItemEntity.toDto(): CartItemDto {
-    return CartItemDto(
-        productId = productId,
-        name = name,
-        images = listOf(image),
-        price = price,
-        quantity = quantity
-    )
-}
-
-fun CartItemDto.toEntity(): CartItemEntity {
-    return CartItemEntity(
-        id = 0,
-        productId = this.productId ?: "",
-        name = this.name ?: "",
-        image = this.getImage(),
-        price = this.price,
-        quantity = this.quantity
-    )
 }

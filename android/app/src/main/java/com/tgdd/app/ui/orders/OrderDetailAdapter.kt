@@ -21,6 +21,7 @@ class OrderDetailAdapter : ListAdapter<OrderItemUi, OrderDetailAdapter.ViewHolde
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(getItem(position))
 
     class ViewHolder(private val b: ItemOrderDetailBinding) : RecyclerView.ViewHolder(b.root) {
+        @Suppress("DEPRECATION")
         private val vnd = NumberFormat.getNumberInstance(Locale("vi", "VN"))
 
         fun bind(item: OrderItemUi) {

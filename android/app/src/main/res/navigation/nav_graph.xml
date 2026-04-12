@@ -98,6 +98,13 @@
         </action>
     </fragment>
 
+    <!-- 2.5. Chatbot -->
+    <fragment
+        android:id="@+id/chatbotFragment"
+        android:name="com.tgdd.app.ui.chatbot.ChatbotFragment"
+        android:label="@string/nav_chatbot"
+        tools:layout="@layout/fragment_chatbot" />
+
     <!-- 3. Cart -->
     <fragment
         android:id="@+id/cartFragment"

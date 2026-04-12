@@ -88,6 +88,7 @@ class ProductDetailFragment : Fragment() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun observeViewModel() {
         viewModel.product.observe(viewLifecycleOwner) { product ->
             product ?: return@observe

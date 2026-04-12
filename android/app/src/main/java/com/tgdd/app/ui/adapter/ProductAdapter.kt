@@ -60,6 +60,7 @@ class ProductAdapter(
             }
         }
 
+        @Suppress("DEPRECATION")
         fun bind(product: ProductEntity) {
             b.productName.text = product.name
             b.productPrice.text = "${vnd.format(product.price)} ₫"
@@ -87,7 +88,7 @@ class ProductAdapter(
 
             // Load image with Coil
             b.productImage.load(product.image) {
-                crossfade(true)
+                crossfade(false)
                 placeholder(R.drawable.placeholder_product)
                 error(R.drawable.placeholder_product)
                 transformations(RoundedCornersTransformation(16f))

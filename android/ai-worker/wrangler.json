@@ -1,0 +1,30 @@
+{
+  "name": "ai-worker",
+  "main": "src/index.ts",
+  "account_id": "cf5f13bd5550ea98e75fea6f3ddd321b",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "ai": {
+    "binding": "AI"
+  },
+  "vectorize": [
+    {
+      "binding": "VECTORIZE",
+      "index_name": "tgdd-products"
+    },
+    {
+      "binding": "VECTORIZE_FAQ",
+      "index_name": "tgdd-faq"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tgdd-db",
+      "database_id": "92130798-781f-4f84-b289-f94cf781dd0f"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

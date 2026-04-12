@@ -48,21 +48,6 @@
                     android:scaleType="centerCrop"
                     android:contentDescription="@string/cd_product_image" />
 
-                <!-- Favorite Button -->
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/fabFavorite"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="end|top"
-                    android:layout_marginTop="32dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="16dp"
-                    android:backgroundTint="#CCffffff"
-                    app:elevation="2dp"
-                    app:fabSize="mini"
-                    app:srcCompat="@drawable/ic_favorite_border"
-                    app:tint="@color/mobi_pulse_tertiary" />
-
             </FrameLayout>
 
             <!-- Product Info Card - White rounded card on top of image -->

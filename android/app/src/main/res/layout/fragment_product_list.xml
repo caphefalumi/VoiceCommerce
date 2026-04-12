@@ -117,7 +117,7 @@
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_search_bar"
                 android:contentDescription="@string/filter_button"
-                android:src="@drawable/ic_settings"
+                android:src="@drawable/ic_filter"
                 app:tint="@color/mobi_pulse_on_surface_variant" />
 
         </LinearLayout>
@@ -274,14 +274,6 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:indeterminateTint="@color/mobi_pulse_primary"
-        android:visibility="gone" />
-
     <TextView
         android:id="@+id/errorText"
         android:layout_width="wrap_content"
@@ -293,6 +285,73 @@
         android:textColor="@color/error"
         android:textSize="14sp"
         android:visibility="gone" />
+
+    <!-- AI Response Box -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/aiResponseCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="160dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="@android:color/white"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_mic"
+                    app:tint="@color/mobi_pulse_primary" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/space_grotesk_bold"
+                    android:text="AI Assistant"
+                    android:textColor="@color/mobi_pulse_on_surface"
+                    android:textSize="14sp" />
+
+                <ImageButton
+                    android:id="@+id/closeResponseButton"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Close"
+                    android:src="@drawable/ic_remove"
+                    app:tint="@color/mobi_pulse_on_surface_variant" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/aiResponseText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:fontFamily="@font/inter"
+                android:lineSpacingExtra="4dp"
+                android:textColor="@color/mobi_pulse_on_surface"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Floating Voice Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

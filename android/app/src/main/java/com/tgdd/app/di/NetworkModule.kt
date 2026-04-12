@@ -10,7 +10,6 @@ import com.tgdd.app.data.remote.CartApi
 import com.tgdd.app.data.remote.OrderApi
 import com.tgdd.app.data.remote.ProductApi
 import com.tgdd.app.data.remote.TicketApi
-import com.tgdd.app.data.remote.AiVoiceApi
 import com.tgdd.app.data.remote.UserApi
 import com.tgdd.app.data.remote.VoiceApi
 import com.tgdd.app.data.network.AuthInterceptor
@@ -157,10 +156,14 @@ object NetworkModule {
             .addInterceptor(RetryInterceptor(maxRetries = 3))
             .addInterceptor { chain ->
                 val token = userSession.getAuthToken()
-                val request = chain.request().newBuilder()
+                val originalRequest = chain.request()
+                val request = originalRequest.newBuilder()
                     .addHeader("Content-Type", "application/json")
-                    .addHeader("Accept", "application/json")
                     .apply {
+                        // Only add Accept: application/json if not already set
+                        if (originalRequest.header("Accept") == null) {
+                            addHeader("Accept", "application/json")
+                        }
                         if (!token.isNullOrBlank()) {
                             addHeader("Authorization", "Bearer $token")
                         }
@@ -188,7 +191,7 @@ object NetworkModule {
      * - Cart management
      * - Order processing
      * - User authentication and profile
-     * - Wishlists and reviews
+     * - Reviews
      *
      * ## Named Qualifier
      * This instance is qualified with `@Named("apiWorkerRetrofit")` to distinguish
@@ -333,23 +336,6 @@ object NetworkModule {
     }
 
     /**
-     * Provides the WishlistApi interface for wishlist management.
-     *
-     * ## API Operations
-     * - Add/remove products from wishlist
-     * - Get user's wishlist
-     * - Move items to cart
-     *
-     * @param retrofit API Worker Retrofit instance
-     * @return WishlistApi implementation
-     */
-    @Provides
-    @Singleton
-    fun provideWishlistApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): com.tgdd.app.data.remote.WishlistApi {
-        return retrofit.create(com.tgdd.app.data.remote.WishlistApi::class.java)
-    }
-
-    /**
      * Provides the ReviewApi interface for product review operations.
      *
      * ## API Operations
@@ -385,29 +371,13 @@ object NetworkModule {
     }
 
     /**
-     * Provides the [AiVoiceApi] interface for AI voice processing operations.
-     *
-     * ## API Operations
-     * - Voice command processing
-     * - Text-to-speech conversion
-     * - Voice authentication
-     *
-     * @param aiWorkerRetrofit AI Worker Retrofit instance
-     * @return AiVoiceApi implementation
-     */
-    @Provides
-    @Singleton
-    fun provideAiVoiceApi(@Named("aiWorkerRetrofit") aiWorkerRetrofit: Retrofit): AiVoiceApi {
-        return aiWorkerRetrofit.create(AiVoiceApi::class.java)
-    }
-
-    /**
      * Provides the [VoiceApi] interface for voice-related API operations.
      *
      * ## API Operations
      * - Speech-to-text conversion
      * - Voice command interpretation
      * - Audio stream handling
+     * - Text-based voice commands
      *
      * @param aiWorkerRetrofit AI Worker Retrofit instance
      * @return VoiceApi implementation
@@ -416,5 +386,22 @@ object NetworkModule {
     @Singleton
     fun provideVoiceApi(@Named("aiWorkerRetrofit") aiWorkerRetrofit: Retrofit): VoiceApi {
         return aiWorkerRetrofit.create(VoiceApi::class.java)
+    }
+
+    /**
+     * Provides the [ChatApi] interface for chatbot operations.
+     *
+     * ## API Operations
+     * - Send text messages to AI chatbot
+     * - Receive AI responses with MCP tool support
+     * - Maintain conversation history
+     *
+     * @param aiWorkerRetrofit AI Worker Retrofit instance
+     * @return ChatApi implementation
+     */
+    @Provides
+    @Singleton
+    fun provideChatApi(@Named("aiWorkerRetrofit") aiWorkerRetrofit: Retrofit): com.tgdd.app.data.remote.ChatApi {
+        return aiWorkerRetrofit.create(com.tgdd.app.data.remote.ChatApi::class.java)
     }
 }

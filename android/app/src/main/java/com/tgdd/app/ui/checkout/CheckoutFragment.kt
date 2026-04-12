@@ -96,7 +96,7 @@ class CheckoutFragment : Fragment() {
 
         binding.placeOrderButton.setOnClickListener {
             val items = viewModel.cartItems.value ?: emptyList()
-            val total = viewModel.finalTotal.value ?: viewModel.cartTotal.value ?: 0.0
+            val finalTotal = viewModel.finalTotal.value ?: viewModel.cartTotal.value ?: 0.0
             
             viewModel.name.value = binding.nameInput.text.toString()
             viewModel.address.value = binding.addressInput.text.toString()
@@ -104,10 +104,11 @@ class CheckoutFragment : Fragment() {
             viewModel.city.value = binding.cityInput.text.toString()
             viewModel.paymentMethod.value = "cod"
             
-            viewModel.placeOrder(items, total)
+            viewModel.placeOrder(items, finalTotal)
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun observeViewModel() {
         viewModel.cartTotal.observe(viewLifecycleOwner) { total ->
             val subtotal = total ?: 0.0

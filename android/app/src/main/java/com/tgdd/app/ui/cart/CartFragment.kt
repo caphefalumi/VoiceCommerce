@@ -13,13 +13,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import com.tgdd.app.R
 import com.tgdd.app.data.local.UserSession
 import com.tgdd.app.data.repository.ProductRepository
 import com.tgdd.app.databinding.FragmentCartBinding
 import com.tgdd.app.ui.adapter.CartAdapter
+import com.tgdd.app.ui.adapter.OrderSummaryAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
@@ -49,6 +48,7 @@ class CartFragment : Fragment() {
     private val viewModel: CartViewModel by viewModels()
     private val args: CartFragmentArgs by navArgs()
     private lateinit var cartAdapter: CartAdapter
+    private lateinit var orderSummaryAdapter: OrderSummaryAdapter
 
     @Inject
     lateinit var userSession: UserSession
@@ -69,6 +69,7 @@ class CartFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupRecyclerView()
+        setupOrderSummaryRecyclerView()
         setupSwipeRefresh()
         setupClickListeners()
         observeViewModel()
@@ -90,11 +91,15 @@ class CartFragment : Fragment() {
         cartAdapter = CartAdapter(
             productRepository = productRepository,
             onQuantityChanged = { item, quantity ->
-                viewModel.updateQuantity(item.id, quantity)
+                item.productId?.let { productId ->
+                    viewModel.updateQuantity(productId, quantity)
+                }
             },
             onRemoveClicked = { item ->
-                viewModel.removeItem(item.id)
-                Snackbar.make(binding.root, getString(R.string.item_removed), Snackbar.LENGTH_SHORT).show()
+                item.productId?.let { productId ->
+                    viewModel.removeItem(productId)
+                    Snackbar.make(binding.root, getString(R.string.item_removed), Snackbar.LENGTH_SHORT).show()
+                }
             }
         )
         // New Stitch layout uses cartRecyclerView ID
@@ -106,12 +111,29 @@ class CartFragment : Fragment() {
                     val position = viewHolder.bindingAdapterPosition
                     if (position != RecyclerView.NO_POSITION && position < cartAdapter.currentList.size) {
                         val item = cartAdapter.currentList[position]
-                        viewModel.removeItem(item.id)
-                        Snackbar.make(binding.root, getString(R.string.item_removed), Snackbar.LENGTH_SHORT).show()
+                        item.productId?.let { productId ->
+                            viewModel.removeItem(productId)
+                            Snackbar.make(binding.root, getString(R.string.item_removed), Snackbar.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
             ItemTouchHelper(swipeHandler).attachToRecyclerView(this)
+        }
+    }
+
+    private fun setupOrderSummaryRecyclerView() {
+        orderSummaryAdapter = OrderSummaryAdapter(
+            onRemoveClicked = { item ->
+                item.productId?.let { productId ->
+                    viewModel.removeItem(productId)
+                    Snackbar.make(binding.root, getString(R.string.item_removed), Snackbar.LENGTH_SHORT).show()
+                }
+            }
+        )
+        binding.orderSummaryRecyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = orderSummaryAdapter
         }
     }
 
@@ -133,48 +155,6 @@ class CartFragment : Fragment() {
         binding.shopNowButton.setOnClickListener {
             findNavController().navigate(R.id.productListFragment)
         }
-
-        binding.voucherRow.setOnClickListener {
-            if (!userSession.isLoggedIn()) {
-                showLoginRequiredDialog()
-                return@setOnClickListener
-            }
-            showCouponInputDialog()
-        }
-    }
-
-    private fun showCouponInputDialog() {
-        val container = LayoutInflater.from(requireContext())
-            .inflate(com.google.android.material.R.layout.design_text_input_end_icon, null)
-        val inputLayout = TextInputLayout(requireContext()).apply {
-            hint = getString(R.string.coupon_code_hint)
-        }
-        val input = TextInputEditText(requireContext()).apply {
-            setSingleLine(true)
-        }
-        inputLayout.addView(input)
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(getString(R.string.coupon_code))
-            .setView(inputLayout)
-            .setPositiveButton(getString(R.string.apply), null)
-            .setNegativeButton(getString(R.string.cancel), null)
-            .create()
-            .also { dialog ->
-                dialog.setOnShowListener {
-                    dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val code = input.text?.toString()?.trim().orEmpty()
-                        if (code.isBlank()) {
-                            inputLayout.error = getString(R.string.coupon_code_hint)
-                            return@setOnClickListener
-                        }
-                        inputLayout.error = null
-                        viewModel.applyCoupon(code)
-                        dialog.dismiss()
-                    }
-                }
-                dialog.show()
-            }
     }
 
     private fun showLoginRequiredDialog() {
@@ -188,14 +168,22 @@ class CartFragment : Fragment() {
             .show()
     }
 
+    @Suppress("DEPRECATION")
     private fun observeViewModel() {
         viewModel.cartItems.observe(viewLifecycleOwner) { items ->
+            android.util.Log.d("CartFragment", "Cart items received: ${items.size} items")
+            items.forEach { item ->
+                android.util.Log.d("CartFragment", "Item: ${item.name}, qty: ${item.quantity}, price: ${item.price}")
+            }
             cartAdapter.submitList(items)
+            orderSummaryAdapter.submitList(items)
             val isEmpty = items.isEmpty()
             binding.emptyCartLayout.visibility = if (isEmpty) View.VISIBLE else View.GONE
             binding.cartRecyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
             binding.orderSummaryCard.visibility = if (isEmpty) View.GONE else View.VISIBLE
             binding.checkoutBar.visibility = if (isEmpty) View.GONE else View.VISIBLE
+            // Hide voucher row in cart view
+            binding.voucherRow.visibility = View.GONE
         }
 
         viewModel.cartTotal.observe(viewLifecycleOwner) { total ->

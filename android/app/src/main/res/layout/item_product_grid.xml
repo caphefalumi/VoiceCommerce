@@ -77,19 +77,6 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <!-- Favorite button -->
-            <ImageButton
-                android:id="@+id/favoriteButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                android:background="@drawable/bg_circle_white"
-                android:src="@drawable/ic_favorite_border"
-                android:contentDescription="@string/favorite_button"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:tint="@color/mobi_pulse_on_surface_variant" />
-
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- Info -->

@@ -1,8 +1,10 @@
 package com.tgdd.app.data.remote
 
+import com.tgdd.app.data.model.AddToCartRequest
 import com.tgdd.app.data.model.AddToCartResponse
 import com.tgdd.app.data.model.CartResponse
 import com.tgdd.app.data.model.MessageResponse
+import com.tgdd.app.data.model.UpdateCartQuantityRequest
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -24,24 +26,24 @@ interface CartApi {
     
     /**
      * Adds a product to the shopping cart.
-     * @param item Map containing product details (productId, quantity)
+     * @param request Request body containing product ID and quantity
      * @return Response confirming addition and updated cart
      * @see AddToCartResponse
      */
     @POST("cart")
-    suspend fun addToCart(@Body item: Map<String, Any>): Response<AddToCartResponse>
+    suspend fun addToCart(@Body request: AddToCartRequest): Response<AddToCartResponse>
 
     /**
      * Updates the quantity of a product in the cart.
      * @param productId The ID of the product to update
-     * @param payload Map containing new quantity (quantity)
+     * @param request Request body containing new quantity
      * @return Response with success message
      * @see MessageResponse
      */
     @PATCH("cart/{productId}")
     suspend fun setCartQuantity(
         @Path("productId") productId: String,
-        @Body payload: Map<String, Int>
+        @Body request: UpdateCartQuantityRequest
     ): Response<MessageResponse>
     
     /**

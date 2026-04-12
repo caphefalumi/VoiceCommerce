@@ -10,7 +10,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#CCffffff"
-        android:elevation="0dp">
+        android:elevation="0dp"
+        android:fitsSystemWindows="true">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -109,6 +110,7 @@
                     android:id="@+id/cartRecyclerView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
                     android:clipToPadding="false" />
 
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
@@ -159,6 +161,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="12dp"
+                android:visibility="gone"
                 app:cardBackgroundColor="@android:color/white"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
@@ -180,6 +183,21 @@
                         android:textColor="@color/mobi_pulse_on_surface"
                         android:textSize="16sp"
                         android:textStyle="bold" />
+
+                    <!-- Cart Items List in Order Summary -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/orderSummaryRecyclerView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:nestedScrollingEnabled="false" />
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@color/mobi_pulse_outline_variant" />
 
                     <!-- Subtotal Row -->
                     <LinearLayout
@@ -287,6 +305,7 @@
         android:layout_gravity="bottom"
         android:background="@android:color/white"
         android:elevation="8dp"
+        android:visibility="gone"
         android:orientation="vertical"
         android:paddingHorizontal="20dp"
         android:paddingTop="12dp"

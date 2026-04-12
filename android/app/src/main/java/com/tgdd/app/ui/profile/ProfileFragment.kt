@@ -75,16 +75,6 @@ class ProfileFragment : Fragment() {
             findNavController().navigate(R.id.registerFragment)
         }
         binding.logoutButton.setOnClickListener { showLogoutConfirmation() }
-        binding.editProfileRow.setOnClickListener {
-            if (viewModel.isLoggedIn.value == true) {
-                findNavController().navigate(R.id.accountSettingsFragment)
-            } else {
-                findNavController().navigate(R.id.action_global_login)
-            }
-        }
-        binding.notificationsRow.setOnClickListener {
-            Snackbar.make(binding.root, getString(R.string.notifications_coming_soon), Snackbar.LENGTH_SHORT).show()
-        }
         binding.helpCenterRow.setOnClickListener { showAboutDialog() }
         binding.ordersRow.setOnClickListener {
             if (viewModel.isLoggedIn.value == true) {

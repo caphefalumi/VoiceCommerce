@@ -8,6 +8,27 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * ViewModel for orders list screen.
+ *
+ * Responsibilities:
+ * - Load user's order history from server
+ * - Sync local cache with server data
+ * - Display orders in chronological order
+ *
+ * UI State:
+ * - orders: List<OrderEntity> - User's orders
+ * - isLoading: Boolean - Loading indicator
+ * - error: String? - Error message
+ *
+ * Data Flow:
+ * 1. Check user session for valid userId
+ * 2. Sync orders from server via OrderRepository
+ * 3. Collect and expose via LiveData
+ *
+ * @see OrdersFragment For UI binding
+ * @see OrderRepository For data operations
+ */
 @HiltViewModel
 class OrdersViewModel @Inject constructor(
     private val orderRepository: OrderRepository,
@@ -31,6 +52,14 @@ class OrdersViewModel @Inject constructor(
         loadOrders()
     }
 
+    /**
+     * Loads orders from server and caches locally.
+     *
+     * Flow:
+     * 1. Validate user session
+     * 2. Sync orders from server (pull-to-refresh support)
+     * 3. Collect and expose via LiveData
+     */
     private fun loadOrders() {
         val userId = userSession.getUserId()
         if (userId.isNullOrBlank()) {
@@ -41,7 +70,9 @@ class OrdersViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // Sync: fetch from server and update local cache
                 orderRepository.syncOrders(userId)
+                // Collect: Flow emission updates _orders LiveData
                 orderRepository.getOrdersByUserId(userId).collect { list ->
                     _orders.value = list
                     _isLoading.value = false

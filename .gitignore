@@ -46,3 +46,5 @@ apps/api-worker/.wrangler
 
 tmp/
 .gitnexus
+Report/
+.wrangler

@@ -12,6 +12,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.tgdd.app.R
 import kotlinx.coroutines.tasks.await
 
+@Suppress("DEPRECATION")
 class FirebaseAuthHelper(private val activity: Activity) {
 
     private lateinit var googleSignInClient: GoogleSignInClient

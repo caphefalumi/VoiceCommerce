@@ -1,6 +1,6 @@
 package com.tgdd.app.utils
 
-import com.tgdd.app.data.local.entity.CartItemEntity
+import com.tgdd.app.data.model.CartItemDto
 import com.tgdd.app.data.local.entity.ProductEntity
 
 /**
@@ -43,17 +43,17 @@ object StockValidator {
      * - Returns invalid if product.inStock is false
      */
     fun validateCartStock(
-        cartItems: List<CartItemEntity>,
+        cartItems: List<CartItemDto>,
         products: Map<String, ProductEntity>
     ): StockValidationResult {
         val outOfStock = mutableListOf<String>()
         val lowStock = mutableListOf<Pair<String, Int>>()
 
         cartItems.forEach { cartItem ->
-            val product = products[cartItem.productId]
+            val product = cartItem.productId?.let { products[it] }
             // Product not found in inventory = out of stock
             if (product == null || !product.inStock) {
-                outOfStock.add(cartItem.name)
+                outOfStock.add(cartItem.name ?: "Unknown product")
             }
             // Note: Quantity field not available in ProductEntity
             // Low stock detection is placeholder for future implementation
