@@ -8,92 +8,93 @@
     <!-- ============================================ -->
     <!-- NAVIGATION -->
     <!-- ============================================ -->
-    <string name="home">Home</string>
-    <string name="search">Search</string>
-    <string name="cart">Cart</string>
-    <string name="profile">Profile</string>
-    <string name="products">Products</string>
-    <string name="product_detail">Product Detail</string>
-    <string name="checkout">Checkout</string>
+    <string name="home">Trang chủ</string>
+    <string name="search">Tìm kiếm</string>
+    <string name="cart">Giỏ hàng</string>
+    <string name="profile">Hồ sơ</string>
+    <string name="products">Sản phẩm</string>
+    <string name="product_detail">Chi tiết sản phẩm</string>
+    <string name="checkout">Thanh toán</string>
 
     <!-- ============================================ -->
     <!-- PRODUCT LIST -->
     <!-- ============================================ -->
-    <string name="add">Add</string>
+    <string name="add">Thêm</string>
     <string name="apply">Áp dụng</string>
-    <string name="search_products_hint">Search products...</string>
-    <string name="loading">Loading...</string>
-    <string name="no_products_found">No products found</string>
+    <string name="search_products_hint">Tìm kiếm sản phẩm...</string>
+    <string name="loading">Đang tải...</string>
+    <string name="no_products_found">Không tìm thấy sản phẩm</string>
 
     <!-- ============================================ -->
     <!-- PRODUCT DETAIL -->
     <!-- ============================================ -->
-    <string name="add_to_cart">Add to Cart</string>
-    <string name="quantity">Quantity:</string>
-    <string name="description">Description</string>
-    <string name="product_image">Product image</string>
+    <string name="add_to_cart">Thêm vào giỏ</string>
+    <string name="quantity">Số lượng:</string>
+    <string name="description">Mô tả</string>
+    <string name="product_image">Hình ảnh sản phẩm</string>
     <string name="default_quantity">1</string>
 
     <!-- ============================================ -->
     <!-- CART -->
     <!-- ============================================ -->
-    <string name="your_cart">Your Cart</string>
-    <string name="your_cart_is_empty">Your cart is empty</string>
-    <string name="continue_shopping">Continue Shopping</string>
-    <string name="total">Total:</string>
+    <string name="your_cart">Giỏ hàng của bạn</string>
+    <string name="your_cart_is_empty">Giỏ hàng trống</string>
+    <string name="continue_shopping">Tiếp tục mua sắm</string>
+    <string name="total">Tổng cộng:</string>
     <string name="total_label">Tổng cộng</string>
-    <string name="subtotal">Subtotal</string>
-    <string name="clear">Clear</string>
-    <string name="clear_cart">Clear Cart</string>
-    <string name="checkout_button">Checkout</string>
-    <string name="proceed_to_checkout">Proceed to Checkout</string>
-    <string name="remove_item">Remove item</string>
+    <string name="subtotal">Tạm tính</string>
+    <string name="clear">Xóa</string>
+    <string name="clear_cart">Xóa giỏ hàng</string>
+    <string name="checkout_button">Thanh toán</string>
+    <string name="proceed_to_checkout">Tiến hành thanh toán</string>
+    <string name="remove_item">Xóa sản phẩm</string>
 
     <!-- ============================================ -->
     <!-- CHECKOUT -->
     <!-- ============================================ -->
-    <string name="shipping_information">Shipping Information</string>
-    <string name="full_name">Full Name</string>
-    <string name="shipping_address">Shipping Address</string>
-    <string name="phone_number">Phone Number</string>
-    <string name="payment_method">Payment Method</string>
-    <string name="cash_on_delivery_cod">Cash on Delivery (COD)</string>
+    <string name="shipping_information">Thông tin giao hàng</string>
+    <string name="full_name">Họ và tên</string>
+    <string name="shipping_address">Địa chỉ giao hàng</string>
+    <string name="phone_number">Số điện thoại</string>
+    <string name="payment_method">Phương thức thanh toán</string>
+    <string name="cash_on_delivery_cod">Thanh toán khi nhận hàng (COD)</string>
     <string name="stripe_payment">Stripe</string>
-    <string name="place_order">Place Order</string>
+    <string name="place_order">Đặt hàng</string>
     <string name="place_order_with_total">Đặt hàng (%1$s ₫)</string>
     <string name="coupon_code">Mã giảm giá</string>
     <string name="coupon_code_hint">Nhập mã (FLASHSALE, BLACKFRIDAY, NEWGUY)</string>
     <string name="discount_subtracted">Số tiền được giảm</string>
     <string name="total_after_discount">Tổng sau giảm</string>
-    <string name="order_placed">Order Placed</string>
-    <string name="payment_success_title">Payment Successful</string>
-    <string name="payment_success_message">Your payment was processed successfully. Your order is confirmed!</string>
-    <string name="payment_canceled">Payment was canceled.</string>
-    <string name="payment_pending">Payment is being processed. Please check your orders later.</string>
-    <string name="payment_check_failed">Unable to verify payment status. Please check your orders.</string>
+    <string name="order_placed">Đã đặt hàng</string>
+    <string name="payment_success_title">Thanh toán thành công</string>
+    <string name="payment_success_message">Thanh toán của bạn đã được xử lý thành công. Đơn hàng đã được xác nhận!</string>
+    <string name="payment_canceled">Thanh toán đã bị hủy.</string>
+    <string name="payment_pending">Thanh toán đang được xử lý. Vui lòng kiểm tra đơn hàng sau.</string>
+    <string name="payment_check_failed">Không thể xác minh trạng thái thanh toán. Vui lòng kiểm tra đơn hàng.</string>
 
     <!-- Form Validation -->
-    <string name="error_name_required">Name is required</string>
-    <string name="error_address_required">Address is required</string>
-    <string name="error_phone_required">Phone number is required</string>
-    <string name="error_invalid_phone">Invalid phone number</string>
+    <string name="error_name_required">Tên là bắt buộc</string>
+    <string name="error_address_required">Địa chỉ là bắt buộc</string>
+    <string name="error_phone_required">Số điện thoại là bắt buộc</string>
+    <string name="error_invalid_phone">Số điện thoại không hợp lệ</string>
 
     <!-- ============================================ -->
     <!-- PROFILE -->
     <!-- ============================================ -->
-    <string name="my_profile">My Profile</string>
-    <string name="welcome_guest">Welcome, Guest!</string>
-    <string name="login">Login</string>
-    <string name="logout">Logout</string>
-    <string name="my_orders">My Orders</string>
-    <string name="settings">Settings</string>
-    <string name="about">About</string>
-    <string name="profile_desc">Profile</string>
-    <string name="guest_desc">Guest</string>
-    <string name="orders_desc">Orders</string>
-    <string name="navigate_desc">Navigate</string>
-    <string name="login_required">Login Required</string>
-    <string name="login_required_message">Please login to access this feature</string>
+    <string name="my_profile">Hồ sơ của tôi</string>
+    <string name="welcome_guest">Chào mừng, Khách!</string>
+    <string name="login">Đăng nhập</string>
+    <string name="logout">Đăng xuất</string>
+    <string name="my_orders">Đơn hàng của tôi</string>
+    <string name="refresh">Làm mới</string>
+    <string name="settings">Cài đặt</string>
+    <string name="about">Giới thiệu</string>
+    <string name="profile_desc">Hồ sơ</string>
+    <string name="guest_desc">Khách</string>
+    <string name="orders_desc">Đơn hàng</string>
+    <string name="navigate_desc">Điều hướng</string>
+    <string name="login_required">Yêu cầu đăng nhập</string>
+    <string name="login_required_message">Vui lòng đăng nhập để truy cập tính năng này</string>
 
     <!-- ============================================ -->
     <!-- ORDERS -->
@@ -119,40 +120,40 @@
     <!-- ============================================ -->
     <!-- LOGIN DIALOG -->
     <!-- ============================================ -->
-    <string name="name_hint">Name</string>
+    <string name="name_hint">Tên</string>
     <string name="email_hint">Email</string>
 
     <!-- ============================================ -->
     <!-- GENERAL -->
     <!-- ============================================ -->
-    <string name="loading_text">Loading...</string>
-    <string name="error">Error</string>
-    <string name="retry">Retry</string>
-    <string name="cancel">Cancel</string>
-    <string name="confirm">Confirm</string>
+    <string name="loading_text">Đang tải...</string>
+    <string name="error">Lỗi</string>
+    <string name="retry">Thử lại</string>
+    <string name="cancel">Hủy</string>
+    <string name="confirm">Xác nhận</string>
     <string name="ok">OK</string>
-    <string name="yes">Yes</string>
-    <string name="no">No</string>
-    <string name="close">Close</string>
-    <string name="save">Save</string>
-    <string name="delete">Delete</string>
-    <string name="edit">Edit</string>
-    <string name="back">Back</string>
+    <string name="yes">Có</string>
+    <string name="no">Không</string>
+    <string name="close">Đóng</string>
+    <string name="save">Lưu</string>
+    <string name="delete">Xóa</string>
+    <string name="edit">Chỉnh sửa</string>
+    <string name="back">Quay lại</string>
 
     <!-- Error Messages -->
-    <string name="error_network">Network error. Please check your connection.</string>
-    <string name="error_generic">Something went wrong. Please try again.</string>
-    <string name="error_loading_products">Failed to load products</string>
-    <string name="error_loading_product">Failed to load product details</string>
-    <string name="error_adding_to_cart">Failed to add to cart</string>
-    <string name="error_checkout_failed">Checkout failed. Please try again.</string>
+    <string name="error_network">Lỗi mạng. Vui lòng kiểm tra kết nối.</string>
+    <string name="error_generic">Đã xảy ra lỗi. Vui lòng thử lại.</string>
+    <string name="error_loading_products">Không thể tải sản phẩm</string>
+    <string name="error_loading_product">Không thể tải chi tiết sản phẩm</string>
+    <string name="error_adding_to_cart">Không thể thêm vào giỏ hàng</string>
+    <string name="error_checkout_failed">Thanh toán thất bại. Vui lòng thử lại.</string>
 
     <!-- Success Messages -->
-    <string name="added_to_cart">Added to cart</string>
-    <string name="cart_updated">Cart updated</string>
-    <string name="item_removed">Item removed</string>
-    <string name="cart_cleared">Cart cleared</string>
-    <string name="order_success">Order placed successfully!</string>
+    <string name="added_to_cart">Đã thêm vào giỏ hàng</string>
+    <string name="cart_updated">Giỏ hàng đã cập nhật</string>
+    <string name="item_removed">Đã xóa sản phẩm</string>
+    <string name="cart_cleared">Đã xóa giỏ hàng</string>
+    <string name="order_success">Đặt hàng thành công!</string>
 
     <!-- ============================================ -->
     <!-- BOTTOM NAV (Stitch 5-tab) -->
@@ -331,44 +332,48 @@
     <string name="msg_fill_description">Vui lòng nhập mô tả vấn đề</string>
     <string name="msg_submit_success">Yêu cầu đã được gửi</string>
     <string name="msg_submit_failed">Gửi thất bại: %s</string>
+    <string name="msg_select_issue_category">Vui lòng chọn loại vấn đề</string>
     
     <!-- Profile -->
-    <string name="notifications_coming_soon">Notifications coming soon</string>
-    <string name="pending_orders_coming_soon">Pending orders coming soon</string>
-    <string name="preparing_orders_coming_soon">Preparing orders coming soon</string>
-    <string name="shipped_orders_coming_soon">Shipped orders coming soon</string>
-    <string name="delivered_orders_coming_soon">Delivered orders coming soon</string>
+    <string name="notifications_coming_soon">Thông báo sắp ra mắt</string>
+    <string name="pending_orders_coming_soon">Đơn hàng chờ xử lý sắp ra mắt</string>
+    <string name="preparing_orders_coming_soon">Đơn hàng đang chuẩn bị sắp ra mắt</string>
+    <string name="shipped_orders_coming_soon">Đơn hàng đang giao sắp ra mắt</string>
+    <string name="delivered_orders_coming_soon">Đơn hàng đã giao sắp ra mắt</string>
     <string name="order_status_pending">Chờ xử lý</string>
     <string name="order_status_preparing">Đang chuẩn bị</string>
     <string name="order_status_shipped">Đang giao</string>
     <string name="order_status_delivered">Đã giao</string>
-    <string name="logout_confirmation_message">Are you sure you want to logout?</string>
+    <string name="logout_confirmation_message">Bạn có chắc chắn muốn đăng xuất?</string>
     <string name="account_settings_title">Cài đặt tài khoản</string>
     <string name="account_full_name">Họ và tên</string>
     <string name="save_changes">Lưu thay đổi</string>
     <string name="profile_updated_success">Thông tin đã được cập nhật thành công.</string>
     <string name="email_cannot_change">Email không thể thay đổi</string>
-    <string name="about_title">About TGDĐ</string>
-    <string name="about_message">Version 1.0.0\n\nTGDĐ - E-Commerce App with Voice Commerce\n\n© 2024 All rights reserved.</string>
+    <string name="about_title">Giới thiệu TGDĐ</string>
+    <string name="about_message">Phiên bản 1.0.0\n\nTGDĐ - Ứng dụng thương mại điện tử với Voice Commerce\n\n© 2024 Bản quyền thuộc về.</string>
     
     <!-- Features Coming Soon -->
-    <string name="voice_search_coming_soon">Voice search coming soon</string>
+    <string name="voice_search_coming_soon">Tìm kiếm bằng giọng nói sắp ra mắt</string>
     <string name="voice_permission_required">Cần quyền micro để dùng tìm kiếm bằng giọng nói</string>
     <string name="voice_not_supported">Thiết bị không hỗ trợ nhận diện giọng nói</string>
-    <string name="voucher_feature_coming_soon">Voucher feature coming soon</string>
+    <string name="voucher_feature_coming_soon">Tính năng voucher sắp ra mắt</string>
+    <string name="voice_assistant">Trợ lý giọng nói</string>
+    <string name="voice_recording">Đang ghi âm...</string>
+    <string name="voice_processing">Đang xử lý...</string>
     
     <!-- Product Detail -->
     <string name="specifications">Thông số kỹ thuật</string>
     <string name="customer_reviews">Đánh giá khách hàng</string>
-    <string name="reviews_format">(%d reviews)</string>
-    <string name="view_cart">View Cart</string>
+    <string name="reviews_format">(%d đánh giá)</string>
+    <string name="view_cart">Xem giỏ hàng</string>
     <string name="line_total_format">Thành tiền: %1$s</string>
     <string name="brand_unknown">Thương hiệu chưa rõ</string>
     
     <!-- Checkout -->
-    <string name="total_format">Total: %s VNĐ</string>
-    <string name="order_placed_title">Order Placed!</string>
-    <string name="order_placed_message">Your order has been placed successfully.\n\nOrder ID: %s\n\nThank you for your purchase!</string>
+    <string name="total_format">Tổng cộng: %s VNĐ</string>
+    <string name="order_placed_title">Đã đặt hàng!</string>
+    <string name="order_placed_message">Đơn hàng của bạn đã được đặt thành công.\n\nMã đơn hàng: %s\n\nCảm ơn bạn đã mua hàng!</string>
 
     <!-- Login prompt -->
     <string name="login_prompt_title">Chào mừng bạn!</string>
@@ -459,5 +464,54 @@
     <string name="register_account">Đăng ký tài khoản</string>
     <string name="product_badge_new">MỚI</string>
     <string name="default_web_client_id">528064211736-ujifc7h4rs4gkfcuub5ueqhuql7kssig.apps.googleusercontent.com</string>
+    
+    <!-- Product List Filters -->
+    <string name="filter_min_price_error">Giá tối thiểu phải nhỏ hơn giá tối đa</string>
+    <string name="filter_applied">Đã áp dụng bộ lọc</string>
+    <string name="filter_cleared">Đã xóa bộ lọc</string>
+    <string name="no_products">Không tìm thấy sản phẩm</string>
+    <string name="login_to_continue">Đăng nhập để tiếp tục</string>
+    <string name="login_to_add_cart">Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.</string>
+
+    <!-- Language Settings -->
+    <string name="language">Ngôn ngữ</string>
+    <string name="language_vietnamese">Tiếng Việt</string>
+    <string name="language_english">English</string>
+    <string name="language_changed">Đã đổi ngôn ngữ. Khởi động lại ứng dụng để áp dụng.</string>
+
+    <!-- i18n cleanup additions -->
+    <string name="orders_nav_label">Đơn hàng</string>
+    <string name="order_detail_nav_label">Chi tiết đơn hàng</string>
+    <string name="login_nav_label">Đăng nhập</string>
+    <string name="register_nav_label">Đăng ký</string>
+    <string name="forgot_password_nav_label">Quên mật khẩu</string>
+    <string name="login_failed_prefix">Đăng nhập thất bại: %1$s</string>
+    <string name="google_login_cancelled">Đăng nhập Google đã bị huỷ</string>
+    <string name="login_email_required">Vui lòng nhập email</string>
+    <string name="login_password_required">Vui lòng nhập mật khẩu</string>
+    <string name="google_login_button_text">Đăng nhập Google</string>
+    <string name="verify_email_message_loading">Đang xác minh email của bạn...</string>
+    <string name="verify_email_message_title">Xác minh email</string>
+    <string name="verify_email_action_back_to_login">Quay lại đăng nhập</string>
+    <string name="login_to_continue_title">Đăng nhập để tiếp tục</string>
+    <string name="login_to_continue_message">Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.</string>
+    <string name="in_stock">Còn hàng</string>
+    <string name="out_of_stock">Hết hàng</string>
+    <string name="default_quantity_text">1</string>
+    <string name="orders_count_default">0</string>
+    <string name="order_status_count_default">0</string>
+    <string name="order_status_label_example">Đang chuẩn bị</string>
+    <string name="order_date_example">20/03/2024 14:30</string>
+    <string name="address_example">123 Nguyen Trai, Ho Chi Minh City</string>
+    <string name="name_example">John Doe</string>
+    <string name="phone_example">+84 123 456 789</string>
+    <string name="payment_cash_example">Tiền mặt</string>
+    <string name="currency_example">1.500.000 ₫</string>
+    <string name="product_name_example">iPhone 15 Pro Max</string>
+    <string name="quantity_example">x1</string>
+    <string name="order_id_sample">#ABC12345</string>
+    <string name="reset_password_required">Vui lòng nhập mật khẩu mới</string>
+    <string name="confirm_password_required">Vui lòng xác nhận mật khẩu</string>
+    <string name="verify_email_failed_generic">Xác minh email thất bại. Vui lòng thử lại.</string>
 
 </resources>

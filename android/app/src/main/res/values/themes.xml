@@ -54,6 +54,17 @@
 
         <!-- Navigation bar -->
         <item name="android:navigationBarColor">@color/mobi_pulse_glass_background</item>
+
+        <!-- Dialog theme -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.App.MaterialAlertDialog</item>
+    </style>
+
+    <!-- Material Alert Dialog Theme Override -->
+    <style name="ThemeOverlay.App.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/mobi_pulse_surface</item>
+        <item name="colorOnSurface">@color/mobi_pulse_on_surface</item>
+        <item name="android:background">@color/mobi_pulse_surface</item>
+        <item name="backgroundTint">@color/mobi_pulse_surface</item>
     </style>
 
     <!-- Material 3 Dark Theme -->
@@ -107,6 +118,17 @@
 
         <!-- Navigation bar -->
         <item name="android:navigationBarColor">@color/mobi_pulse_glass_background_dark</item>
+
+        <!-- Dialog theme -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.App.MaterialAlertDialog.Dark</item>
+    </style>
+
+    <!-- Material Alert Dialog Theme Override for Dark Mode -->
+    <style name="ThemeOverlay.App.MaterialAlertDialog.Dark" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/mobi_pulse_surface</item>
+        <item name="colorOnSurface">@color/mobi_pulse_on_surface</item>
+        <item name="android:background">@color/mobi_pulse_surface</item>
+        <item name="backgroundTint">@color/mobi_pulse_surface</item>
     </style>
 
     <!-- Splash screen theme -->
