@@ -84,12 +84,12 @@ class ProductDetailFragment : Fragment() {
             binding.productReviewsText.text = getString(R.string.reviews_format, product.reviewCount)
             binding.productBrand.text = product.brand ?: product.category
             binding.productRatingBar.rating = product.rating
-            binding.stockBadge.text = if (product.inStock) "Còn hàng" else "Hết hàng"
+            binding.stockBadge.text = if (product.inStock) getString(R.string.in_stock) else getString(R.string.out_of_stock)
             binding.stockBadge.setTextColor(
                 if (product.inStock) ContextCompat.getColor(requireContext(), R.color.mobi_pulse_tertiary)
                 else ContextCompat.getColor(requireContext(), R.color.mobi_pulse_error)
             )
-            binding.quantityText.text = "1"
+            binding.quantityText.text = getString(R.string.default_quantity_text)
             binding.productImage.load(product.image) {
                 placeholder(android.R.drawable.ic_menu_gallery)
                 error(android.R.drawable.ic_menu_gallery)
@@ -163,7 +163,8 @@ class ProductDetailFragment : Fragment() {
                 val message = viewModel.addedToCartMessage.value ?: getString(R.string.added_to_cart)
                 Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT)
                     .setAction(getString(R.string.view_cart)) {
-                        findNavController().navigate(R.id.cartFragment)
+                        val action = ProductDetailFragmentDirections.actionGlobalCart(showBackButton = true)
+                        findNavController().navigate(action)
                     }.show()
                 viewModel.clearAddedToCartMessage()
                 viewModel.resetAddedToCart()
@@ -187,9 +188,9 @@ class ProductDetailFragment : Fragment() {
 
     private fun showLoginRequiredDialog() {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Đăng nhập để tiếp tục")
-            .setMessage("Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.")
-            .setPositiveButton("Đăng nhập") { _, _ ->
+            .setTitle(getString(R.string.login_to_continue_title))
+            .setMessage(getString(R.string.login_to_continue_message))
+            .setPositiveButton(getString(R.string.login)) { _, _ ->
                 findNavController().navigate(R.id.action_global_login)
             }
             .setNegativeButton(getString(R.string.cancel), null)

@@ -71,14 +71,47 @@ class ProductDetailViewModel @Inject constructor(
                 }.onFailure { e ->
                     _error.value = e.message ?: "Failed to load product"
                 }
+                
+                var hasReviewsFromDto = false
+                
+                // Get product DTO which includes reviews from the products.reviews column
                 productRepository.getProductDtoById(productId)?.let { dto ->
                     _productDto.value = dto
+                    
+                    // Use reviews from the DTO if available
+                    if (!dto.reviews.isNullOrEmpty()) {
+                        // Convert ReviewDto to ReviewEntity for display
+                        val reviewEntities = dto.reviews.map { reviewDto ->
+                            com.tgdd.app.data.local.entity.ReviewEntity(
+                                id = reviewDto.id ?: "",
+                                productId = dto.id,
+                                userId = reviewDto.userId ?: "",
+                                userName = reviewDto.userName ?: "Anonymous",
+                                rating = reviewDto.rating,
+                                comment = reviewDto.comment ?: "",
+                                images = "",
+                                helpfulCount = reviewDto.helpfulCount,
+                                createdAt = System.currentTimeMillis(),
+                                isVerifiedPurchase = reviewDto.isVerifiedPurchase
+                            )
+                        }
+                        _reviews.value = reviewEntities
+                        _reviewCount.value = reviewEntities.size
+                        _averageRating.value = dto.rating.toDouble()
+                        hasReviewsFromDto = true
+                    } else {
+                        _reviewCount.value = dto.reviewCount
+                        _averageRating.value = dto.rating.toDouble()
+                    }
                 }
 
                 val inWishlist = wishlistRepository.isInWishlist(productId).first()
                 _isInWishlist.value = inWishlist
 
-                loadReviews(productId)
+                // Only load from reviews table if we don't have reviews from DTO
+                if (!hasReviewsFromDto) {
+                    loadReviews(productId)
+                }
                 
                 _isLoading.value = false
             } catch (e: Exception) {
