@@ -12,6 +12,7 @@ import com.tgdd.app.data.remote.ProductApi
 import com.tgdd.app.data.remote.TicketApi
 import com.tgdd.app.data.remote.AiVoiceApi
 import com.tgdd.app.data.remote.UserApi
+import com.tgdd.app.data.remote.VoiceApi
 import com.tgdd.app.data.network.AuthInterceptor
 import com.tgdd.app.data.network.RetryInterceptor
 import dagger.Module
@@ -156,5 +157,11 @@ object NetworkModule {
     @Singleton
     fun provideAiVoiceApi(@Named("aiWorkerRetrofit") aiWorkerRetrofit: Retrofit): AiVoiceApi {
         return aiWorkerRetrofit.create(AiVoiceApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideVoiceApi(@Named("aiWorkerRetrofit") aiWorkerRetrofit: Retrofit): VoiceApi {
+        return aiWorkerRetrofit.create(VoiceApi::class.java)
     }
 }
