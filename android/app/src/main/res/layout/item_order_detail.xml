@@ -30,7 +30,7 @@
             android:maxLines="2"
             android:textColor="@color/mobi_pulse_on_surface"
             android:textSize="14sp"
-            tools:text="iPhone 15 Pro Max" />
+        tools:text="@string/product_name_example" />
 
         <TextView
             android:id="@+id/itemQuantityText"
@@ -40,7 +40,7 @@
             android:fontFamily="@font/inter"
             android:textColor="@color/mobi_pulse_on_surface_variant"
             android:textSize="12sp"
-            tools:text="x1" />
+        tools:text="@string/quantity_example" />
 
     </LinearLayout>
 
@@ -53,6 +53,6 @@
         android:textColor="@color/mobi_pulse_primary_dark"
         android:textSize="14sp"
         android:textStyle="bold"
-        tools:text="1.500.000 ₫" />
+        tools:text="@string/currency_example" />
 
 </LinearLayout>
