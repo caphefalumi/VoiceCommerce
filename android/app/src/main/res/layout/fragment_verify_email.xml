@@ -33,7 +33,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_gravity="center"
-                android:indeterminateTint="#DC2626"
+                android:indeterminateTint="@color/mobi_pulse_primary"
                 android:visibility="gone" />
         </com.google.android.material.card.MaterialCardView>
 
