@@ -8,9 +8,13 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.tgdd.app.R
+import com.tgdd.app.data.local.UserSession
 import com.tgdd.app.databinding.FragmentOrdersBinding
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class OrdersFragment : Fragment() {
@@ -20,6 +24,9 @@ class OrdersFragment : Fragment() {
     private val viewModel: OrdersViewModel by viewModels()
     private lateinit var adapter: OrdersAdapter
 
+    @Inject
+    lateinit var userSession: UserSession
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentOrdersBinding.inflate(inflater, container, false)
         return binding.root
@@ -27,13 +34,36 @@ class OrdersFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        if (!userSession.isLoggedIn()) {
+            showLoginRequiredDialog()
+            return
+        }
+        
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
         setupRecyclerView()
         observeViewModel()
     }
 
+    private fun showLoginRequiredDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.login_required))
+            .setMessage(getString(R.string.login_required_message))
+            .setPositiveButton(getString(R.string.login)) { _, _ ->
+                findNavController().navigate(R.id.action_global_login)
+            }
+            .setNegativeButton(getString(R.string.cancel)) { _, _ ->
+                findNavController().navigateUp()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
     private fun setupRecyclerView() {
-        adapter = OrdersAdapter()
+        adapter = OrdersAdapter { order ->
+            val action = OrdersFragmentDirections.actionOrdersToDetail(order.id)
+            findNavController().navigate(action)
+        }
         binding.ordersRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.ordersRecyclerView.adapter = adapter
     }

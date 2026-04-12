@@ -13,4 +13,7 @@ interface PromoCodeApi {
 
     @POST("promo-codes/apply")
     suspend fun applyPromoCode(@Body data: Map<String, Any>): Response<ApiResponses.PromoCodeApplicationResponse>
+
+    @POST("coupons/apply")
+    suspend fun applyCoupon(@Body data: Map<String, Any>): Response<ApiResponses.CouponApplyResponse>
 }

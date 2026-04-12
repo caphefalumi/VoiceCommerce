@@ -15,6 +15,7 @@ import coil.load
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.tgdd.app.R
+import com.tgdd.app.data.model.ReviewDto
 import com.tgdd.app.databinding.FragmentProductDetailBinding
 import com.tgdd.app.ui.adapter.ReviewAdapter
 import dagger.hilt.android.AndroidEntryPoint
@@ -117,6 +118,40 @@ class ProductDetailFragment : Fragment() {
                     binding.specsContainer.addView(row)
                 }
             }
+
+            // Prefer latest API worker aggregate fields when available.
+            binding.productRatingText.text = String.format(Locale.US, "%.1f", dto.rating)
+            binding.productReviewsText.text = getString(R.string.reviews_format, dto.reviewCount)
+            binding.productRatingBar.rating = dto.rating
+        }
+
+        viewModel.reviews.observe(viewLifecycleOwner) { reviews ->
+            val dtoReviews = reviews.map { review ->
+                ReviewDto(
+                    id = review.id,
+                    productId = review.productId,
+                    userId = review.userId,
+                    userName = review.userName,
+                    rating = review.rating,
+                    comment = review.comment,
+                    images = emptyList(),
+                    helpfulCount = review.helpfulCount,
+                    createdAt = review.createdAt.toString(),
+                    isVerifiedPurchase = review.isVerifiedPurchase,
+                )
+            }
+            reviewAdapter.submitList(dtoReviews)
+            binding.reviewsRecyclerView.visibility = if (dtoReviews.isNotEmpty()) View.VISIBLE else View.GONE
+        }
+
+        viewModel.averageRating.observe(viewLifecycleOwner) { avg ->
+            val avgFloat = avg.toFloat()
+            binding.productRatingText.text = String.format(Locale.US, "%.1f", avgFloat)
+            binding.productRatingBar.rating = avgFloat
+        }
+
+        viewModel.reviewCount.observe(viewLifecycleOwner) { count ->
+            binding.productReviewsText.text = getString(R.string.reviews_format, count)
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { loading ->
@@ -125,10 +160,12 @@ class ProductDetailFragment : Fragment() {
 
         viewModel.addedToCart.observe(viewLifecycleOwner) { added ->
             if (added) {
-                Snackbar.make(binding.root, getString(R.string.added_to_cart), Snackbar.LENGTH_SHORT)
+                val message = viewModel.addedToCartMessage.value ?: getString(R.string.added_to_cart)
+                Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT)
                     .setAction(getString(R.string.view_cart)) {
                         findNavController().navigate(R.id.cartFragment)
                     }.show()
+                viewModel.clearAddedToCartMessage()
                 viewModel.resetAddedToCart()
             }
         }

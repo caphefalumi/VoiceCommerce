@@ -833,6 +833,50 @@ app.post('/api/cart', requireAuth, async (c) => {
   }
 });
 
+// PATCH /api/cart/:productId - Set item quantity in cart
+app.patch('/api/cart/:productId', requireAuth, async (c) => {
+  const user = c.get('user');
+  const productId = c.req.param('productId');
+  try {
+    const { quantity } = await c.req.json();
+    const nextQuantity = Number(quantity);
+
+    if (!Number.isInteger(nextQuantity) || nextQuantity < 0) {
+      return c.json({ error: 'quantity must be a non-negative integer' }, 400);
+    }
+
+    if (nextQuantity === 0) {
+      const { results } = await c.env.DB.prepare(
+        'DELETE FROM cart_items WHERE user_id = ? AND product_id = ? RETURNING id'
+      ).bind(user.id, productId).all();
+
+      if (results.length === 0) {
+        return c.json({ error: 'Không tìm thấy sản phẩm trong giỏ hàng' }, 404);
+      }
+
+      return c.json({ success: true, message: 'Đã xóa sản phẩm khỏi giỏ hàng' });
+    }
+
+    const { results: existing } = await c.env.DB.prepare(
+      'SELECT id FROM cart_items WHERE user_id = ? AND product_id = ?'
+    ).bind(user.id, productId).all();
+
+    if (existing.length === 0) {
+      return c.json({ error: 'Không tìm thấy sản phẩm trong giỏ hàng' }, 404);
+    }
+
+    const item = existing[0] as { id: string };
+
+    await c.env.DB.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?')
+      .bind(nextQuantity, item.id)
+      .run();
+
+    return c.json({ success: true, message: 'Đã cập nhật số lượng sản phẩm trong giỏ hàng' });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // DELETE /api/cart/:productId - Remove item from cart
 app.delete('/api/cart/:productId', requireAuth, async (c) => {
   const user = c.get('user');
@@ -1893,6 +1937,127 @@ app.post('/api/promo-codes', requireAdmin, async (c) => {
     return c.json({ id, message: 'Đã tạo mã khuyến mãi' }, 201);
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
+  }
+});
+
+type BuiltInCoupon = {
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  min_order_value: number;
+  max_discount: number | null;
+  description: string;
+};
+
+const BUILT_IN_COUPONS: Record<string, BuiltInCoupon> = {
+  FLASHSALE: {
+    code: 'FLASHSALE',
+    discount_type: 'percentage',
+    discount_value: 10,
+    min_order_value: 1_000_000,
+    max_discount: 500_000,
+    description: 'Flash sale giảm 10% tối đa 500.000 VND',
+  },
+  BLACKFRIDAY: {
+    code: 'BLACKFRIDAY',
+    discount_type: 'percentage',
+    discount_value: 20,
+    min_order_value: 2_000_000,
+    max_discount: 1_500_000,
+    description: 'Black Friday giảm 20% tối đa 1.500.000 VND',
+  },
+  NEWGUY: {
+    code: 'NEWGUY',
+    discount_type: 'fixed',
+    discount_value: 200_000,
+    min_order_value: 500_000,
+    max_discount: null,
+    description: 'Ưu đãi khách mới giảm trực tiếp 200.000 VND',
+  },
+};
+
+// POST /api/coupons/apply - Validate and calculate coupon discount for checkout summary
+app.post('/api/coupons/apply', async (c) => {
+  try {
+    const { code, order_total, user_id } = await c.req.json();
+
+    const normalizedCode = (code || '').toString().trim().toUpperCase();
+    const orderTotal = Number(order_total ?? 0);
+
+    if (!normalizedCode) {
+      return c.json({ success: false, error: 'Mã giảm giá là bắt buộc' }, 400);
+    }
+
+    if (!Number.isFinite(orderTotal) || orderTotal <= 0) {
+      return c.json({ success: false, error: 'order_total phải lớn hơn 0' }, 400);
+    }
+
+    const { results } = await c.env.DB
+      .prepare('SELECT * FROM promo_codes WHERE code = ? AND is_active = 1')
+      .bind(normalizedCode)
+      .all();
+
+    const dbPromo = results.length > 0 ? (results[0] as any) : null;
+    const builtInPromo = BUILT_IN_COUPONS[normalizedCode] || null;
+
+    if (!dbPromo && !builtInPromo) {
+      return c.json({ success: false, error: 'Mã giảm giá không hợp lệ' }, 404);
+    }
+
+    const promo = dbPromo || builtInPromo;
+
+    if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
+      return c.json({ success: false, error: 'Mã giảm giá đã hết hạn' }, 400);
+    }
+
+    if (promo.usage_limit && promo.usage_count >= promo.usage_limit) {
+      return c.json({ success: false, error: 'Mã giảm giá đã hết lượt sử dụng' }, 400);
+    }
+
+    if (promo.min_order_value && orderTotal < Number(promo.min_order_value)) {
+      return c.json({
+        success: false,
+        error: `Đơn hàng tối thiểu ${Number(promo.min_order_value).toLocaleString('vi-VN')} VND để dùng mã này`,
+      }, 400);
+    }
+
+    if (dbPromo && user_id) {
+      const { results: usageCheck } = await c.env.DB
+        .prepare('SELECT id FROM promo_code_usage WHERE promo_code_id = ? AND user_id = ?')
+        .bind(promo.id, user_id)
+        .all();
+
+      if (usageCheck.length > 0) {
+        return c.json({ success: false, error: 'Bạn đã sử dụng mã này rồi' }, 400);
+      }
+    }
+
+    let discountAmount = 0;
+    if (promo.discount_type === 'percentage') {
+      discountAmount = orderTotal * (Number(promo.discount_value) / 100);
+      if (promo.max_discount && discountAmount > Number(promo.max_discount)) {
+        discountAmount = Number(promo.max_discount);
+      }
+    } else {
+      discountAmount = Number(promo.discount_value);
+    }
+
+    discountAmount = Math.max(0, Math.min(discountAmount, orderTotal));
+    const finalTotal = Math.max(0, orderTotal - discountAmount);
+
+    return c.json({
+      success: true,
+      coupon_code: normalizedCode,
+      discount_type: promo.discount_type,
+      discount_value: Number(promo.discount_value),
+      subtotal: orderTotal,
+      discount_amount: discountAmount,
+      final_total: finalTotal,
+      description: promo.description || null,
+      message: `Áp dụng ${normalizedCode} thành công. Giảm ${discountAmount.toLocaleString('vi-VN')} VND.`,
+    });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
   }
 });
 

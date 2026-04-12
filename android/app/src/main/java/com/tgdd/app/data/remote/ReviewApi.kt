@@ -6,11 +6,14 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface ReviewApi {
-    @GET("reviews/{productId}")
+    @GET("products/{productId}/reviews")
     suspend fun getReviewsByProductId(@Path("productId") productId: String): Response<ApiResponses.ReviewsResponse>
 
-    @POST("reviews")
-    suspend fun createReview(@Body review: Map<String, Any>): Response<ApiResponses.ReviewResponse>
+    @POST("products/{productId}/reviews")
+    suspend fun createReview(
+        @Path("productId") productId: String,
+        @Body review: Map<String, Any>
+    ): Response<ApiResponses.ReviewResponse>
 
     @PUT("reviews/{reviewId}")
     suspend fun updateReview(

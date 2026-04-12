@@ -1,4 +1,20 @@
 <!-- gitnexus:start -->
+
+## 🚫 SCOPE RESTRICTION
+
+**ONLY work in these folders:**
+- `android/` 
+- `apps/api-worker/`
+- `apps/ai-worker/`
+
+**NEVER work in `apps/web/` folder.** Do not touch any web app code.
+
+## 🚫 NO TESTS POLICY
+
+**Do NOT run any tests.** Tests are disabled for this project. Skip test commands entirely.
+
+---
+
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **tgdd** (931 symbols, 1915 relationships, 52 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.

@@ -1,17 +1,24 @@
 package com.tgdd.app.data.repository
 
 import com.tgdd.app.data.local.UserSession
+import com.tgdd.app.data.local.dao.CartDao
+import com.tgdd.app.data.local.dao.WishlistDao
+import com.tgdd.app.data.local.dao.OrderDao
 import com.tgdd.app.data.model.AuthUserDto
 import com.tgdd.app.data.model.UserDto
 import com.tgdd.app.data.network.NetworkObserver
 import com.tgdd.app.data.remote.UserApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class UserRepository @Inject constructor(
     private val userApi: UserApi,
-    private val userSession: UserSession
+    private val userSession: UserSession,
+    private val cartDao: CartDao,
+    private val wishlistDao: WishlistDao,
+    private val orderDao: OrderDao
 ) {
     suspend fun getUserById(id: String): Result<UserDto> = withContext(Dispatchers.IO) {
         if (!NetworkObserver.isCurrentlyConnected()) {
@@ -81,6 +88,14 @@ class UserRepository @Inject constructor(
 
     suspend fun signOut() = withContext(Dispatchers.IO) {
         try { userApi.signOut() } catch (_: Exception) {}
+        cartDao.clearCart()
+        wishlistDao.clearWishlist()
+        userSession.getUserId()?.let { userId ->
+            try {
+                val orders = orderDao.getOrdersByUserId(userId).first()
+                orders.forEach { orderDao.deleteOrder(it) }
+            } catch (_: Exception) {}
+        }
         userSession.clearSession()
     }
 

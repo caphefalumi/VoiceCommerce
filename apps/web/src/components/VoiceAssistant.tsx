@@ -505,7 +505,7 @@ export function VoiceAssistant() {
   };
 
   return (
-    <div className="fixed bottom-20 right-6 z-[60] flex flex-col items-end gap-4 pointer-events-none">
+    <div className="fixed bottom-28 right-6 z-[60] flex flex-col items-end gap-4 pointer-events-none">
       <div className="pointer-events-auto w-[360px] max-w-[calc(100vw-2rem)]">
         <div className="rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200">

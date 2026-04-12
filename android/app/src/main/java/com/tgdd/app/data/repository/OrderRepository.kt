@@ -47,11 +47,13 @@ class OrderRepository @Inject constructor(
         address: String,
         paymentMethod: String,
         userId: String = "",
-        userEmail: String = ""
+        userEmail: String = "",
+        discountedTotal: Double? = null
     ): String {
         val cartItems = cartDao.getCartItems().first()
         if (cartItems.isEmpty()) throw Exception("Giỏ hàng trống")
-        val total = cartItems.sumOf { it.price * it.quantity }
+        val rawTotal = cartItems.sumOf { it.price * it.quantity }
+        val total = discountedTotal?.coerceAtLeast(0.0)?.coerceAtMost(rawTotal) ?: rawTotal
         val orderId = UUID.randomUUID().toString()
 
         // Parse address + city (address is already "street, city" from CheckoutViewModel)

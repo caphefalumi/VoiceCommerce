@@ -2,6 +2,10 @@
 
 **Stack:** Hono 4, Cloudflare Worker, Better Auth, Drizzle ORM, Stripe
 
+## 🚫 NO TESTS POLICY
+
+**Do NOT run any tests.** Tests are disabled for this project. Skip test commands entirely.
+
 ## OVERVIEW
 
 Single-file monolith in `index.ts` (1173 lines). Handles auth, products, users, cart, orders, payments, admin, and cron routes. Production database is D1 (SQLite); dev uses local SQLite.

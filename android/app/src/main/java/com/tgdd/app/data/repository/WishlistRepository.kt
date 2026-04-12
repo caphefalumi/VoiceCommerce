@@ -11,7 +11,8 @@ import javax.inject.Inject
 
 class WishlistRepository @Inject constructor(
     private val wishlistDao: WishlistDao,
-    private val wishlistApi: WishlistApi
+    private val wishlistApi: WishlistApi,
+    private val userSession: com.tgdd.app.data.local.UserSession
 ) {
     fun getAllWishlistItems(): Flow<List<WishlistEntity>> = wishlistDao.getAllWishlistItems()
 
@@ -53,6 +54,7 @@ class WishlistRepository @Inject constructor(
     }
 
     private suspend fun syncAddToWishlist(productId: String) {
+        if (!userSession.isLoggedIn()) return
         if (!NetworkObserver.isCurrentlyConnected()) return
         try {
             val response = wishlistApi.addToWishlist(mapOf("product_id" to productId))
@@ -65,6 +67,7 @@ class WishlistRepository @Inject constructor(
     }
 
     private suspend fun syncRemoveFromWishlist(productId: String) {
+        if (!userSession.isLoggedIn()) return
         if (!NetworkObserver.isCurrentlyConnected()) return
         try {
             val response = wishlistApi.removeFromWishlist(productId)
@@ -77,6 +80,7 @@ class WishlistRepository @Inject constructor(
     }
 
     suspend fun syncWishlist() {
+        if (!userSession.isLoggedIn()) return
         if (!NetworkObserver.isCurrentlyConnected()) {
             Log.w(TAG, "Cannot sync wishlist: no network connection")
             return

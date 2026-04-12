@@ -10,6 +10,7 @@ import com.tgdd.app.data.remote.CartApi
 import com.tgdd.app.data.remote.OrderApi
 import com.tgdd.app.data.remote.ProductApi
 import com.tgdd.app.data.remote.TicketApi
+import com.tgdd.app.data.remote.AiVoiceApi
 import com.tgdd.app.data.remote.UserApi
 import com.tgdd.app.data.network.AuthInterceptor
 import com.tgdd.app.data.network.RetryInterceptor
@@ -23,6 +24,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -82,6 +84,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Named("apiWorkerRetrofit")
     fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl("https://api-worker.dangduytoan13l.workers.dev/api/")
@@ -92,49 +95,66 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideProductApi(retrofit: Retrofit): ProductApi {
+    @Named("aiWorkerRetrofit")
+    fun provideAiWorkerRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://ai-worker.dangduytoan13l.workers.dev/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideProductApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): ProductApi {
         return retrofit.create(ProductApi::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideCartApi(retrofit: Retrofit): CartApi {
+    fun provideCartApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): CartApi {
         return retrofit.create(CartApi::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideOrderApi(retrofit: Retrofit): OrderApi {
+    fun provideOrderApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): OrderApi {
         return retrofit.create(OrderApi::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideUserApi(retrofit: Retrofit): UserApi {
+    fun provideUserApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): UserApi {
         return retrofit.create(UserApi::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideTicketApi(retrofit: Retrofit): TicketApi {
+    fun provideTicketApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): TicketApi {
         return retrofit.create(TicketApi::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideWishlistApi(retrofit: Retrofit): com.tgdd.app.data.remote.WishlistApi {
+    fun provideWishlistApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): com.tgdd.app.data.remote.WishlistApi {
         return retrofit.create(com.tgdd.app.data.remote.WishlistApi::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideReviewApi(retrofit: Retrofit): com.tgdd.app.data.remote.ReviewApi {
+    fun provideReviewApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): com.tgdd.app.data.remote.ReviewApi {
         return retrofit.create(com.tgdd.app.data.remote.ReviewApi::class.java)
     }
 
     @Provides
     @Singleton
-    fun providePromoCodeApi(retrofit: Retrofit): com.tgdd.app.data.remote.PromoCodeApi {
+    fun providePromoCodeApi(@Named("apiWorkerRetrofit") retrofit: Retrofit): com.tgdd.app.data.remote.PromoCodeApi {
         return retrofit.create(com.tgdd.app.data.remote.PromoCodeApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAiVoiceApi(@Named("aiWorkerRetrofit") aiWorkerRetrofit: Retrofit): AiVoiceApi {
+        return aiWorkerRetrofit.create(AiVoiceApi::class.java)
     }
 }

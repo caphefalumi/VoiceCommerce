@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="840" viewBox="0 0 1400 840">
+  <rect width="1400" height="840" fill="#f8fafc"/>
+  <text x="700" y="50" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0f172a">TGDD Voice Commerce - High-Level System Architecture (Mock)</text>
+
+  <rect x="90" y="140" width="260" height="140" rx="14" fill="#dbeafe" stroke="#1d4ed8" stroke-width="3"/>
+  <text x="220" y="190" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="#1e3a8a">Android App</text>
+  <text x="220" y="225" text-anchor="middle" font-family="Arial" font-size="16" fill="#1e3a8a">MVVM + Room + Retrofit</text>
+  <text x="220" y="250" text-anchor="middle" font-family="Arial" font-size="16" fill="#1e3a8a">Fragments + Voice UI</text>
+
+  <rect x="460" y="120" width="300" height="170" rx="14" fill="#ede9fe" stroke="#6d28d9" stroke-width="3"/>
+  <text x="610" y="170" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="#4c1d95">API Worker</text>
+  <text x="610" y="205" text-anchor="middle" font-family="Arial" font-size="16" fill="#4c1d95">Hono REST Routes</text>
+  <text x="610" y="230" text-anchor="middle" font-family="Arial" font-size="16" fill="#4c1d95">Auth + Cart + Orders</text>
+  <text x="610" y="255" text-anchor="middle" font-family="Arial" font-size="16" fill="#4c1d95">Admin + Promo + Logs</text>
+
+  <rect x="860" y="120" width="300" height="170" rx="14" fill="#dcfce7" stroke="#15803d" stroke-width="3"/>
+  <text x="1010" y="170" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="#14532d">AI Worker</text>
+  <text x="1010" y="205" text-anchor="middle" font-family="Arial" font-size="16" fill="#14532d">STT / TTS / Intent</text>
+  <text x="1010" y="230" text-anchor="middle" font-family="Arial" font-size="16" fill="#14532d">MCP Tool Orchestration</text>
+  <text x="1010" y="255" text-anchor="middle" font-family="Arial" font-size="16" fill="#14532d">Voice Commerce Actions</text>
+
+  <rect x="420" y="390" width="560" height="180" rx="14" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="700" y="440" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="#9a3412">Cloudflare Data + Platform Services</text>
+  <text x="700" y="475" text-anchor="middle" font-family="Arial" font-size="16" fill="#9a3412">D1 (transactional SQL), Vectorize (semantic retrieval), Workers AI</text>
+  <text x="700" y="500" text-anchor="middle" font-family="Arial" font-size="16" fill="#9a3412">Cloudflare Pages frontend release, Worker bindings and observability</text>
+  <text x="700" y="525" text-anchor="middle" font-family="Arial" font-size="16" fill="#9a3412">Terraform-managed infra baseline + GitHub Actions automation</text>
+
+  <line x1="350" y1="210" x2="460" y2="210" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="760" y1="210" x2="860" y2="210" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="610" y1="290" x2="610" y2="390" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="1010" y1="290" x2="800" y2="390" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#334155"/>
+    </marker>
+  </defs>
+</svg>

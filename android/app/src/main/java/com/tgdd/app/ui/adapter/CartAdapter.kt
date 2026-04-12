@@ -8,13 +8,22 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.tgdd.app.R
 import com.tgdd.app.data.local.entity.CartItemEntity
+import com.tgdd.app.data.repository.ProductRepository
 import com.tgdd.app.databinding.ItemCartBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class CartAdapter(
+    private val productRepository: ProductRepository,
     private val onQuantityChanged: (CartItemEntity, Int) -> Unit,
     private val onRemoveClicked: (CartItemEntity) -> Unit
 ) : ListAdapter<CartItemEntity, CartAdapter.CartViewHolder>(CartItemDiffCallback()) {
+
+    private val adapterScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CartViewHolder {
         val binding = ItemCartBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -30,7 +39,22 @@ class CartAdapter(
             binding.apply {
                 productName.text = item.name
                 productPrice.text = String.format(Locale("vi", "VN"), "%,.0f₫", item.price)
+                lineTotalText.text = root.context.getString(
+                    R.string.line_total_format,
+                    String.format(Locale("vi", "VN"), "%,.0f₫", item.price * item.quantity)
+                )
                 quantityText.text = item.quantity.toString()
+
+                productBrand.text = root.context.getString(R.string.brand_unknown)
+                adapterScope.launch {
+                    val product = withContext(Dispatchers.IO) {
+                        runCatching { productRepository.getProductById(item.productId).getOrNull() }.getOrNull()
+                    }
+                    if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                        productBrand.text = product?.brand?.takeIf { it.isNotBlank() }
+                            ?: root.context.getString(R.string.brand_unknown)
+                    }
+                }
                 
                 productImage.load(item.image) {
                     placeholder(R.drawable.ic_placeholder)

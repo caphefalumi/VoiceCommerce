@@ -208,43 +208,6 @@
                     android:background="@color/mobi_pulse_outline_variant"
                     android:layout_marginVertical="12dp" />
 
-                <!-- Points / Saved Stat -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:id="@+id/pointsText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="@font/space_grotesk_bold"
-                        android:text="0"
-                        android:textColor="@color/mobi_pulse_primary_dark"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:fontFamily="@font/inter"
-                        android:text="@string/points_label"
-                        android:textColor="@color/mobi_pulse_on_surface_variant"
-                        android:textSize="12sp" />
-
-                </LinearLayout>
-
-                <!-- Divider -->
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/mobi_pulse_outline_variant"
-                    android:layout_marginVertical="12dp" />
-
                 <!-- Reviews Stat -->
                 <LinearLayout
                     android:layout_width="0dp"

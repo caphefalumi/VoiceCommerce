@@ -14,7 +14,8 @@ import javax.inject.Inject
 
 class CartRepository @Inject constructor(
     private val cartDao: CartDao,
-    private val cartApi: CartApi
+    private val cartApi: CartApi,
+    private val userSession: com.tgdd.app.data.local.UserSession
 ) {
     fun getCartItems(): Flow<List<CartItemEntity>> = cartDao.getCartItems()
 
@@ -64,10 +65,14 @@ class CartRepository @Inject constructor(
     }
 
     suspend fun updateQuantity(itemId: Long, quantity: Int) {
+        val items = getCartItems().first()
+        val item = items.find { it.id == itemId }
         if (quantity < 1) {
             cartDao.removeCartItemById(itemId)
+            item?.let { syncRemoveFromCart(it.productId) }
         } else {
             cartDao.updateQuantity(itemId, quantity)
+            item?.let { syncSetQuantity(it.productId, quantity) }
         }
     }
 
@@ -94,6 +99,7 @@ class CartRepository @Inject constructor(
     }
 
     private suspend fun syncAddToCart(productId: String, quantity: Int) {
+        if (!userSession.isLoggedIn()) return
         if (!NetworkObserver.isCurrentlyConnected()) return
         try {
             val dto = mapOf("product_id" to productId, "quantity" to quantity)
@@ -107,6 +113,7 @@ class CartRepository @Inject constructor(
     }
 
     private suspend fun syncRemoveFromCart(productId: String) {
+        if (!userSession.isLoggedIn()) return
         if (!NetworkObserver.isCurrentlyConnected()) return
         try {
             val response = cartApi.removeFromCart(productId)
@@ -118,7 +125,21 @@ class CartRepository @Inject constructor(
         }
     }
 
+    private suspend fun syncSetQuantity(productId: String, quantity: Int) {
+        if (!userSession.isLoggedIn()) return
+        if (!NetworkObserver.isCurrentlyConnected()) return
+        try {
+            val response = cartApi.setCartQuantity(productId, mapOf("quantity" to quantity))
+            if (!response.isSuccessful) {
+                Log.e(TAG, "Set quantity sync failed: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Set quantity sync failed: ${e.message}", e)
+        }
+    }
+
     suspend fun syncCart() {
+        if (!userSession.isLoggedIn()) return
         if (!NetworkObserver.isCurrentlyConnected()) {
             Log.w(TAG, "Cannot sync cart: no network connection")
             return

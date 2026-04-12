@@ -1,5 +1,6 @@
 package com.tgdd.app.data.model
 
+import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
 
 data class ProductListResponse(
@@ -202,6 +203,29 @@ data class PromoCodeApplicationResponse(
     val error: String? = null
 )
 
+data class CouponApplyResponse(
+    @SerializedName("success")
+    val success: Boolean,
+    @SerializedName("coupon_code")
+    val couponCode: String? = null,
+    @SerializedName("discount_type")
+    val discountType: String? = null,
+    @SerializedName("discount_value")
+    val discountValue: Double? = null,
+    @SerializedName("subtotal")
+    val subtotal: Double? = null,
+    @SerializedName("discount_amount")
+    val discountAmount: Double? = null,
+    @SerializedName("final_total")
+    val finalTotal: Double? = null,
+    @SerializedName("description")
+    val description: String? = null,
+    @SerializedName("message")
+    val message: String? = null,
+    @SerializedName("error")
+    val error: String? = null
+)
+
 // Address response
 data class AddressListResponse(
     @SerializedName("addresses")
@@ -283,7 +307,9 @@ object ApiResponses {
     )
     data class ReviewsResponse(
         val reviews: List<ReviewDto>? = null,
+        @SerializedName("average_rating")
         val averageRating: Double? = null,
+        @SerializedName("total_count")
         val totalCount: Int? = null
     )
     data class ReviewResponse(
@@ -309,5 +335,61 @@ object ApiResponses {
         val message: String? = null,
         val error: String? = null
     )
+    data class CouponApplyResponse(
+        val success: Boolean,
+        val couponCode: String? = null,
+        val discountType: String? = null,
+        val discountValue: Double? = null,
+        val subtotal: Double? = null,
+        val discountAmount: Double? = null,
+        val finalTotal: Double? = null,
+        val description: String? = null,
+        val message: String? = null,
+        val error: String? = null
+    )
     data class AddressListResponse(val addresses: List<AddressDto>? = null)
 }
+
+data class AiVoiceRequest(
+    @SerializedName("text")
+    val text: String? = null,
+    @SerializedName("audio_base64")
+    val audioBase64: String? = null,
+    @SerializedName("session_id")
+    val sessionId: String? = null,
+    @SerializedName("context")
+    val context: AiVoiceContext? = null,
+)
+
+data class AiVoiceContext(
+    @SerializedName("user_id")
+    val userId: String? = null,
+)
+
+data class AiVoiceResponse(
+    @SerializedName("transcribed_text")
+    val transcribedText: String? = null,
+    @SerializedName("response_text")
+    val responseText: String? = null,
+    @SerializedName("action")
+    val action: JsonElement? = null,
+    @SerializedName("search_results")
+    val searchResults: List<AiSearchResult>? = null,
+    @SerializedName("error")
+    val error: String? = null,
+)
+
+data class AiSearchResult(
+    @SerializedName("id")
+    val id: String,
+    @SerializedName("name")
+    val name: String,
+    @SerializedName("price")
+    val price: Double? = null,
+    @SerializedName("brand")
+    val brand: String? = null,
+    @SerializedName("category")
+    val category: String? = null,
+    @SerializedName("index")
+    val index: Int? = null,
+)

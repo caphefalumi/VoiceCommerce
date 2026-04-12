@@ -38,14 +38,20 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideCartRepository(cartDao: CartDao, cartApi: CartApi): CartRepository {
-        return CartRepository(cartDao, cartApi)
+    fun provideCartRepository(cartDao: CartDao, cartApi: CartApi, userSession: UserSession): CartRepository {
+        return CartRepository(cartDao, cartApi, userSession)
     }
 
     @Provides
     @Singleton
-    fun provideUserRepository(userApi: UserApi, userSession: UserSession): UserRepository {
-        return UserRepository(userApi, userSession)
+    fun provideUserRepository(
+        userApi: UserApi, 
+        userSession: UserSession,
+        cartDao: CartDao,
+        wishlistDao: com.tgdd.app.data.local.dao.WishlistDao,
+        orderDao: OrderDao
+    ): UserRepository {
+        return UserRepository(userApi, userSession, cartDao, wishlistDao, orderDao)
     }
 
     @Provides
@@ -63,9 +69,10 @@ object RepositoryModule {
     @Singleton
     fun provideWishlistRepository(
         wishlistDao: com.tgdd.app.data.local.dao.WishlistDao,
-        wishlistApi: com.tgdd.app.data.remote.WishlistApi
+        wishlistApi: com.tgdd.app.data.remote.WishlistApi,
+        userSession: UserSession
     ): com.tgdd.app.data.repository.WishlistRepository {
-        return com.tgdd.app.data.repository.WishlistRepository(wishlistDao, wishlistApi)
+        return com.tgdd.app.data.repository.WishlistRepository(wishlistDao, wishlistApi, userSession)
     }
 
     @Provides

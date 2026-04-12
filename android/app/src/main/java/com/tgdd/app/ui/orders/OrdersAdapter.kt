@@ -13,7 +13,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class OrdersAdapter : ListAdapter<OrderEntity, OrdersAdapter.ViewHolder>(DIFF) {
+class OrdersAdapter(
+    private val onItemClick: ((OrderEntity) -> Unit)? = null
+) : ListAdapter<OrderEntity, OrdersAdapter.ViewHolder>(DIFF) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemOrderBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -22,8 +24,17 @@ class OrdersAdapter : ListAdapter<OrderEntity, OrdersAdapter.ViewHolder>(DIFF) {
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(getItem(position))
 
-    class ViewHolder(private val b: ItemOrderBinding) : RecyclerView.ViewHolder(b.root) {
+    inner class ViewHolder(private val b: ItemOrderBinding) : RecyclerView.ViewHolder(b.root) {
         private val vnd = NumberFormat.getNumberInstance(Locale("vi", "VN"))
+
+        init {
+            b.root.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onItemClick?.invoke(getItem(position))
+                }
+            }
+        }
 
         fun bind(order: OrderEntity) {
             b.orderIdText.text = "#${order.id.take(8).uppercase()}"

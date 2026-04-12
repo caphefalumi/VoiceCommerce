@@ -12,6 +12,12 @@ interface CartApi {
     
     @POST("cart")
     suspend fun addToCart(@Body item: Map<String, Any>): Response<AddToCartResponse>
+
+    @PATCH("cart/{productId}")
+    suspend fun setCartQuantity(
+        @Path("productId") productId: String,
+        @Body payload: Map<String, Int>
+    ): Response<MessageResponse>
     
     @DELETE("cart/{productId}")
     suspend fun removeFromCart(@Path("productId") productId: String): Response<MessageResponse>

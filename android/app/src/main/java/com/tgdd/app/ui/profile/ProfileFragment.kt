@@ -30,8 +30,23 @@ class ProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupOrderStatusCards()
         setupClickListeners()
         observeViewModel()
+    }
+
+    private fun setupOrderStatusCards() {
+        binding.statusPendingCard.statusIcon.setImageResource(R.drawable.ic_order_pending)
+        binding.statusPendingCard.statusLabel.text = getString(R.string.order_status_pending)
+
+        binding.statusPreparingCard.statusIcon.setImageResource(R.drawable.ic_order_preparing)
+        binding.statusPreparingCard.statusLabel.text = getString(R.string.order_status_preparing)
+
+        binding.statusShippedCard.statusIcon.setImageResource(R.drawable.ic_order_shipped)
+        binding.statusShippedCard.statusLabel.text = getString(R.string.order_status_shipped)
+
+        binding.statusDeliveredCard.statusIcon.setImageResource(R.drawable.ic_check_circle)
+        binding.statusDeliveredCard.statusLabel.text = getString(R.string.order_status_delivered)
     }
 
     private fun setupClickListeners() {
@@ -114,6 +129,7 @@ class ProfileFragment : Fragment() {
             .setPositiveButton(getString(R.string.logout)) { _, _ ->
                 firebaseAuthHelper.signOut()
                 viewModel.logout()
+                findNavController().navigate(R.id.productListFragment)
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()

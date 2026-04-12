@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760">
+  <rect width="1400" height="760" fill="#f8fafc"/>
+  <text x="700" y="52" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0f172a">Terraform Resource Scope (Mock)</text>
+
+  <rect x="560" y="110" width="280" height="95" rx="12" fill="#ede9fe" stroke="#6d28d9" stroke-width="3"/>
+  <text x="700" y="165" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="#4c1d95">infra/terraform/main.tf</text>
+
+  <rect x="120" y="300" width="250" height="120" rx="12" fill="#dbeafe" stroke="#1d4ed8" stroke-width="3"/>
+  <text x="245" y="350" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#1e3a8a">D1 Database</text>
+  <text x="245" y="380" text-anchor="middle" font-family="Arial" font-size="14" fill="#1e3a8a">cloudflare_d1_database</text>
+
+  <rect x="420" y="300" width="250" height="120" rx="12" fill="#dcfce7" stroke="#15803d" stroke-width="3"/>
+  <text x="545" y="350" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#14532d">Pages Project</text>
+  <text x="545" y="380" text-anchor="middle" font-family="Arial" font-size="14" fill="#14532d">cloudflare_pages_project</text>
+
+  <rect x="720" y="300" width="250" height="120" rx="12" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="845" y="350" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#9a3412">Ruleset</text>
+  <text x="845" y="380" text-anchor="middle" font-family="Arial" font-size="14" fill="#9a3412">rate-limit baseline</text>
+
+  <rect x="1020" y="300" width="250" height="120" rx="12" fill="#fef9c3" stroke="#a16207" stroke-width="3"/>
+  <text x="1145" y="350" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#78350f">KV Namespace</text>
+  <text x="1145" y="380" text-anchor="middle" font-family="Arial" font-size="14" fill="#78350f">session store</text>
+
+  <rect x="300" y="530" width="360" height="140" rx="12" fill="#ecfeff" stroke="#0e7490" stroke-width="3"/>
+  <text x="480" y="585" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#115e59">Not in Terraform v5 Provider</text>
+  <text x="480" y="615" text-anchor="middle" font-family="Arial" font-size="14" fill="#115e59">Vectorize indexes handled by Wrangler</text>
+
+  <rect x="740" y="530" width="360" height="140" rx="12" fill="#fae8ff" stroke="#a21caf" stroke-width="3"/>
+  <text x="920" y="585" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#86198f">Bindings in Worker Config</text>
+  <text x="920" y="615" text-anchor="middle" font-family="Arial" font-size="14" fill="#86198f">D1/AI/Vectorize declared in wrangler.json</text>
+
+  <line x1="700" y1="205" x2="245" y2="300" stroke="#334155" stroke-width="3"/>
+  <line x1="700" y1="205" x2="545" y2="300" stroke="#334155" stroke-width="3"/>
+  <line x1="700" y1="205" x2="845" y2="300" stroke="#334155" stroke-width="3"/>
+  <line x1="700" y1="205" x2="1145" y2="300" stroke="#334155" stroke-width="3"/>
+
+  <line x1="845" y1="420" x2="480" y2="530" stroke="#64748b" stroke-width="2"/>
+  <line x1="845" y1="420" x2="920" y2="530" stroke="#64748b" stroke-width="2"/>
+</svg>

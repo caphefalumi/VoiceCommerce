@@ -1,6 +1,8 @@
 package com.tgdd.app.data.remote
 
 import com.tgdd.app.data.model.AuthResponse
+import com.tgdd.app.data.model.AiVoiceRequest
+import com.tgdd.app.data.model.AiVoiceResponse
 import com.tgdd.app.data.model.SocialSignInResponse
 import com.tgdd.app.data.model.UserDto
 import com.tgdd.app.data.model.UserResponse
@@ -78,4 +80,9 @@ interface UserApi {
 
     @POST("auth/firebase/create-account")
     suspend fun firebaseCreateAccount(@Body body: Map<String, String>): Response<AuthResponse>
+}
+
+interface AiVoiceApi {
+    @POST("voice-process")
+    suspend fun processVoice(@Body body: AiVoiceRequest): Response<AiVoiceResponse>
 }

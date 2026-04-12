@@ -7,7 +7,10 @@ import com.tgdd.app.data.model.ReviewDto
 import com.tgdd.app.data.network.NetworkObserver
 import com.tgdd.app.data.remote.ReviewApi
 import com.google.gson.Gson
+import java.text.SimpleDateFormat
 import kotlinx.coroutines.flow.Flow
+import java.util.Locale
+import java.util.TimeZone
 import java.util.UUID
 import javax.inject.Inject
 
@@ -55,14 +58,13 @@ class ReviewRepository @Inject constructor(
         if (NetworkObserver.isCurrentlyConnected()) {
             try {
                 val response = reviewApi.createReview(
+                    productId = productId,
                     mapOf(
-                        "product_id" to productId,
                         "user_id" to userId,
-                        "user_name" to userName,
                         "rating" to rating,
                         "comment" to comment,
                         "images" to images,
-                        "is_verified_purchase" to isVerifiedPurchase
+                        "verified_purchase" to isVerifiedPurchase
                     )
                 )
                 if (response.isSuccessful) {
@@ -169,7 +171,23 @@ fun ReviewDto.toEntity(): ReviewEntity {
         comment = this.comment ?: "",
         images = gson.toJson(this.images),
         helpfulCount = this.helpfulCount,
-        createdAt = this.createdAt ?: System.currentTimeMillis(),
+        createdAt = parseCreatedAtMillis(this.createdAt),
         isVerifiedPurchase = this.isVerifiedPurchase
     )
+}
+
+private fun parseCreatedAtMillis(createdAt: String?): Long {
+    if (createdAt.isNullOrBlank()) return System.currentTimeMillis()
+    return try {
+        val instant = java.time.Instant.parse(createdAt)
+        instant.toEpochMilli()
+    } catch (_: Exception) {
+        try {
+            val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            format.timeZone = TimeZone.getTimeZone("UTC")
+            format.parse(createdAt)?.time ?: System.currentTimeMillis()
+        } catch (_: Exception) {
+            System.currentTimeMillis()
+        }
+    }
 }

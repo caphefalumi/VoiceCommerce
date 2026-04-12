@@ -1,16 +1,25 @@
 package com.tgdd.app.ui.product
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentProductListBinding
 import com.tgdd.app.ui.adapter.ProductAdapter
@@ -26,6 +35,32 @@ class ProductListFragment : Fragment() {
     private val viewModel: ProductListViewModel by viewModels()
     private val args: ProductListFragmentArgs by navArgs()
     private lateinit var productAdapter: ProductAdapter
+
+    private val voiceResultLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        val spokenText = result.data
+            ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            ?.firstOrNull()
+            ?.trim()
+            .orEmpty()
+        if (spokenText.isNotBlank()) {
+            binding.searchEditText.setText(spokenText)
+            binding.searchEditText.setSelection(spokenText.length)
+            viewModel.processVoiceCommand(spokenText)
+        }
+    }
+
+    private val audioPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            launchVoiceRecognition()
+        } else {
+            binding.root.showErrorSnackbar(getString(R.string.voice_permission_required))
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -61,9 +96,7 @@ class ProductListFragment : Fragment() {
                 findNavController().navigate(action)
             },
             onAddToCart = { product ->
-                // Navigate to detail for add-to-cart (handles auth check there)
-                val action = ProductListFragmentDirections.actionProductListToDetail(product.id)
-                findNavController().navigate(action)
+                viewModel.addToCart(product)
             }
         )
         binding.productsRecyclerView.apply {
@@ -98,8 +131,41 @@ class ProductListFragment : Fragment() {
 
     private fun setupVoiceSearch() {
         binding.micButton.setOnClickListener {
-            binding.root.showInfoSnackbar(getString(R.string.voice_search_coming_soon))
+            if (!isSpeechRecognizerAvailable()) {
+                binding.root.showErrorSnackbar(getString(R.string.voice_not_supported))
+                return@setOnClickListener
+            }
+            if (hasAudioPermission()) {
+                launchVoiceRecognition()
+            } else {
+                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
         }
+    }
+
+    private fun hasAudioPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun isSpeechRecognizerAvailable(): Boolean {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+        val activities = requireContext().packageManager.queryIntentActivities(intent, 0)
+        return activities.isNotEmpty()
+    }
+
+    private fun launchVoiceRecognition() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_search))
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+        }
+        voiceResultLauncher.launch(intent)
     }
 
     private fun setupPriceFilter() {
@@ -188,6 +254,52 @@ class ProductListFragment : Fragment() {
                 viewModel.clearError()
             }
         }
+
+        viewModel.addedToCart.observe(viewLifecycleOwner) { added ->
+            if (added) {
+                val message = viewModel.addedToCartMessage.value ?: getString(R.string.added_to_cart)
+                com.google.android.material.snackbar.Snackbar
+                    .make(binding.root, message, com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+                    .setAction(getString(R.string.view_cart)) {
+                        findNavController().navigate(R.id.action_productList_to_cart)
+                    }
+                    .show()
+                viewModel.clearAddedToCartMessage()
+                viewModel.resetAddedToCart()
+            }
+        }
+
+        viewModel.requireLogin.observe(viewLifecycleOwner) { required ->
+            if (required == true) {
+                showLoginRequiredDialog()
+                viewModel.resetRequireLogin()
+            }
+        }
+
+        viewModel.assistantResponse.observe(viewLifecycleOwner) { text ->
+            text?.let {
+                binding.root.showInfoSnackbar(it)
+                viewModel.clearAssistantResponse()
+            }
+        }
+
+        viewModel.navigateToCheckout.observe(viewLifecycleOwner) { shouldNavigate ->
+            if (shouldNavigate == true) {
+                findNavController().navigate(R.id.checkoutFragment)
+                viewModel.onNavigatedToCheckout()
+            }
+        }
+    }
+
+    private fun showLoginRequiredDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Đăng nhập để tiếp tục")
+            .setMessage("Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.")
+            .setPositiveButton("Đăng nhập") { _, _ ->
+                findNavController().navigate(R.id.action_global_login)
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
     }
 
     override fun onDestroyView() {

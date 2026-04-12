@@ -36,9 +36,14 @@ class OrdersViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _isLoading.value = true
-            orderRepository.syncOrders(userId)
-            orderRepository.getOrdersByUserId(userId).collect { list ->
-                _orders.value = list
+            try {
+                orderRepository.syncOrders(userId)
+                orderRepository.getOrdersByUserId(userId).collect { list ->
+                    _orders.value = list
+                    _isLoading.value = false
+                }
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to load orders"
                 _isLoading.value = false
             }
         }

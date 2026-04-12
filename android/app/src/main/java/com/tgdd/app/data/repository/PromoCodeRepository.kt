@@ -13,6 +13,13 @@ class PromoCodeRepository @Inject constructor(
     private val promoCodeDao: PromoCodeDao,
     private val promoCodeApi: PromoCodeApi
 ) {
+    data class CouponApplyResult(
+        val couponCode: String,
+        val discountAmount: Double,
+        val finalTotal: Double,
+        val message: String?
+    )
+
     fun getActivePromoCodes(): Flow<List<PromoCodeEntity>> =
         promoCodeDao.getActivePromoCodes()
 
@@ -66,7 +73,7 @@ class PromoCodeRepository @Inject constructor(
     suspend fun applyPromoCode(code: String, orderTotal: Double): Result<Pair<Double, Double>> {
         val validationResult = validatePromoCode(code, orderTotal)
         if (validationResult.isFailure) {
-            return Result.failure(validationResult.exceptionOrNull()!!)
+            return Result.failure(validationResult.exceptionOrNull() ?: Exception("Promo code validation failed"))
         }
 
         val discount = validationResult.getOrThrow()
@@ -88,6 +95,54 @@ class PromoCodeRepository @Inject constructor(
         }
 
         return Result.success(Pair(discount, finalTotal))
+    }
+
+    suspend fun applyCoupon(code: String, orderTotal: Double, userId: String?): Result<CouponApplyResult> {
+        if (!NetworkObserver.isCurrentlyConnected()) {
+            val localValidation = validatePromoCode(code, orderTotal)
+            if (localValidation.isFailure) {
+                return Result.failure(localValidation.exceptionOrNull() ?: Exception("Coupon validation failed"))
+            }
+            val discount = localValidation.getOrThrow()
+            val finalTotal = (orderTotal - discount).coerceAtLeast(0.0)
+            return Result.success(
+                CouponApplyResult(
+                    couponCode = code.uppercase(),
+                    discountAmount = discount,
+                    finalTotal = finalTotal,
+                    message = "Áp dụng mã giảm giá thành công"
+                )
+            )
+        }
+
+        return try {
+            val payload = mutableMapOf<String, Any>(
+                "code" to code,
+                "order_total" to orderTotal
+            )
+            if (!userId.isNullOrBlank()) {
+                payload["user_id"] = userId
+            }
+
+            val response = promoCodeApi.applyCoupon(payload)
+            val body = response.body()
+
+            if (!response.isSuccessful || body == null || !body.success) {
+                return Result.failure(Exception(body?.error ?: "Mã giảm giá không hợp lệ"))
+            }
+
+            Result.success(
+                CouponApplyResult(
+                    couponCode = body.couponCode ?: code.uppercase(),
+                    discountAmount = body.discountAmount ?: 0.0,
+                    finalTotal = body.finalTotal ?: orderTotal,
+                    message = body.message
+                )
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Apply coupon failed: ${e.message}", e)
+            Result.failure(e)
+        }
     }
 
     private fun calculateDiscount(promoCode: PromoCodeEntity, orderTotal: Double): Double {

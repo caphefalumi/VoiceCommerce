@@ -20,6 +20,7 @@
     <!-- PRODUCT LIST -->
     <!-- ============================================ -->
     <string name="add">Add</string>
+    <string name="apply">Áp dụng</string>
     <string name="search_products_hint">Search products...</string>
     <string name="loading">Loading...</string>
     <string name="no_products_found">No products found</string>
@@ -59,6 +60,11 @@
     <string name="cash_on_delivery_cod">Cash on Delivery (COD)</string>
     <string name="stripe_payment">Stripe</string>
     <string name="place_order">Place Order</string>
+    <string name="place_order_with_total">Đặt hàng (%1$s ₫)</string>
+    <string name="coupon_code">Mã giảm giá</string>
+    <string name="coupon_code_hint">Nhập mã (FLASHSALE, BLACKFRIDAY, NEWGUY)</string>
+    <string name="discount_subtracted">Số tiền được giảm</string>
+    <string name="total_after_discount">Tổng sau giảm</string>
     <string name="order_placed">Order Placed</string>
     <string name="payment_success_title">Payment Successful</string>
     <string name="payment_success_message">Your payment was processed successfully. Your order is confirmed!</string>
@@ -86,6 +92,23 @@
     <string name="guest_desc">Guest</string>
     <string name="orders_desc">Orders</string>
     <string name="navigate_desc">Navigate</string>
+    <string name="login_required">Login Required</string>
+    <string name="login_required_message">Please login to access this feature</string>
+
+    <!-- ============================================ -->
+    <!-- ORDERS -->
+    <!-- ============================================ -->
+    <string name="order_detail_title">Chi tiết đơn hàng</string>
+    <string name="order_items">Sản phẩm</string>
+    <string name="payment_info">Thanh toán</string>
+    <string name="payment_cod">Tiền mặt</string>
+    <string name="cancel_order">Hủy đơn hàng</string>
+    <string name="cancel_order_confirm">Bạn có chắc chắn muốn hủy đơn hàng này?</string>
+    <string name="order_delivered">Đã giao</string>
+    <string name="order_shipped">Đang giao</string>
+    <string name="order_preparing">Đang chuẩn bị</string>
+    <string name="order_cancelled">Đã hủy</string>
+    <string name="order_pending">Chờ xử lý</string>
 
     <!-- ============================================ -->
     <!-- GOOGLE OAUTH -->
@@ -181,7 +204,6 @@
     <!-- PROFILE SCREEN -->
     <!-- ============================================ -->
     <string name="orders">Đơn hàng</string>
-    <string name="points_label">Điểm thưởng</string>
     <string name="reviews_label">Đánh giá</string>
     <string name="order_history">Lịch sử đơn hàng</string>
     <string name="account_settings">Cài đặt tài khoản</string>
@@ -316,6 +338,10 @@
     <string name="preparing_orders_coming_soon">Preparing orders coming soon</string>
     <string name="shipped_orders_coming_soon">Shipped orders coming soon</string>
     <string name="delivered_orders_coming_soon">Delivered orders coming soon</string>
+    <string name="order_status_pending">Chờ xử lý</string>
+    <string name="order_status_preparing">Đang chuẩn bị</string>
+    <string name="order_status_shipped">Đang giao</string>
+    <string name="order_status_delivered">Đã giao</string>
     <string name="logout_confirmation_message">Are you sure you want to logout?</string>
     <string name="account_settings_title">Cài đặt tài khoản</string>
     <string name="account_full_name">Họ và tên</string>
@@ -327,6 +353,8 @@
     
     <!-- Features Coming Soon -->
     <string name="voice_search_coming_soon">Voice search coming soon</string>
+    <string name="voice_permission_required">Cần quyền micro để dùng tìm kiếm bằng giọng nói</string>
+    <string name="voice_not_supported">Thiết bị không hỗ trợ nhận diện giọng nói</string>
     <string name="voucher_feature_coming_soon">Voucher feature coming soon</string>
     
     <!-- Product Detail -->
@@ -334,6 +362,8 @@
     <string name="customer_reviews">Đánh giá khách hàng</string>
     <string name="reviews_format">(%d reviews)</string>
     <string name="view_cart">View Cart</string>
+    <string name="line_total_format">Thành tiền: %1$s</string>
+    <string name="brand_unknown">Thương hiệu chưa rõ</string>
     
     <!-- Checkout -->
     <string name="total_format">Total: %s VNĐ</string>

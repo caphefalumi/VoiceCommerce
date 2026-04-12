@@ -1,5 +1,9 @@
 # INFRA — Infrastructure as Code
 
+## 🚫 NO TESTS POLICY
+
+**Do NOT run any tests.** Tests are disabled for this project. Skip test commands entirely.
+
 ## OVERVIEW
 
 Terraform manages Cloudflare resources. Ansible handles Vectorize setup via wrangler CLI.

@@ -1,6 +1,7 @@
 package com.tgdd.app
 
 import com.tgdd.app.data.local.dao.CartDao
+import com.tgdd.app.data.local.UserSession
 import com.tgdd.app.data.local.entity.CartItemEntity
 import com.tgdd.app.data.local.entity.ProductEntity
 import com.tgdd.app.data.network.NetworkObserver
@@ -25,6 +26,7 @@ class CartRepositoryTest {
     private lateinit var cartDao: CartDao
     private lateinit var cartApi: CartApi
     private lateinit var cartRepository: CartRepository
+    private lateinit var userSession: UserSession
 
     private val testCartItem = CartItemEntity(
         id = 1L,
@@ -64,7 +66,9 @@ class CartRepositoryTest {
     fun setup() {
         cartDao = mockk(relaxed = true)
         cartApi = mockk(relaxed = true)
-        cartRepository = CartRepository(cartDao, cartApi)
+        userSession = mockk(relaxed = true)
+        every { userSession.isLoggedIn() } returns false
+        cartRepository = CartRepository(cartDao, cartApi, userSession)
         mockkObject(NetworkObserver)
         every { NetworkObserver.isCurrentlyConnected() } returns false
     }
@@ -179,6 +183,7 @@ class CartRepositoryTest {
 
     @Test
     fun `updateQuantity updates quantity when quantity is valid`() = runTest {
+        every { cartDao.getCartItems() } returns flowOf(testCartItemList)
         cartRepository.updateQuantity(1L, 5)
 
         coVerify { cartDao.updateQuantity(1L, 5) }
@@ -186,6 +191,7 @@ class CartRepositoryTest {
 
     @Test
     fun `updateQuantity removes item when quantity is less than 1`() = runTest {
+        every { cartDao.getCartItems() } returns flowOf(testCartItemList)
         cartRepository.updateQuantity(1L, 0)
 
         coVerify { cartDao.removeCartItemById(1L) }
@@ -193,6 +199,7 @@ class CartRepositoryTest {
 
     @Test
     fun `updateQuantity removes item for negative quantity`() = runTest {
+        every { cartDao.getCartItems() } returns flowOf(testCartItemList)
         cartRepository.updateQuantity(1L, -1)
 
         coVerify { cartDao.removeCartItemById(1L) }

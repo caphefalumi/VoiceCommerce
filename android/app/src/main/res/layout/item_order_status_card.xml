@@ -21,7 +21,6 @@
             android:id="@+id/statusIcon"
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@drawable/ic_cart"
             android:contentDescription="@string/cd_order_status_icon"
             app:tint="@color/mobi_pulse_on_surface_variant" />
 

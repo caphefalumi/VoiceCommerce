@@ -51,6 +51,9 @@ class ProductDetailViewModel @Inject constructor(
     private val _addedToCart = MutableLiveData<Boolean>()
     val addedToCart: LiveData<Boolean> = _addedToCart
 
+    private val _addedToCartMessage = MutableLiveData<String?>()
+    val addedToCartMessage: LiveData<String?> = _addedToCartMessage
+
     private val _requireLogin = MutableLiveData<Boolean>()
     val requireLogin: LiveData<Boolean> = _requireLogin
 
@@ -68,17 +71,13 @@ class ProductDetailViewModel @Inject constructor(
                 }.onFailure { e ->
                     _error.value = e.message ?: "Failed to load product"
                 }
-                // Also fetch full DTO for specs/reviews
                 productRepository.getProductDtoById(productId)?.let { dto ->
                     _productDto.value = dto
                 }
-                
-                // Check wishlist status
-                wishlistRepository.isInWishlist(productId).collect { inWishlist ->
-                    _isInWishlist.value = inWishlist
-                }
-                
-                // Load reviews
+
+                val inWishlist = wishlistRepository.isInWishlist(productId).first()
+                _isInWishlist.value = inWishlist
+
                 loadReviews(productId)
                 
                 _isLoading.value = false
@@ -91,23 +90,28 @@ class ProductDetailViewModel @Inject constructor(
 
     private fun loadReviews(productId: String) {
         viewModelScope.launch {
-            reviewRepository.getReviewsByProductId(productId).collect { reviewList ->
-                _reviews.value = reviewList
-                _reviewCount.value = reviewList.size
-                _averageRating.value = if (reviewList.isNotEmpty()) {
-                    reviewList.map { it.rating }.average()
-                } else {
-                    0.0
+            try {
+                reviewRepository.syncReviews(productId)
+                reviewRepository.getReviewsByProductId(productId).collect { reviewList ->
+                    _reviews.value = reviewList
+                    _reviewCount.value = reviewList.size
+                    _averageRating.value = if (reviewList.isNotEmpty()) {
+                        reviewList.map { it.rating }.average()
+                    } else {
+                        0.0
+                    }
                 }
-            }
+            } catch (_: Exception) {}
         }
     }
 
     private fun loadRelatedProducts(category: String) {
         viewModelScope.launch {
-            productRepository.getProductsByCategory(category).onSuccess { products ->
-                _relatedProducts.value = products.take(6)
-            }
+            try {
+                productRepository.getProductsByCategory(category).onSuccess { products ->
+                    _relatedProducts.value = products.take(6)
+                }
+            } catch (_: Exception) {}
         }
     }
 
@@ -139,6 +143,7 @@ class ProductDetailViewModel @Inject constructor(
                 )
                 cartRepository.addToCart(cartItem)
                 _addedToCart.value = true
+                _addedToCartMessage.value = "Đã thêm ${product.name} vào giỏ hàng"
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to add to cart"
             }
@@ -146,6 +151,7 @@ class ProductDetailViewModel @Inject constructor(
     }
 
     fun resetAddedToCart() { _addedToCart.value = false }
+    fun clearAddedToCartMessage() { _addedToCartMessage.value = null }
     fun resetRequireLogin() { _requireLogin.value = false }
     fun clearError() { _error.value = null }
 }

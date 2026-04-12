@@ -164,6 +164,18 @@ describe("Cart API", () => {
     return c.json({ id: "cart-item-id", message: "Added to cart" }, 201);
   });
 
+  app.patch("/api/cart/:productId", async (c) => {
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+    const { quantity } = await c.req.json();
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      return c.json({ error: "quantity must be a non-negative integer" }, 400);
+    }
+    return c.json({ success: true, message: "Updated quantity" });
+  });
+
   test("GET /api/cart returns 401 without auth", async () => {
     const res = await app.request("/api/cart", { method: "GET" }, mockEnv as any);
     expect(res.status).toBe(401);
@@ -178,6 +190,31 @@ describe("Cart API", () => {
     expect(res.status).toBe(400);
     const data = await res.json() as { error: string };
     expect(data.error).toBe("product_id is required");
+  });
+
+  test("PATCH /api/cart/:productId returns 401 without auth", async () => {
+    const res = await app.request("/api/cart/prod-1", { method: "PATCH", body: JSON.stringify({ quantity: 2 }) }, mockEnv as any);
+    expect(res.status).toBe(401);
+  });
+
+  test("PATCH /api/cart/:productId returns 400 for negative quantity", async () => {
+    const res = await app.request("/api/cart/prod-1", {
+      method: "PATCH",
+      headers: { Authorization: "Bearer token" },
+      body: JSON.stringify({ quantity: -1 }),
+    }, mockEnv as any);
+    expect(res.status).toBe(400);
+  });
+
+  test("PATCH /api/cart/:productId updates quantity", async () => {
+    const res = await app.request("/api/cart/prod-1", {
+      method: "PATCH",
+      headers: { Authorization: "Bearer token" },
+      body: JSON.stringify({ quantity: 3 }),
+    }, mockEnv as any);
+    expect(res.status).toBe(200);
+    const data = await res.json() as { success: boolean };
+    expect(data.success).toBe(true);
   });
 });
 

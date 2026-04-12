@@ -2,6 +2,10 @@
 
 Native Android e-commerce client. Talks to the same API Worker as the web app.
 
+## 🚫 NO TESTS POLICY
+
+**Do NOT run any tests.** Tests are disabled for this project. Skip test commands entirely.
+
 ## STRUCTURE
 
 ```

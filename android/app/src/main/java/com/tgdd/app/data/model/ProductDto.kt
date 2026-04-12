@@ -19,7 +19,7 @@ data class ProductDto(
     val description: String? = null,
     @SerializedName("rating")
     val rating: Float = 0f,
-    @SerializedName("reviewCount")
+    @SerializedName(value = "reviewCount", alternate = ["review_count"])
     val reviewCount: Int = 0,
     @SerializedName("brand")
     val brand: String? = null,

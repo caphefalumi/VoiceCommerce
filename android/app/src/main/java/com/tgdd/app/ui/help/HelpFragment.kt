@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
 import com.tgdd.app.R
 import com.tgdd.app.databinding.FragmentHelpBinding
@@ -47,7 +48,7 @@ class HelpFragment : Fragment() {
         binding.cardOrders.setOnClickListener {
             Snackbar.make(binding.root, getString(R.string.msg_check_order_status), Snackbar.LENGTH_LONG)
                 .setAction(getString(R.string.msg_view_orders)) {
-                    // Navigate to profile/orders tab
+                    findNavController().navigate(R.id.ordersFragment)
                 }.show()
         }
 

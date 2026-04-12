@@ -50,6 +50,9 @@ class CheckoutViewModel @Inject constructor(
     private val _finalTotal = MutableLiveData<Double>()
     val finalTotal: LiveData<Double> = _finalTotal
 
+    private val _couponMessage = MutableLiveData<String?>()
+    val couponMessage: LiveData<String?> = _couponMessage
+
     private val _stockValidation = MutableLiveData<StockValidator.StockValidationResult?>()
     val stockValidation: LiveData<StockValidator.StockValidationResult?> = _stockValidation
 
@@ -77,30 +80,23 @@ class CheckoutViewModel @Inject constructor(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
-    private val _checkoutUrl = MutableLiveData<String?>()
-    val checkoutUrl: LiveData<String?> = _checkoutUrl
-
     init {
         loadSavedAddresses()
-        observeCartTotal()
+        calculateFinalTotal(0.0)
     }
 
     private fun loadSavedAddresses() {
         viewModelScope.launch {
-            val userId = userSession.getUserId() ?: return@launch
-            addressRepository.getAddressesByUserId(userId).collect { addresses ->
-                _savedAddresses.value = addresses
-                if (_selectedAddress.value == null) {
-                    val defaultAddress = addresses.firstOrNull { it.isDefault }
-                    defaultAddress?.let { selectAddress(it) }
+            try {
+                val userId = userSession.getUserId() ?: return@launch
+                addressRepository.getAddressesByUserId(userId).collect { addresses ->
+                    _savedAddresses.value = addresses
+                    if (_selectedAddress.value == null) {
+                        val defaultAddress = addresses.firstOrNull { it.isDefault }
+                        defaultAddress?.let { selectAddress(it) }
+                    }
                 }
-            }
-        }
-    }
-
-    private fun observeCartTotal() {
-        cartTotal.observeForever { total ->
-            calculateFinalTotal(total)
+            } catch (_: Exception) {}
         }
     }
 
@@ -120,12 +116,17 @@ class CheckoutViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val result = promoCodeRepository.validatePromoCode(code, total)
+            val result = promoCodeRepository.applyCoupon(
+                code = code,
+                orderTotal = total,
+                userId = userSession.getUserId()
+            )
             if (result.isSuccess) {
-                val discount = result.getOrThrow()
-                _promoCode.value = code
-                _discountAmount.value = discount
-                calculateFinalTotal(total)
+                val couponResult = result.getOrThrow()
+                _promoCode.value = couponResult.couponCode
+                _discountAmount.value = couponResult.discountAmount
+                _finalTotal.value = couponResult.finalTotal
+                _couponMessage.value = couponResult.message
             } else {
                 _error.value = result.exceptionOrNull()?.message
             }
@@ -135,6 +136,7 @@ class CheckoutViewModel @Inject constructor(
     fun removePromoCode() {
         _promoCode.value = null
         _discountAmount.value = 0.0
+        _couponMessage.value = null
         calculateFinalTotal(cartTotal.value ?: 0.0)
     }
 
@@ -182,11 +184,11 @@ class CheckoutViewModel @Inject constructor(
         }
     }
 
+    fun clearCouponMessage() {
+        _couponMessage.value = null
+    }
+
     fun placeOrder(items: List<CartItemEntity>, total: Double) {
-        if (paymentMethod.value == "stripe") {
-            startStripeCheckout(items)
-            return
-        }
         if (!validate()) return
         if (items.isEmpty()) {
             _error.value = "Giỏ hàng trống"
@@ -218,41 +220,14 @@ class CheckoutViewModel @Inject constructor(
                     address = fullAddress,
                     paymentMethod = paymentMethod.value ?: "cod",
                     userId = userSession.getUserId() ?: "",
-                    userEmail = userSession.getUserEmail() ?: ""
+                    userEmail = userSession.getUserEmail() ?: "",
+                    discountedTotal = _finalTotal.value
                 )
                 _orderId.value = orderId
                 _orderPlaced.value = true
                 _isLoading.value = false
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to place order"
-                _isLoading.value = false
-            }
-        }
-    }
-
-    private fun startStripeCheckout(items: List<CartItemEntity>) {
-        if (!validate()) return
-        if (items.isEmpty()) {
-            _error.value = "Giỏ hàng trống"
-            return
-        }
-
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                val fullAddress = "${address.value ?: ""}, ${city.value ?: ""}"
-                val url = orderRepository.createStripeCheckoutSession(
-                    customerName = name.value ?: "",
-                    customerPhone = phone.value ?: "",
-                    address = fullAddress,
-                    userId = userSession.getUserId() ?: "",
-                    userEmail = userSession.getUserEmail() ?: ""
-                )
-                _checkoutUrl.value = url
-                _isLoading.value = false
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to start checkout"
                 _isLoading.value = false
             }
         }
