@@ -29,6 +29,22 @@ class ProfileViewModel @Inject constructor(
     private val _orders = MutableLiveData<List<OrderEntity>>()
     val orders: LiveData<List<OrderEntity>> = _orders
 
+    val pendingCount: LiveData<Int> = _orders.map { orders ->
+        orders.count { it.status == "pending" }
+    }
+
+    val preparingCount: LiveData<Int> = _orders.map { orders ->
+        orders.count { it.status == "preparing" }
+    }
+
+    val shippedCount: LiveData<Int> = _orders.map { orders ->
+        orders.count { it.status == "shipped" }
+    }
+
+    val deliveredCount: LiveData<Int> = _orders.map { orders ->
+        orders.count { it.status == "delivered" }
+    }
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
