@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ============================================ -->
+    <!-- APP STRINGS -->
+    <!-- ============================================ -->
+    <string name="app_name">TGDĐ</string>
+
+    <!-- ============================================ -->
+    <!-- NAVIGATION -->
+    <!-- ============================================ -->
+    <string name="home">Home</string>
+    <string name="search">Search</string>
+    <string name="cart">Cart</string>
+    <string name="profile">Profile</string>
+    <string name="products">Products</string>
+    <string name="product_detail">Product Detail</string>
+    <string name="checkout">Checkout</string>
+
+    <!-- ============================================ -->
+    <!-- PRODUCT LIST -->
+    <!-- ============================================ -->
+    <string name="add">Add</string>
+    <string name="apply">Apply</string>
+    <string name="search_products_hint">Search products...</string>
+    <string name="loading">Loading...</string>
+    <string name="no_products_found">No products found</string>
+
+    <!-- ============================================ -->
+    <!-- PRODUCT DETAIL -->
+    <!-- ============================================ -->
+    <string name="add_to_cart">Add to Cart</string>
+    <string name="quantity">Quantity:</string>
+    <string name="description">Description</string>
+    <string name="product_image">Product image</string>
+    <string name="default_quantity">1</string>
+
+    <!-- ============================================ -->
+    <!-- CART -->
+    <!-- ============================================ -->
+    <string name="your_cart">Your Cart</string>
+    <string name="your_cart_is_empty">Your cart is empty</string>
+    <string name="continue_shopping">Continue Shopping</string>
+    <string name="total">Total:</string>
+    <string name="total_label">Total</string>
+    <string name="subtotal">Subtotal</string>
+    <string name="clear">Clear</string>
+    <string name="clear_cart">Clear Cart</string>
+    <string name="checkout_button">Checkout</string>
+    <string name="proceed_to_checkout">Proceed to Checkout</string>
+    <string name="remove_item">Remove item</string>
+
+    <!-- ============================================ -->
+    <!-- CHECKOUT -->
+    <!-- ============================================ -->
+    <string name="shipping_information">Shipping Information</string>
+    <string name="full_name">Full Name</string>
+    <string name="shipping_address">Shipping Address</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="payment_method">Payment Method</string>
+    <string name="cash_on_delivery_cod">Cash on Delivery (COD)</string>
+    <string name="stripe_payment">Stripe</string>
+    <string name="place_order">Place Order</string>
+    <string name="place_order_with_total">Place Order (%1$s ₫)</string>
+    <string name="coupon_code">Coupon Code</string>
+    <string name="coupon_code_hint">Enter code (FLASHSALE, BLACKFRIDAY, NEWGUY)</string>
+    <string name="discount_subtracted">Discount Amount</string>
+    <string name="total_after_discount">Total After Discount</string>
+    <string name="order_placed">Order Placed</string>
+    <string name="payment_success_title">Payment Successful</string>
+    <string name="payment_success_message">Your payment was processed successfully. Your order is confirmed!</string>
+    <string name="payment_canceled">Payment was canceled.</string>
+    <string name="payment_pending">Payment is being processed. Please check your orders later.</string>
+    <string name="payment_check_failed">Unable to verify payment status. Please check your orders.</string>
+
+    <!-- Form Validation -->
+    <string name="error_name_required">Name is required</string>
+    <string name="error_address_required">Address is required</string>
+    <string name="error_phone_required">Phone number is required</string>
+    <string name="error_invalid_phone">Invalid phone number</string>
+
+    <!-- ============================================ -->
+    <!-- PROFILE -->
+    <!-- ============================================ -->
+    <string name="my_profile">My Profile</string>
+    <string name="welcome_guest">Welcome, Guest!</string>
+    <string name="login">Login</string>
+    <string name="logout">Logout</string>
+    <string name="my_orders">My Orders</string>
+    <string name="refresh">Refresh</string>
+    <string name="settings">Settings</string>
+    <string name="about">About</string>
+    <string name="profile_desc">Profile</string>
+    <string name="guest_desc">Guest</string>
+    <string name="orders_desc">Orders</string>
+    <string name="navigate_desc">Navigate</string>
+    <string name="login_required">Login Required</string>
+    <string name="login_required_message">Please login to access this feature</string>
+
+    <!-- ============================================ -->
+    <!-- ORDERS -->
+    <!-- ============================================ -->
+    <string name="order_detail_title">Order Details</string>
+    <string name="order_items">Products</string>
+    <string name="payment_info">Payment</string>
+    <string name="payment_cod">Cash</string>
+    <string name="cancel_order">Cancel Order</string>
+    <string name="cancel_order_confirm">Are you sure you want to cancel this order?</string>
+    <string name="order_delivered">Delivered</string>
+    <string name="order_shipped">Shipping</string>
+    <string name="order_preparing">Preparing</string>
+    <string name="order_cancelled">Cancelled</string>
+    <string name="order_pending">Pending</string>
+
+    <!-- ============================================ -->
+    <!-- GOOGLE OAUTH -->
+    <!-- ============================================ -->
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="oauth_error_title">Google Sign-in Failed</string>
+
+    <!-- ============================================ -->
+    <!-- LOGIN DIALOG -->
+    <!-- ============================================ -->
+    <string name="name_hint">Name</string>
+    <string name="email_hint">Email</string>
+
+    <!-- ============================================ -->
+    <!-- GENERAL -->
+    <!-- ============================================ -->
+    <string name="loading_text">Loading...</string>
+    <string name="error">Error</string>
+    <string name="retry">Retry</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="close">Close</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="back">Back</string>
+
+    <!-- Error Messages -->
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_loading_products">Failed to load products</string>
+    <string name="error_loading_product">Failed to load product details</string>
+    <string name="error_adding_to_cart">Failed to add to cart</string>
+    <string name="error_checkout_failed">Checkout failed. Please try again.</string>
+
+    <!-- Success Messages -->
+    <string name="added_to_cart">Added to cart</string>
+    <string name="cart_updated">Cart updated</string>
+    <string name="item_removed">Item removed</string>
+    <string name="cart_cleared">Cart cleared</string>
+    <string name="order_success">Order placed successfully!</string>
+
+    <!-- ============================================ -->
+    <!-- BOTTOM NAV (Stitch 5-tab) -->
+    <!-- ============================================ -->
+    <string name="nav_home">Home</string>
+    <string name="nav_category">Categories</string>
+    <string name="nav_cart">Cart</string>
+    <string name="nav_account">Account</string>
+    <string name="nav_support">Support</string>
+
+    <!-- ============================================ -->
+    <!-- HOME SCREEN -->
+    <!-- ============================================ -->
+    <string name="search_hint">Search products…</string>
+    <string name="voice_search">Voice search</string>
+    <string name="see_all">See all</string>
+    <string name="all_categories">All</string>
+
+    <!-- ============================================ -->
+    <!-- PRODUCT CARD -->
+    <!-- ============================================ -->
+    <string name="remove">Remove</string>
+    <string name="decrease">Decrease</string>
+    <string name="increase">Increase</string>
+
+    <!-- ============================================ -->
+    <!-- CART SCREEN -->
+    <!-- ============================================ -->
+    <string name="cart_title">Your Cart</string>
+    <string name="cart_empty">Cart is empty</string>
+    <string name="cart_empty_hint">Add products to cart to continue shopping</string>
+    <string name="shop_now">Shop Now</string>
+    <string name="voucher_hint">Add discount code</string>
+    <string name="order_summary">Order Summary</string>
+    <string name="shipping_fee">Shipping Fee</string>
+    <string name="free_shipping">FREE</string>
+
+    <!-- ============================================ -->
+    <!-- CHECKOUT STEPS -->
+    <!-- ============================================ -->
+    <string name="step_address">Address</string>
+    <string name="step_payment">Payment</string>
+    <string name="step_confirm">Confirm</string>
+    <string name="authentic">100%% Authentic</string>
+    <string name="return_policy">Easy Returns</string>
+    <string name="secure_payment">100%% Secure</string>
+
+    <!-- ============================================ -->
+    <!-- PROFILE SCREEN -->
+    <!-- ============================================ -->
+    <string name="orders">Orders</string>
+    <string name="reviews_label">Reviews</string>
+    <string name="order_history">Order History</string>
+    <string name="account_settings">Account Settings</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="notifications">Notifications</string>
+    <string name="help_center">Help Center</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="cd_voucher_icon">Voucher</string>
+    <string name="cd_empty_cart">Empty cart</string>
+    <string name="cd_step_address">Step 1: Address</string>
+    <string name="cd_step_payment">Step 2: Payment</string>
+    <string name="cd_step_confirm">Step 3: Confirm</string>
+    <string name="cd_cod_payment">Cash on Delivery</string>
+    <string name="cd_stripe_payment">Stripe payment</string>
+    <string name="cd_authentic_badge">100% Authentic</string>
+    <string name="cd_return_badge">Easy return</string>
+    <string name="cd_secure_badge">Secure payment</string>
+    <string name="cd_no_products">No products</string>
+    <string name="cd_increase_quantity">Increase quantity</string>
+    <string name="cd_decrease_quantity">Decrease quantity</string>
+    <string name="cd_remove_item">Remove item</string>
+    
+    <!-- Category Accessibility -->
+    <string name="cd_category_phones">Mobile Phones</string>
+    <string name="cd_category_laptops">Laptops</string>
+    <string name="cd_category_tablets">Tablets</string>
+    <string name="cd_category_apple">Apple Products</string>
+    <string name="cd_category_accessories">Accessories</string>
+    <string name="cd_category_samsung">Samsung Products</string>
+    <string name="cd_category_icon">Product Categories</string>
+    <string name="cd_iphone_promo">iPhone 15 Series Promotion</string>
+    <string name="cd_apple_watch">Apple Watch</string>
+    <string name="cd_macbook">MacBook</string>
+    
+    <!-- Help Screen Accessibility -->
+    <string name="cd_search_icon">Search</string>
+    <string name="cd_orders_icon">Orders</string>
+    <string name="cd_delivery_icon">Delivery</string>
+    <string name="cd_payment_icon">Payment</string>
+    <string name="cd_warranty_icon">Warranty</string>
+    <string name="cd_returns_icon">Returns</string>
+    <string name="cd_contact_icon">Contact Support</string>
+    <string name="cd_faq_arrow">View details</string>
+    <string name="cd_support_icon">24/7 Support</string>
+    <string name="cd_call_button">Call hotline</string>
+    <string name="cd_product_image">Product image</string>
+    <string name="cd_banner_image">Banner image</string>
+    <string name="cd_location_icon">Address</string>
+    <string name="cd_order_status_icon">Order status</string>
+    <string name="cd_chevron_right">View more</string>
+    
+    <!-- Category Screen -->
+    <string name="category_explore_title">Explore\nCategories</string>
+    <string name="category_phones">PHONES</string>
+    <string name="category_phones_count">1.2k+ Items</string>
+    <string name="category_laptops">LAPTOPS</string>
+    <string name="category_laptops_count">850 Items</string>
+    <string name="category_tablets">TABLETS</string>
+    <string name="category_tablets_count">340 Items</string>
+    <string name="category_accessories">ACCESSORIES</string>
+    <string name="category_accessories_count">5k+ Items</string>
+    <string name="category_samsung_sale">Sale -30%</string>
+    <string name="category_new">New Arrivals</string>
+    <string name="category_brands_title">Featured Brands</string>
+    <string name="category_see_all">SEE ALL</string>
+    <string name="category_ifans_title">For iFans</string>
+    <string name="category_ifans_promo_title">PREMIUM CHOICE</string>
+    <string name="category_ifans_promo_subtitle">iPhone 15 Series</string>
+    <string name="category_ifans_promo_desc">Just arrived today. 0% installment.</string>
+    <string name="category_view_all">View all categories</string>
+    
+    <!-- Help Screen -->
+    <string name="help_welcome_title">Hello, how can we help you?</string>
+    <string name="help_search_hint">Search questions, issues…</string>
+    <string name="help_orders_title">Orders</string>
+    <string name="help_orders_desc">Check status</string>
+    <string name="help_delivery_title">Delivery</string>
+    <string name="help_delivery_desc">Shipping policy</string>
+    <string name="help_payment_title">Payment</string>
+    <string name="help_payment_desc">Refund guide</string>
+    <string name="help_warranty_title">Warranty</string>
+    <string name="help_warranty_desc">Check warranty</string>
+    <string name="help_returns_title">Returns</string>
+    <string name="help_returns_desc">New return policy</string>
+    <string name="help_contact_title">Contact</string>
+    <string name="help_contact_desc">Talk to support</string>
+    <string name="help_faq_title">Frequently Asked Questions</string>
+    <string name="help_faq_order">How to order online?</string>
+    <string name="help_faq_payment">What payment methods are supported?</string>
+    <string name="help_faq_delivery">How long does delivery take?</string>
+    <string name="help_hotline_title">FREE 24/7 HOTLINE</string>
+    <string name="help_hotline_number">1800 2091</string>
+    <string name="help_call_now">CALL NOW</string>
+    <string name="help_support_title">Submit Support Request</string>
+    <string name="help_support_desc">We will respond within 24 business hours.</string>
+    <string name="help_issue_label">ISSUE TYPE</string>
+    <string name="help_issue_hint">Select issue type</string>
+    <string name="help_description_label">DETAILED DESCRIPTION</string>
+    <string name="help_description_hint">Describe your issue in detail…</string>
+    <string name="help_submit">SUBMIT REQUEST</string>
+    <string name="help_sending">Sending…</string>
+    
+    <!-- Issue Categories -->
+    <string name="issue_product_defect">Product Defect</string>
+    <string name="issue_delivery">Delivery</string>
+    <string name="issue_payment">Payment</string>
+    <string name="issue_return">Returns</string>
+    <string name="issue_warranty">Warranty</string>
+    <string name="issue_other">Other</string>
+    <string name="issue_select_title">Select Issue Type</string>
+    
+    <!-- Snackbar Messages -->
+    <string name="msg_check_order_status">Check order status</string>
+    <string name="msg_view_orders">View orders</string>
+    <string name="msg_shipping_policy">Shipping policy</string>
+    <string name="msg_shipping_time">Delivery in 1-3 days within city, 3-5 days outside</string>
+    <string name="msg_payment_info">Supports COD, bank transfer, and VNPay</string>
+    <string name="msg_warranty_info">Official 12-month warranty according to manufacturer policy</string>
+    <string name="msg_return_policy">Returns within 7 days for manufacturer defects</string>
+    <string name="msg_contact_info">Hotline: 1800 2091 | Email: support@tgdd.shop</string>
+    <string name="msg_order_guide">Order: Select product → Add to cart → Proceed to checkout</string>
+    <string name="msg_payment_guide">Payment: COD, bank transfer, or via VNPay</string>
+    <string name="msg_delivery_time">Delivery: 1-3 days within city, 3-5 days outside</string>
+    <string name="msg_fill_description">Please enter issue description</string>
+    <string name="msg_submit_success">Request has been submitted</string>
+    <string name="msg_submit_failed">Submit failed: %s</string>
+    
+    <!-- Profile -->
+    <string name="notifications_coming_soon">Notifications coming soon</string>
+    <string name="pending_orders_coming_soon">Pending orders coming soon</string>
+    <string name="preparing_orders_coming_soon">Preparing orders coming soon</string>
+    <string name="shipped_orders_coming_soon">Shipped orders coming soon</string>
+    <string name="delivered_orders_coming_soon">Delivered orders coming soon</string>
+    <string name="order_status_pending">Pending</string>
+    <string name="order_status_preparing">Preparing</string>
+    <string name="order_status_shipped">Shipping</string>
+    <string name="order_status_delivered">Delivered</string>
+    <string name="logout_confirmation_message">Are you sure you want to logout?</string>
+    <string name="account_settings_title">Account Settings</string>
+    <string name="account_full_name">Full Name</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="profile_updated_success">Profile updated successfully.</string>
+    <string name="email_cannot_change">Email cannot be changed</string>
+    <string name="about_title">About TGDĐ</string>
+    <string name="about_message">Version 1.0.0\n\nTGDĐ - E-Commerce App with Voice Commerce\n\n© 2024 All rights reserved.</string>
+    
+    <!-- Features Coming Soon -->
+    <string name="voice_search_coming_soon">Voice search coming soon</string>
+    <string name="voice_permission_required">Microphone permission required for voice search</string>
+    <string name="voice_not_supported">Device does not support voice recognition</string>
+    <string name="voucher_feature_coming_soon">Voucher feature coming soon</string>
+    
+    <!-- Product Detail -->
+    <string name="specifications">Specifications</string>
+    <string name="customer_reviews">Customer Reviews</string>
+    <string name="reviews_format">(%d reviews)</string>
+    <string name="view_cart">View Cart</string>
+    <string name="line_total_format">Line Total: %1$s</string>
+    <string name="brand_unknown">Brand Unknown</string>
+    
+    <!-- Checkout -->
+    <string name="total_format">Total: %s VND</string>
+    <string name="order_placed_title">Order Placed!</string>
+    <string name="order_placed_message">Your order has been placed successfully.\n\nOrder ID: %s\n\nThank you for your purchase!</string>
+
+    <!-- Login prompt -->
+    <string name="login_prompt_title">Welcome!</string>
+    <string name="login_prompt_message">Login to view orders, manage account and shop easier.</string>
+
+    <!-- Email Verification -->
+    <string name="verify_email_title">Verify Email</string>
+    <string name="verifying_email">Verifying your email...</string>
+    <string name="email_verified_success">Your email has been verified successfully!</string>
+    <string name="email_verification_failed">Verification link is invalid or expired.</string>
+    <string name="go_to_login">Go to Login</string>
+    <string name="back_to_login">Back to Login</string>
+
+    <!-- Accessibility Content Descriptions -->
+    <string name="cart_button_description">View cart</string>
+    <string name="favorite_button">Add to favorites</string>
+    <string name="decrease_quantity">Decrease quantity</string>
+    <string name="increase_quantity">Increase quantity</string>
+    <string name="remove_from_cart">Remove from cart</string>
+    <string name="filter_button">Filter products</string>
+    <string name="back_button">Go back</string>
+    
+    <!-- Error Messages -->
+    <string name="error_title">An Error Occurred</string>
+    <string name="error_network_message">Please check your network connection\nand try again</string>
+    <string name="error_generic_message">An error occurred. Please try again later</string>
+    
+    <!-- Empty States -->
+    <string name="no_orders_yet">No orders yet</string>
+    <string name="buy_first_product_prompt">Buy your first product at TGDĐ!</string>
+    <string name="empty_cart_description">Add your favorite products\nto your cart</string>
+    <string name="explore_products">Explore Products</string>
+
+    <string name="city_hint">City/Province</string>
+
+    <!-- Brands -->
+    <string name="brand_samsung">SAMSUNG</string>
+    <string name="brand_apple">Apple</string>
+    <string name="brand_oppo">Oppo</string>
+    <string name="brand_xiaomi">Xiaomi</string>
+    <string name="brand_macbook">MACBOOK</string>
+    <string name="brand_apple_watch">APPLE WATCH</string>
+    <string name="series_9_ultra_2">Series 9 | Ultra 2</string>
+    <string name="air_m2_pro_m3">Air M2 | Pro M3</string>
+    
+    <!-- ============================================ -->
+    <!-- LOGIN SCREEN -->
+    <!-- ============================================ -->
+    <string name="brand_name">TGDĐ</string>
+    <string name="welcome_back">Welcome\nBack</string>
+    <string name="login_continue">Login to continue shopping</string>
+    <string name="password_hint">Password</string>
+    <string name="password_min_length_hint">Password (at least 6 characters)</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="login_button">Login</string>
+    <string name="or_text">or</string>
+    <string name="login_google">Sign in with Google</string>
+    <string name="no_account">Don\'t have an account? </string>
+    <string name="register_now">Register now</string>
+
+    <!-- ============================================ -->
+    <!-- FORGOT PASSWORD -->
+    <!-- ============================================ -->
+    <string name="forgot_password_title">Forgot Password?</string>
+    <string name="forgot_password_hint">Enter email to receive password reset link</string>
+    <string name="forgot_password_success">Password reset email sent. Please check your inbox.</string>
+    <string name="send_reset_email">Send Reset Email</string>
+
+    <!-- ============================================ -->
+    <!-- RESET PASSWORD -->
+    <!-- ============================================ -->
+    <string name="reset_password_title">Reset Password</string>
+    <string name="reset_password_hint">Enter your new password</string>
+    <string name="new_password">New Password</string>
+    <string name="confirm_new_password">Confirm New Password</string>
+    <string name="password_mismatch">Passwords do not match</string>
+    <string name="password_too_short">Password must be at least 6 characters</string>
+    <string name="reset_success_message">Password reset successfully. Redirecting...</string>
+    <string name="reset_password_button">Reset Password</string>
+    <string name="register_button">Register</string>
+    <string name="create_account">Create Account</string>
+    <string name="register_subtitle">Register to shop easier</string>
+    <string name="already_have_account">Already have an account? </string>
+
+    <!-- ============================================ -->
+    <!-- NEW STRINGS FOR LINT FIXES -->
+    <!-- ============================================ -->
+    <string name="register_account">Register Account</string>
+    <string name="product_badge_new">NEW</string>
+    <string name="default_web_client_id">528064211736-ujifc7h4rs4gkfcuub5ueqhuql7kssig.apps.googleusercontent.com</string>
+    
+    <!-- Product List Filters -->
+    <string name="filter_min_price_error">Minimum price must be less than maximum price</string>
+    <string name="filter_applied">Filter applied</string>
+    <string name="filter_cleared">Filter cleared</string>
+    <string name="no_products">No products found</string>
+    <string name="login_to_continue">Login to continue</string>
+    <string name="login_to_add_cart">You need to login to add products to cart.</string>
+
+    <!-- Language Settings -->
+    <string name="language">Language</string>
+    <string name="language_vietnamese">Tiếng Việt</string>
+    <string name="language_english">English</string>
+    <string name="language_changed">Language changed. Restart app to apply.</string>
+
+    <!-- i18n cleanup additions -->
+    <string name="orders_nav_label">Orders</string>
+    <string name="order_detail_nav_label">Order Details</string>
+    <string name="login_nav_label">Login</string>
+    <string name="register_nav_label">Register</string>
+    <string name="forgot_password_nav_label">Forgot Password</string>
+    <string name="login_failed_prefix">Login failed: %1$s</string>
+    <string name="google_login_cancelled">Google sign-in was cancelled</string>
+    <string name="login_email_required">Please enter email</string>
+    <string name="login_password_required">Please enter password</string>
+    <string name="google_login_button_text">Google Sign-In</string>
+    <string name="verify_email_message_loading">Verifying your email...</string>
+    <string name="verify_email_message_title">Verify Email</string>
+    <string name="verify_email_action_back_to_login">Back to Login</string>
+    <string name="login_to_continue_title">Login to continue</string>
+    <string name="login_to_continue_message">You need to log in to add products to your cart.</string>
+    <string name="in_stock">In stock</string>
+    <string name="out_of_stock">Out of stock</string>
+    <string name="default_quantity_text">1</string>
+    <string name="orders_count_default">0</string>
+    <string name="order_status_count_default">0</string>
+    <string name="order_status_label_example">Preparing</string>
+    <string name="order_date_example">03/20/2024 14:30</string>
+    <string name="address_example">123 Nguyen Trai, Ho Chi Minh City</string>
+    <string name="name_example">John Doe</string>
+    <string name="phone_example">+84 123 456 789</string>
+    <string name="payment_cash_example">Cash</string>
+    <string name="currency_example">1,500,000 ₫</string>
+    <string name="product_name_example">iPhone 15 Pro Max</string>
+    <string name="quantity_example">x1</string>
+    <string name="order_id_sample">#ABC12345</string>
+    <string name="reset_password_required">Please enter a new password</string>
+    <string name="confirm_password_required">Please confirm your password</string>
+    <string name="verify_email_failed_generic">Email verification failed. Please try again.</string>
+
+</resources>
