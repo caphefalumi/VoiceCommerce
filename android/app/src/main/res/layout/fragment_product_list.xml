@@ -108,14 +108,6 @@
                     android:textColorHint="@color/mobi_pulse_on_surface_variant"
                     android:textSize="14sp" />
 
-                <ImageButton
-                    android:id="@+id/micButton"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:background="@drawable/bg_mic_button"
-                    android:contentDescription="@string/voice_search"
-                    android:src="@drawable/ic_mic" />
-
             </LinearLayout>
 
             <ImageButton
@@ -174,30 +166,12 @@
                     android:textSize="13sp" />
 
                 <com.google.android.material.chip.Chip
-                    android:id="@+id/chipTablets"
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/inter"
-                    android:text="Máy tính bảng"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.chip.Chip
                     android:id="@+id/chipWearables"
                     style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/inter"
                     android:text="Đồng hồ"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chipAccessories"
-                    style="@style/Widget.Material3.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/inter"
-                    android:text="Phụ kiện"
                     android:textSize="13sp" />
 
             </com.google.android.material.chip.ChipGroup>
@@ -305,7 +279,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:indeterminateTint="?attr/colorPrimary"
+        android:indeterminateTint="@color/mobi_pulse_primary"
         android:visibility="gone" />
 
     <TextView
@@ -319,5 +293,20 @@
         android:textColor="@color/error"
         android:textSize="14sp"
         android:visibility="gone" />
+
+    <!-- Floating Voice Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/voiceButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="80dp"
+        android:contentDescription="@string/voice_assistant"
+        android:src="@drawable/ic_mic"
+        app:backgroundTint="@color/mobi_pulse_primary"
+        app:tint="@android:color/black"
+        app:elevation="6dp"
+        app:pressedTranslationZ="12dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
